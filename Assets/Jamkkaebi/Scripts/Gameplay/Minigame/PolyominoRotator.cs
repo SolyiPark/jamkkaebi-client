@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame
 {
-    public class PolyominoRotator
+    public static class PolyominoRotator
     {
         public static Vector2Int[] Rotate(Vector2Int[] shape, int rotationCount)
         {

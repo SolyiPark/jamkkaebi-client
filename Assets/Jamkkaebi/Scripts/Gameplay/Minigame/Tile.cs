@@ -23,5 +23,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             
             IsRevealed = true;
         }
+
+        public void Reinforce()
+        {
+            IsReinforced = true;
+        }
     }
 }
