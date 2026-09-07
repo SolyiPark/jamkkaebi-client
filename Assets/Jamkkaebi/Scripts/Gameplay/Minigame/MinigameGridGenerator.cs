@@ -16,8 +16,23 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             Vector2Int[] rotatedShape = PolyominoRotator.Rotate(polyShape, rotationCount);
             
             // 오프셋 범위 계산하기
-            Vector2Int polyBox =
-                new Vector2Int(rotatedShape.GetUpperBound(0) + 1, rotatedShape.GetUpperBound(1) + 1);
+            int maxX = rotatedShape[0].x;
+            int maxY = rotatedShape[0].y;
+
+            for (int i = 0; i < rotatedShape.Length; i++)
+            {
+                if (rotatedShape[i].x > maxX)
+                {
+                    maxX = rotatedShape[i].x;
+                }
+
+                if (rotatedShape[i].y > maxY)
+                {
+                    maxY = rotatedShape[i].y;
+                }
+            }
+            
+            Vector2Int polyBox =new Vector2Int(maxX + 1, maxY + 1);
             
             Vector2Int offset = new Vector2Int(Random.Range(0, tiles.GetLength(0) - polyBox.x + 1),
                 Random.Range(0, tiles.GetLength(1) - polyBox.y + 1));
@@ -51,7 +66,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             return true;
         }
 
-        public static bool TryPlaceSingleTile(TileContent content, Tile[,] tiles, List<Vector2Int> emptyCells, out Vector2Int placedCoordinate)
+        private static bool TryPlaceSingleTile(TileContent content, Tile[,] tiles, List<Vector2Int> emptyCells, out Vector2Int placedCoordinate)
         {
             // 그리드가 꽉 찼다면 실패
             if (emptyCells.Count == 0)
@@ -69,13 +84,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             return true;
         }
 
-        public static void PlaceTileType(TileContent content, int count, Tile[,] tiles, List<Vector2Int> emptyCells)
+        private static void PlaceTileType(TileContent content, int count, Tile[,] tiles, List<Vector2Int> emptyCells)
         {
             for (int c = 0; c < count; c++)
             {
                 if (!TryPlaceSingleTile(content, tiles, emptyCells, out _))
                 {
-                    throw new ArgumentException($"{c}번째 {content} 타일을 배치하는 데 실패하였습니다. 그리드가 모두 찼습니다.");
+                    throw new InvalidOperationException($"{c}번째 {content} 타일을 배치하는 데 실패하였습니다. 그리드가 모두 찼습니다.");
                 }
             }
         }
@@ -83,7 +98,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         public static MinigameGridResult Generate(MinigamePhaseConfig config)
         {
             // 1. 타일, 빈 셀 리스트 준비
-            const int maxAttempts = 1000;
+            const int MaxAttempts = 1000;
             
             Tile[,] tiles = new Tile[config.Width, config.Height];
             List<Vector2Int> emptyCells = new List<Vector2Int>();
@@ -101,10 +116,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             for (int i = 0; i < config.Shapes.Count; i++) {
                 bool placed = false;
 
-                for (int attmept = 0; attmept < maxAttempts; attmept++) {
-                    if (TryPlacePolyomino(config.Shapes[i], tiles, emptyCells, out var polyCoordinate))
+                for (int attempt = 0; attempt < MaxAttempts; attempt++) {
+                    if (TryPlacePolyomino(config.Shapes[i], tiles, emptyCells, out var polyCoordinates))
                     {
-                        groups[i] = new PolyominoGroup(config.Shapes[i], polyCoordinate);
+                        groups[i] = new PolyominoGroup(config.Shapes[i], polyCoordinates);
                         placed = true;
                         break;
                     }
@@ -112,7 +127,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
 
                 if (!placed)
                 {
-                    throw new ArgumentException($"폴리오미노 배치 실패: {i}번째 {config.Shapes[i]} 모양을 {maxAttempts}번 시도했지만 배치할 자리를 찾지 못했습니다.");
+                    throw new InvalidOperationException($"폴리오미노 배치 실패: {i}번째 {config.Shapes[i]} 모양을 {MaxAttempts}번 시도했지만 배치할 자리를 찾지 못했습니다.");
                 }
             }
             

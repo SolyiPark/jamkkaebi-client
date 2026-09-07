@@ -11,7 +11,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
 
             if (normalized == 0)
             {
-                return shape.Clone() as Vector2Int[];
+                return (Vector2Int[])shape.Clone();
             }
             
             newShape = Rotate90(shape);

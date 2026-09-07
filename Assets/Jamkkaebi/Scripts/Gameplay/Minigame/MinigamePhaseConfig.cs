@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame
 {
-    public struct MinigamePhaseConfig
+    public readonly struct MinigamePhaseConfig
     {
         public int Width { get; }
         public int Height { get; }
