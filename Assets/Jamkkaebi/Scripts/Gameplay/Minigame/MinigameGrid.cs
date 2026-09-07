@@ -1,9 +1,8 @@
+using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame
 {
-    
     public class MinigameGrid
     {
         public int Width { get; }
@@ -11,26 +10,30 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
 
         private readonly Tile[,] _tiles;
         
-        private readonly Dictionary<int, PolyominoGroup> _polyominoGroups;
+        public IReadOnlyList<PolyominoGroup> PolyominoGroups { get; }
 
-        public MinigameGrid(Tile[,] tiles, Dictionary<int, PolyominoGroup> groups)
+        public MinigameGrid(Tile[,] tiles, IReadOnlyList<PolyominoGroup> groups)
         {
             _tiles = tiles;
             Width = tiles.GetLength(0);
             Height = tiles.GetLength(1);
-            _polyominoGroups = groups;
+            PolyominoGroups = groups;
         }
 
         public Tile GetTile(int x, int y)
         {
+            if (!InBounds(x, y))
+            {
+                throw new ArgumentOutOfRangeException(nameof(x),
+                    $"({x}, {y})는 잘못된 좌표입니다. {Width}x{Height} 범위 안에서 타일을 조회해주세요.");
+            }
+            
             return _tiles[x, y];
         }
 
-        public IReadOnlyList<Vector2Int> GetGroupCoordinates(int groupId)
+        public bool InBounds(int x, int y)
         {
-            return _polyominoGroups.TryGetValue(groupId, out PolyominoGroup group)
-                ? group.Coordinates
-                : new List<Vector2Int>();
+            return x >= 0 && x < Width && y >= 0 && y < Height;
         }
     }
 }

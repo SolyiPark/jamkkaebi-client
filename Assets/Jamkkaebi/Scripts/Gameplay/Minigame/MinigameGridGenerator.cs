@@ -32,7 +32,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
                 }
             }
             
-            Vector2Int polyBox =new Vector2Int(maxX + 1, maxY + 1);
+            Vector2Int polyBox = new Vector2Int(maxX + 1, maxY + 1);
             
             Vector2Int offset = new Vector2Int(Random.Range(0, tiles.GetLength(0) - polyBox.x + 1),
                 Random.Range(0, tiles.GetLength(1) - polyBox.y + 1));
@@ -41,12 +41,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             List<Vector2Int> tryingCoordinates = new List<Vector2Int>();
             for (int i = 0; i < rotatedShape.Length; i++){
                 tryingCoordinates.Add(rotatedShape[i]+offset);
-                // 그리드 범위를 벗어났는지 검사
-                if (tryingCoordinates[i].x >= tiles.GetLength(0) || tryingCoordinates[i].y >= tiles.GetLength(1))
-                {
-                    placedCoordinates = new List<Vector2Int>();
-                    return false;
-                }
+                
                 // 중복 배치 검사
                 if (tiles[tryingCoordinates[i].x, tryingCoordinates[i].y] != null)
                 {
@@ -95,7 +90,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             }
         }
         
-        public static MinigameGridResult Generate(MinigamePhaseConfig config)
+        public static MinigameGrid Generate(MinigamePhaseConfig config)
         {
             // 1. 타일, 빈 셀 리스트 준비
             const int MaxAttempts = 1000;
@@ -141,7 +136,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
                 tiles[emptyCells[i].x, emptyCells[i].y] = new Tile(TileContent.Empty);
             }
             
-            // 5. 전체 그리드에서 타일 강화하기
+            // 5. 전체 그리드에서 타일 강화하기 (타깃/위협/도움 타일도 강화 대상에 포함됨)
             List<Vector2Int> cells = new List<Vector2Int>();
             for (int x = 0; x < config.Width; x++)
             {
@@ -159,17 +154,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             }
             
             // 6. 최종 그리드 만들기
-            Dictionary<int, PolyominoGroup> groupDict = new Dictionary<int, PolyominoGroup>();
-
-            for (int i = 0; i < config.Shapes.Count; i++)
-            {
-                groupDict.Add(i, groups[i]);
-            }
-            
-            MinigameGrid grid = new MinigameGrid(tiles, groupDict);
-            IReadOnlyList<int> groupdIds = new List<int>(groupDict.Keys);
-            
-            MinigameGridResult result = new MinigameGridResult(grid, groupdIds);
+            MinigameGrid result = new MinigameGrid(tiles, groups);
             
             return result;
         }

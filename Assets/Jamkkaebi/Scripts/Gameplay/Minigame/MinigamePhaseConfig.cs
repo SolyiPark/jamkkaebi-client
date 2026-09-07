@@ -17,7 +17,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             Width = width;
             Height = height;
             Shapes = shapes;
-            ThreatTileCount =  threatTileCount;
+            ThreatTileCount = threatTileCount;
             HelperTileCount = helperTileCount;
             ReinforcedTileCount = reinforcedTileCount;
         }
