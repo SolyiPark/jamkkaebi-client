@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame
 {
@@ -34,6 +35,16 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         public bool InBounds(int x, int y)
         {
             return x >= 0 && x < Width && y >= 0 && y < Height;
+        }
+
+        public bool IsExcavated(PolyominoGroup group)
+        {
+            return group.Coordinates.All(coord => GetTile(coord.x, coord.y).IsRevealed);
+        }
+
+        public bool AreAllPolyominoesExcavated()
+        {
+            return PolyominoGroups.All(IsExcavated);
         }
     }
 }

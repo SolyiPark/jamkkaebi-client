@@ -13,15 +13,17 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             IsReinforced = isReinforced;
         }
 
-        public void Reveal()
+        public RevealOutcome Reveal()
         {
+            if (IsRevealed) return RevealOutcome.AlreadyRevealed;
             if (IsReinforced)
             {
                 IsReinforced = false;
-                return;
+                return RevealOutcome.ReinforcementConsumed;
             }
             
             IsRevealed = true;
+            return RevealOutcome.Revealed;
         }
 
         public void Reinforce()
