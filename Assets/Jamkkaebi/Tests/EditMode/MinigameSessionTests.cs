@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Minigame;
 using NUnit.Framework;
 using UnityEngine;
@@ -49,7 +50,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseDestructiveTool_ThreatTileRevealed_IncreasesDamageGauge()
         {
             // Arrange
-            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent> {{new Vector2Int(0,0), TileContent.Threat}};
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent> {{new Vector2Int(0, 0), TileContent.Threat}};
             MinigameGrid grid = BuildGrid(2, 2, layout);
             MinigameSession session = new MinigameSession(grid, config);
             
@@ -60,6 +61,32 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(DestroyResult.Success, result);
             Assert.AreEqual(1f/3f, session.DamageGauge, 0.0001f);
             Assert.AreEqual(config.DestructiveToolLimit - 1, session.RemainingDestructiveToolUses);
+        }
+
+        [Test]
+        public void UseDestructiveTool_ReinforcedThreatTile_FirstUseConsumesReinforcement_SecondUseReveals()
+        {
+            // Arrange
+            Dictionary<Vector2Int, (TileContent, bool)> layout = new Dictionary<Vector2Int, (TileContent, bool)>
+                { { new Vector2Int(0, 0), (TileContent.Threat, true) } };
+            MinigameGrid grid = BuildGrid(2, 2, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            Tile targetTile = grid.GetTile(0, 0);
+            
+            // Act 1: 첫 번째 시도
+            session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+            
+            // Assert 1: 강화만 소모, 아직 안 열림, 게이지 변동 없음
+            Assert.IsFalse(targetTile.IsReinforced);
+            Assert.IsFalse(targetTile.IsRevealed);
+            Assert.AreEqual(0f, session.DamageGauge, 0.0001f);
+            
+            // Act 2: 두 번째 시도
+            session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+            
+            // Assert 2: 타일 개봉, 대미지 게이지 상승
+            Assert.IsTrue(targetTile.IsRevealed);
+            Assert.AreEqual(1f/3f, session.DamageGauge, 0.0001f);
         }
         
         // ==============
@@ -87,6 +114,15 @@ namespace Jamkkaebi.Tests.EditMode
         private MinigameGrid BuildGrid(int width, int height, Dictionary<Vector2Int, TileContent> layout,
             IReadOnlyList<PolyominoGroup> groups = null)
         {
+            Dictionary<Vector2Int, (TileContent, bool)> expandedLayout =
+                layout.ToDictionary(kvp => kvp.Key, kvp => (kvp.Value, false));
+            
+            return BuildGrid(width, height, expandedLayout, groups);
+        }
+        
+        private MinigameGrid BuildGrid(int width, int height, Dictionary<Vector2Int, (TileContent Content, bool IsReinforced)> layout,
+            IReadOnlyList<PolyominoGroup> groups = null)
+        {
             Tile[,] tiles = new Tile[width, height];
 
             for (int x = 0; x < width; x++)
@@ -95,11 +131,12 @@ namespace Jamkkaebi.Tests.EditMode
                 {
                     Vector2Int coord = new Vector2Int(x, y);
                     
-                    // TryGetValue: key가 없으면 기본값(enum의 경우 첫번째 값)을 out에 채움
-                    // 이 경우 첫번째 값이 Empty이므로 올바르게 동작
-                    layout.TryGetValue(coord, out TileContent content);
+                    // Key가 없는 경우 tileInfo에 기본값을 채움.
+                    // Content의 기본값은 Empty(열거형의 첫번째 값), bool의 기본값은 false
+                    // 따라서 layout으로 지정하지 않은 좌표에 대해서는 내용물이 없는 일반 타일을 설치
+                    layout.TryGetValue(coord, out var tileInfo);
                     
-                    tiles[x, y] = new Tile(content);
+                    tiles[x, y] = new Tile(tileInfo.Content, tileInfo.IsReinforced);
                 }
             }
             
