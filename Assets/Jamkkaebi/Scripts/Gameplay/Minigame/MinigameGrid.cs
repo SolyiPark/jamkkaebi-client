@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame
 {
@@ -30,6 +31,28 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             }
             
             return _tiles[x, y];
+        }
+
+        public IReadOnlyList<Vector2Int> GetRow(int y)
+        {
+            List<Vector2Int> coordinates = new List<Vector2Int>();
+            
+            for (int i = 0; i < Width; i++) {
+                coordinates.Add(new Vector2Int(i, y));
+            }
+            
+            return coordinates;
+        }
+        
+        public IReadOnlyList<Vector2Int> GetColumn(int x)
+        {
+            List<Vector2Int> coordinates = new List<Vector2Int>();
+            
+            for (int i = 0; i < Height; i++) {
+                coordinates.Add(new Vector2Int(x, i));
+            }
+            
+            return coordinates;
         }
 
         public bool InBounds(int x, int y)
