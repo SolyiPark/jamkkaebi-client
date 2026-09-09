@@ -8,7 +8,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
     public class MinigameSession
     {
         public MinigameGrid Grid { get; }                               // 미니게임 대상 그리드
-        private SessionState _state;                                    // 게임 상태 (진행 중, 성공, 실패)
+        public SessionState State { get; private set; }                             // 게임 상태 (진행 중, 성공, 실패)
 
         public float DamageGauge                                        // 손상도 게이지
         {
@@ -27,9 +27,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         public event Action<TileRevealResult> TileRevealAttempted;
         
         public MinigameSession(MinigamePhaseConfig config)
+            : this(MinigameGridGenerator.Generate(config), config)
         {
-            Grid = MinigameGridGenerator.Generate(config);
-            _state = SessionState.InProgress;
+        }
+
+        public MinigameSession(MinigameGrid grid, MinigamePhaseConfig config)
+        {
+            Grid = grid;
+            State = SessionState.InProgress;
             _allowedThreatHits = config.AllowedThreatHits;
             _threatHitsRevealed = 0;
             RemainingDestructiveToolUses = config.DestructiveToolLimit;
@@ -39,7 +44,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
 
         public void AdvanceTime(float deltaTime)
         {
-            if (_state != SessionState.InProgress)
+            if (State != SessionState.InProgress)
             {
                 return;
             }
@@ -50,7 +55,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
 
         public void EvaluateEndCondition()
         {
-            if (_state != SessionState.InProgress)
+            if (State != SessionState.InProgress)
             {
                 return;
             }
@@ -60,11 +65,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             // 성공/실패 판단. 성공 검사를 우선하여, 실패 조건 충족과 성공 조건 충족이 동시에 발생하면 성공으로 판정
             if (allExcavated)
             {
-                _state = SessionState.Succeeded;
+                State = SessionState.Succeeded;
             }
             else if (RemainingSeconds <= 0 || DamageGauge >= 1.0f || RemainingDestructiveToolUses <= 0)
             {
-                _state = SessionState.Failed;
+                State = SessionState.Failed;
             }
         }
 
@@ -94,7 +99,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         public DestroyResult UseDestructiveTool(Vector2Int origin, DestructiveToolType type)
         {
             // 가드1: 세션이 진행중이 아닐 때 -> SessionNotInProgress 반환
-            if (_state != SessionState.InProgress)
+            if (State != SessionState.InProgress)
             {
                 return DestroyResult.SessionNotInProgress;
             }
@@ -179,7 +184,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             threatCount = 0;
             
             // 가드1: 세션이 진행중이 아닐 때 -> SessionNotInProgress 반환
-            if (_state != SessionState.InProgress)
+            if (State != SessionState.InProgress)
             {
                 return ScoutResult.SessionNotInProgress;
             }
