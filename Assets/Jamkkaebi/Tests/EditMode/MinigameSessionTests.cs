@@ -88,6 +88,103 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsTrue(targetTile.IsRevealed);
             Assert.AreEqual(1f/3f, session.DamageGauge, 0.0001f);
         }
+
+        [Test]
+        public void UseDestructiveTool_OnRevealedTile_ReturnsNoValidTargets()
+        {
+            // Arrange
+            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, config);
+
+            grid.GetTile(0, 0).Reveal();
+            
+            // Act: 이미 개봉된 타일에 안전형 도구 사용
+            DestroyResult result = session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+            
+            // Assert: 결과는 NoValidTargets
+            Assert.AreEqual(DestroyResult.NoValidTargets, result);
+            Assert.AreEqual(config.DestructiveToolLimit, session.RemainingDestructiveToolUses);
+        }
+
+        [Test]
+        public void UseDestructiveTool_OnFourFifthsRevealedTile_ReturnsSuccess()
+        {
+            // Arrange
+            MinigameGrid grid = BuildGrid(3, 3, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            grid.GetTile(1, 0).Reveal();
+            grid.GetTile(0, 1).Reveal();
+            grid.GetTile(1, 1).Reveal();
+            grid.GetTile(1, 2).Reveal();
+            
+            // Act: 4칸만 개봉된 타일에 공격형 도구 사용
+            DestroyResult result = session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Attack);
+            
+            // Assert: 결과는 Success
+            Assert.AreEqual(DestroyResult.Success, result);
+            Assert.AreEqual(config.DestructiveToolLimit - 1, session.RemainingDestructiveToolUses);
+            Assert.IsTrue(grid.GetTile(2, 1).IsRevealed);
+        }
+
+        [Test]
+        public void UseTool_WithNoUsesRemaining_ReturnsNoUsesRemaining()
+        {
+            // Arrange
+            MinigamePhaseConfig zeroUsesConfig = new MinigamePhaseConfig(
+                width: 7,
+                height: 8,
+                shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
+                threatTileCount: 5,
+                helperTileCount: 2,
+                reinforcedTileCount: 3,
+                timeLimit: 60f,
+                destructiveToolLimit: 0,
+                scoutToolLimit: 3,
+                allowedThreatHits: 3 
+            );
+
+            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, zeroUsesConfig);
+            
+            // Act
+            DestroyResult result = session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+            
+            // Assert
+            Assert.AreEqual(DestroyResult.NoUsesRemaining, result);
+            Assert.IsFalse(grid.GetTile(0, 0).IsRevealed);
+        }
+
+        [Test]
+        public void UseDestructiveTool_SessionAlreadyFailed_ReturnsSessionNotInProgress()
+        {
+            // Arrange
+            MinigamePhaseConfig shortTimeConfig = new MinigamePhaseConfig(
+                width: 7,
+                height: 8,
+                shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
+                threatTileCount: 5,
+                helperTileCount: 2,
+                reinforcedTileCount: 3,
+                timeLimit: 1f,
+                destructiveToolLimit: 19,
+                scoutToolLimit: 3,
+                allowedThreatHits: 3 
+            );
+            
+            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, shortTimeConfig);
+            
+            session.AdvanceTime(2f);
+            Assert.AreEqual(SessionState.Failed, session.State);
+            
+            // Act
+            DestroyResult result = session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+            
+            // Assert
+            Assert.AreEqual(DestroyResult.SessionNotInProgress, result);
+            Assert.IsFalse(grid.GetTile(0, 0).IsRevealed);
+        }
         
         // ==============
         //      헬퍼들
