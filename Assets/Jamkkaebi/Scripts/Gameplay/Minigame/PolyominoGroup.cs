@@ -11,7 +11,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         public PolyominoGroup(PolyominoShape shape, IReadOnlyList<Vector2Int> coordinates)
         {
             Shape = shape;
-            Coordinates = coordinates;
+            Coordinates = new List<Vector2Int>(coordinates);
         }
     }
 }

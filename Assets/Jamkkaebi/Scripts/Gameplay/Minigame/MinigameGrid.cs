@@ -19,7 +19,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             _tiles = tiles;
             Width = tiles.GetLength(0);
             Height = tiles.GetLength(1);
-            PolyominoGroups = groups;
+            PolyominoGroups = new List<PolyominoGroup>(groups);
         }
 
         public Tile GetTile(int x, int y)
