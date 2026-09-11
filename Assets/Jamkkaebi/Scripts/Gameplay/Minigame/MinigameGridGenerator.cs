@@ -10,10 +10,22 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         private static bool TryPlacePolyomino(PolyominoShape shape, Tile[,] tiles, List<Vector2Int> emptyCells, out List<Vector2Int> placedCoordinates)
         {
             // 모양 가져오고 회전하기
+            // 회전 방향은 그리드 범위 안에서 가능한 후보를 뽑고 그 안에서 무작위 선택
             Vector2Int[] polyShape = PolyominoShapes.Definitions[shape];
+
+            List<Vector2Int[]> rotatedShapeCandidates = new List<Vector2Int[]>();
             
-            int rotationCount = Random.Range(0, 4);
-            Vector2Int[] rotatedShape = PolyominoRotator.Rotate(polyShape, rotationCount);
+            for (int n = 0; n < 4; n++)
+            {
+                Vector2Int[] rotatedShapeCandidate = PolyominoRotator.Rotate(polyShape, n);
+                Vector2Int polyBoxCandidate = GetBoundingBox(rotatedShapeCandidate);
+                if (polyBoxCandidate.x <= tiles.GetLength(0) && polyBoxCandidate.y <= tiles.GetLength(1))
+                {
+                    rotatedShapeCandidates.Add(rotatedShapeCandidate);
+                }
+            }
+            
+            Vector2Int[] rotatedShape = rotatedShapeCandidates[Random.Range(0, rotatedShapeCandidates.Count)];
             
             // 오프셋 범위 계산하기
             Vector2Int polyBox = GetBoundingBox(rotatedShape);
