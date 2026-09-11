@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# ---------------------------------------------------------------- #
+# AI 기본 설정 (언어 및 페르소나)
+# ---------------------------------------------------------------- #
+
+# AI가 응답할 때 사용할 기본 언어를 설정합니다.
+language: ko-KR
+
+# AI의 페르소나와 응답 톤앤매너를 지시합니다.
+tone_instructions: >
+  당신은 Unity/C# 실무 경험이 있는 시니어 멘토입니다. 사용자는 게임 개발 경험이 적은 학부생이므로,
+  완성 코드를 대신 제시하기보다 원인과 C# 표준 컨벤션을 설명하며 학습을 유도하세요.
+  애매한 부분은 두루뭉술하게 넘기지 말고 명확히 짚어주고, 필요하면 공식 문서를 함께 안내하세요.
+  칭찬은 짧게, 개선 제안은 구체적으로.
+
+# ---------------------------------------------------------------- #
+# 코드 리뷰 기능 세부 설정
+# ---------------------------------------------------------------- #
+reviews:
+  # 리뷰 프로필: quiet(핵심만) / chill(균형) / assertive(꼼꼼, 다소 잔소리 많음).
+  profile: chill
+
+  # CodeRabbit 코멘트가 모두 resolve되면 자동 Approve하는 기능.
+  request_changes_workflow: false
+
+  # PR 고수준 요약 생성 여부.
+  high_level_summary: true
+
+  # 변경된 각 파일에 대한 요약 생성 여부.
+  changed_files_summary: true
+
+  # 코드 실행 흐름의 시퀀스 다이어그램 생성 여부.
+  sequence_diagrams: true
+
+  # PR에 연결된 이슈를 분석해 리뷰 컨텍스트로 활용할지 여부.
+  assess_linked_issues: true
+
+  # 연관된 다른 이슈/PR을 찾아 링크할지 여부. 아직 이슈 수가 많지 않을 것 같아 꺼둡니다.
+  related_issues: false
+  related_prs: false
+
+  # PR 레이블 자동 제안/적용. 지금 단계에서는 필요성이 크지 않아 꺼둡니다.
+  suggested_labels: false
+  auto_apply_labels: false
+
+  # 리뷰어 자동 추천/할당.
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+
+  # 리뷰 요약에 위트 있는 시를 포함할지 여부.
+  poem: true
+
+  # 파일 경로별로 다른 리뷰 지침을 적용합니다.
+  path_instructions:
+    - path: "Assets/Scripts/**/*.cs"
+      instructions: |
+        1. 이 프로젝트에서 합의된 아키텍처 원칙을 기준으로 검토해주세요:
+           - 순수 게임 로직(MonoBehaviour 미사용 클래스)과 Unity 레이어(MonoBehaviour, UI)가 분리되어 있는지
+           - 외부에 노출하는 컬렉션은 IReadOnlyList<T> 등 읽기 전용 인터페이스로 통일되어 있는지
+           - 값 타입에는 readonly struct를 적용해 의도치 않은 변경을 막고 있는지
+           - 연쇄적으로 좌표/항목을 추가해야 하는 로직에는 Queue<T> 워크리스트 패턴이 적합한지
+           - 공간(그리드) 관련 조회 책임이 MinigameGrid 등 소유 클래스에 집중되어 있는지
+        2. Unity 특유의 함정도 짚어주세요: 파괴된 오브젝트와의 == 비교("가짜 null"), 코루틴/이벤트 구독 해제 누락, Update()에서의 불필요한 GetComponent 반복 호출 등.
+        3. 지적할 때는 "왜 문제인지"와 "C# 표준 컨벤션/공식 문서상 권장 방식"을 함께 설명해주세요. 완성된 대체 코드를 통째로 제시하기보다, 방향성과 근거를 제시해 학습을 유도해주세요.
+        4. 리뷰 피로도를 줄이기 위해 핵심 이슈에 집중하고, 사소한 스타일 지적은 캡션 수준으로 간단히 남겨주세요.
+        5. 리뷰는 해당 라인 범위의 코멘트로 남겨주세요.
+    - path: "**/Tests/**/*.cs"
+      instructions: |
+        1. Unity Test Runner(EditMode) 테스트 컨벤션을 기준으로 검토해주세요: Arrange-Act-Assert 구조, 테스트명이 시나리오와 기대 결과를 드러내는지.
+        2. 새로 추가/변경된 로직 중 테스트가 빠진 케이스가 있다면 어떤 케이스가 필요한지 제안해주세요(예: 경계값, 예외 상황, 상태 전이).
+        3. 테스트가 실제 동작이 아니라 구현 세부사항에 결합되어 있지는 않은지 확인해주세요.
+
+  # PR 생성 시 자동 리뷰 여부와, 커밋 추가 시 증분 재리뷰 여부.
+  # 매번 커맨드를 입력하기보다 자동으로 피드백을 받는 쪽이 학습 사이클에 더 유리해 보여 켰습니다.
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+
+# ---------------------------------------------------------------- #
+# 채팅 기능 설정
+# ---------------------------------------------------------------- #
+chat:
+  auto_reply: true
+
+# ---------------------------------------------------------------- #
+# CodeRabbit의 지식 기반(Knowledge Base) 설정
+# ---------------------------------------------------------------- #
+knowledge_base:
+  # 웹 검색으로 최신 C#/.NET/Unity 공식 문서를 참조하도록 허용. 컨벤션 학습에 유용해 유지했습니다.
+  web_search:
+    enabled: true
+
+  # 레포지토리 내 코드 컨벤션 문서를 리뷰 기준으로 사용.
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - Docs/csharp-convention.md
+
+  # 학습/이슈/PR 참조 범위. jamkkaebi-server 등 다른 레포와는 코드 성격이 달라
+  # 이 레포에서 배운 내용이 서로 섞이지 않도록 local(현재 레포 한정)로 설정했습니다.
+  learnings:
+    scope: local
+  issues:
+    scope: local
+  pull_requests:
+    scope: local
