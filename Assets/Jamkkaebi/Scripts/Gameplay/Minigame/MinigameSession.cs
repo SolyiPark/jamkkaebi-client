@@ -110,6 +110,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
                 return DestroyResult.NoUsesRemaining;
             }
             
+            // 가드3: origin이 범위 바깥일 때
+            if (!Grid.InBounds(origin.x, origin.y))
+            {
+                return DestroyResult.InvalidOrigin;
+            }
+            
             // 이번 시행에서 영향받는 좌표 구하기(InBound 검사만 완료됨, 이미 Reveal되었는지 여부는 다음 step에)
             List<Vector2Int> coordinates = GetAffectedCoordinates(origin, type);
 
@@ -164,17 +170,17 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             int newThreatHits = results.Count(r =>
                 r.Content == TileContent.Threat && r.Outcome == RevealOutcome.Revealed);
             _threatHitsRevealed += newThreatHits;
-
-            // TileRevealAttempted 이벤트 발행
-            foreach (TileRevealResult r in results)
-            {
-                TileRevealAttempted?.Invoke(r);
-            }
             
             // 도구 사용 횟수 차감
             RemainingDestructiveToolUses -= 1;
             
             EvaluateEndCondition();
+            
+            // TileRevealAttempted 이벤트 발행
+            foreach (TileRevealResult r in results)
+            {
+                TileRevealAttempted?.Invoke(r);
+            }
             
             return DestroyResult.Success;       // 정상 종료
         }
@@ -193,6 +199,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             if (RemainingScoutToolUses <= 0)
             {
                 return ScoutResult.NoUsesRemaining;
+            }
+            
+            // 가드3: origin이 범위 바깥일 때
+            if (!Grid.InBounds(origin.x, origin.y))
+            {
+                return ScoutResult.InvalidOrigin;
             }
 
             List<Vector2Int> coordinates = GetSurroundingCoordinates(origin);

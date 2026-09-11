@@ -4,6 +4,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
     {
         Success,
         NoUsesRemaining,
-        SessionNotInProgress
+        SessionNotInProgress,
+        InvalidOrigin
     }
 }
