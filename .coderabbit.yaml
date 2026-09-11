@@ -53,7 +53,7 @@ reviews:
 
   # 파일 경로별로 다른 리뷰 지침을 적용합니다.
   path_instructions:
-    - path: "Assets/Scripts/**/*.cs"
+    - path: "Assets/Jamkkaebi/Scripts/**/*.cs"
       instructions: |
         1. 이 프로젝트에서 합의된 아키텍처 원칙을 기준으로 검토해주세요:
            - 순수 게임 로직(MonoBehaviour 미사용 클래스)과 Unity 레이어(MonoBehaviour, UI)가 분리되어 있는지
