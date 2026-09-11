@@ -11,7 +11,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         {
             // 모양 가져오고 회전하기
             // 회전 방향은 그리드 범위 안에서 가능한 후보를 뽑고 그 안에서 무작위 선택
-            Vector2Int[] polyShape = PolyominoShapes.Definitions[shape];
+            IReadOnlyList<Vector2Int> polyShape = PolyominoShapes.Definitions[shape];
 
             List<Vector2Int[]> rotatedShapeCandidates = new List<Vector2Int[]>();
             
@@ -99,7 +99,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             int polyTileCount = 0;
             for (int i = 0; i < config.Shapes.Count; i++)
             {
-                polyTileCount += PolyominoShapes.Definitions[config.Shapes[i]].Length;
+                polyTileCount += PolyominoShapes.Definitions[config.Shapes[i]].Count;
             }
 
             int tileCount = polyTileCount + config.ThreatTileCount + config.HelperTileCount;
@@ -112,7 +112,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             // 3. 각 shape이 4방향 회전 중 최소 하나라도 그리드에 들어맞는지
             for (int i = 0; i < config.Shapes.Count; i++)
             {
-                Vector2Int[] polyShape = PolyominoShapes.Definitions[config.Shapes[i]];
+                IReadOnlyList<Vector2Int> polyShape = PolyominoShapes.Definitions[config.Shapes[i]];
                 bool fitsInGrid = false;
                 
                 for (int n = 0; n < 4; n++)

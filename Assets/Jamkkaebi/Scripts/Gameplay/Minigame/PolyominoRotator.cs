@@ -1,17 +1,19 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame
 {
     public static class PolyominoRotator
     {
-        public static Vector2Int[] Rotate(Vector2Int[] shape, int rotationCount)
+        public static Vector2Int[] Rotate(IReadOnlyList<Vector2Int> shape, int rotationCount)
         {
             int normalized = ((rotationCount % 4) + 4) % 4;
             Vector2Int[] newShape;
 
             if (normalized == 0)
             {
-                return (Vector2Int[])shape.Clone();
+                return shape.ToArray();
             }
             
             newShape = Rotate90(shape);
@@ -26,11 +28,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             return newShape;
         }
 
-        private static Vector2Int[] Rotate90(Vector2Int[] shape)
+        private static Vector2Int[] Rotate90(IReadOnlyList<Vector2Int> shape)
         {
-            Vector2Int[] result = new Vector2Int[shape.Length];
+            Vector2Int[] result = new Vector2Int[shape.Count];
             
-            for (int i = 0; i < shape.Length; i++)
+            for (int i = 0; i < shape.Count; i++)
             {
                 int temp = shape[i].x;
                 result[i].x = -shape[i].y;

@@ -5,8 +5,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
 {
     public static class PolyominoShapes
     {
-        public static readonly IReadOnlyDictionary<PolyominoShape, Vector2Int[]> Definitions =
-            new Dictionary<PolyominoShape, Vector2Int[]>
+        public static readonly IReadOnlyDictionary<PolyominoShape, IReadOnlyList<Vector2Int>> Definitions =
+            new Dictionary<PolyominoShape, IReadOnlyList<Vector2Int>>
             {
                 { PolyominoShape.Dot, new[] { new Vector2Int(0, 0) } },
                 { PolyominoShape.Line2, new[] { new Vector2Int(0, 0), new Vector2Int(0, 1) } },
