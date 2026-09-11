@@ -16,23 +16,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             Vector2Int[] rotatedShape = PolyominoRotator.Rotate(polyShape, rotationCount);
             
             // 오프셋 범위 계산하기
-            int maxX = rotatedShape[0].x;
-            int maxY = rotatedShape[0].y;
-
-            for (int i = 0; i < rotatedShape.Length; i++)
-            {
-                if (rotatedShape[i].x > maxX)
-                {
-                    maxX = rotatedShape[i].x;
-                }
-
-                if (rotatedShape[i].y > maxY)
-                {
-                    maxY = rotatedShape[i].y;
-                }
-            }
-            
-            Vector2Int polyBox = new Vector2Int(maxX + 1, maxY + 1);
+            Vector2Int polyBox = GetBoundingBox(rotatedShape);
             
             Vector2Int offset = new Vector2Int(Random.Range(0, tiles.GetLength(0) - polyBox.x + 1),
                 Random.Range(0, tiles.GetLength(1) - polyBox.y + 1));
@@ -89,9 +73,81 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
                 }
             }
         }
+
+        private static void ValidateConfig(MinigamePhaseConfig config)
+        {
+            // 1. ReinforcedTileCount <= Width * Height
+            if (config.ReinforcedTileCount > config.Width * config.Height)
+            {
+                throw new InvalidOperationException(
+                    $"{config.Width} * {config.Height} 그리드에는 {config.ReinforcedTileCount}개의 강화타일을 배치할 수 없습니다.");
+            }
+            
+            // 2. 폴리오미노 전체 칸 수 + ThreatTileCount + HelperTileCount <= Width * Height
+            int polyTileCount = 0;
+            for (int i = 0; i < config.Shapes.Count; i++)
+            {
+                polyTileCount += PolyominoShapes.Definitions[config.Shapes[i]].Length;
+            }
+
+            int tileCount = polyTileCount + config.ThreatTileCount + config.HelperTileCount;
+            if (tileCount > config.Width * config.Height)
+            {
+                throw new InvalidOperationException(
+                    $"{config.Width} * {config.Height} 그리드에 {tileCount}개의 타일을 배치할 수 없습니다.");
+            }
+            
+            // 3. 각 shape이 4방향 회전 중 최소 하나라도 그리드에 들어맞는지
+            for (int i = 0; i < config.Shapes.Count; i++)
+            {
+                Vector2Int[] polyShape = PolyominoShapes.Definitions[config.Shapes[i]];
+                bool fitsInGrid = false;
+                
+                for (int n = 0; n < 4; n++)
+                {
+                    Vector2Int[] rotatedShape = PolyominoRotator.Rotate(polyShape, n);
+                    Vector2Int polyBox = GetBoundingBox(rotatedShape);
+                    if (polyBox.x <= config.Width && polyBox.y <= config.Height)
+                    {
+                        fitsInGrid = true;
+                        break;
+                    }
+                }
+
+                if (!fitsInGrid)
+                {
+                    throw new InvalidOperationException(
+                        $"{config.Width} * {config.Height} 그리드에 {config.Shapes[i]} 폴리오미노를 배치할 수 없습니다.");
+                }
+            }
+        }
+
+        private static Vector2Int GetBoundingBox(Vector2Int[] shape)
+        {
+            int maxX = shape[0].x;
+            int maxY = shape[0].y;
+
+            for (int i = 0; i < shape.Length; i++)
+            {
+                if (shape[i].x > maxX)
+                {
+                    maxX = shape[i].x;
+                }
+
+                if (shape[i].y > maxY)
+                {
+                    maxY = shape[i].y;
+                }
+            }
+            
+            return new Vector2Int(maxX + 1, maxY + 1);
+        }
         
         public static MinigameGrid Generate(MinigamePhaseConfig config)
         {
+            // 0. configuration 유효성 검사(이 수치대로 그리드 배치가 실제로 가능한지)
+            ValidateConfig(config);
+            
             // 1. 타일, 빈 셀 리스트 준비
             const int MaxAttempts = 1000;
             
