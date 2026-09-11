@@ -185,6 +185,97 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(DestroyResult.SessionNotInProgress, result);
             Assert.IsFalse(grid.GetTile(0, 0).IsRevealed);
         }
+
+        [Test]
+        public void UseDestructiveTool_HelperRevealed_RowHasMoreUnrevealedTiles_OpensRow()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                {new Vector2Int(1, 1), TileContent.Helper}
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            grid.GetTile(1, 0).Reveal(); // 세로 방향 미개봉 타일을 줄여둠
+            
+            // Act
+            session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Safe);
+            
+            // Assert : y = 1인 가로 타일이 전체 열려야 함
+            Assert.IsTrue(grid.GetTile(0, 1).IsRevealed);
+            Assert.IsTrue(grid.GetTile(2, 1).IsRevealed);
+            
+            // Assert : 세로는 추가로 열리지 않아야 함
+            Assert.IsFalse(grid.GetTile(1, 2).IsRevealed);
+        }
+        
+        [Test]
+        public void UseDestructiveTool_HelperRevealed_ColumnHasMoreUnrevealedTiles_OpensColumn()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                {new Vector2Int(1, 1), TileContent.Helper}
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            grid.GetTile(0, 1).Reveal(); // 가로 방향 미개봉 타일을 줄여둠
+            
+            // Act
+            session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Safe);
+            
+            // Assert : x = 1인 세로 타일이 전체 열려야 함
+            Assert.IsTrue(grid.GetTile(1, 0).IsRevealed);
+            Assert.IsTrue(grid.GetTile(1, 2).IsRevealed);
+            
+            // Assert : 가로는 추가로 열리지 않아야 함
+            Assert.IsFalse(grid.GetTile(2, 1).IsRevealed);
+        }
+        
+        [Test]
+        public void UseDestructiveTool_HelperRevealed_SameNumberOfTilesRevealed_OpensRow()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                {new Vector2Int(1, 1), TileContent.Helper}
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            // Act
+            session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Safe);
+            
+            // Assert : y = 1인 가로 타일이 전체 열려야 함
+            Assert.IsTrue(grid.GetTile(0, 1).IsRevealed);
+            Assert.IsTrue(grid.GetTile(2, 1).IsRevealed);
+            
+            // Assert : 세로는 추가로 열리지 않아야 함
+            Assert.IsFalse(grid.GetTile(1, 0).IsRevealed);
+            Assert.IsFalse(grid.GetTile(1, 2).IsRevealed);
+        }
+        
+        [Test]
+        public void UseDestructiveTool_HelperRevealed_AnotherHelperRevealed_OccursChainReaction()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                {new Vector2Int(1, 1), TileContent.Helper},
+                {new Vector2Int(0, 1), TileContent.Helper}
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            // Act : 먼저 y = 1인 가로 줄 오픈, 그 다음 (0, 1)의 헬퍼 타일이 공개되면 가로는 이미 모두 열렸기 때문에 세로를 열어야 함
+            session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Safe);
+            
+            // Assert : 연쇄 반응으로 인해 x = 0인 세로 타일이 열려야 함
+            Assert.IsTrue(grid.GetTile(0, 0).IsRevealed);
+            Assert.IsTrue(grid.GetTile(0, 2).IsRevealed);
+        }
         
         // ==============
         //      헬퍼들
