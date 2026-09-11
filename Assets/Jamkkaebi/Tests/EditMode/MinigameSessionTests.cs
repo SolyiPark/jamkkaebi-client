@@ -46,6 +46,10 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(3, CountTiles(session.Grid, t => t.IsReinforced));
         }
 
+        // ============================
+        //      파괴형 도구 사용 테스트
+        // ============================
+        
         [Test]
         public void UseDestructiveTool_ThreatTileRevealed_IncreasesDamageGauge()
         {
@@ -255,6 +259,10 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsTrue(grid.GetTile(0, 2).IsRevealed);
         }
 
+        // ============================
+        //      정찰형 도구 사용 테스트
+        // ============================
+        
         [Test]
         public void UseScoutTool_CountsThreatsInSurroundingCells()
         {
@@ -361,6 +369,60 @@ namespace Jamkkaebi.Tests.EditMode
             // Assert
             Assert.AreEqual(ScoutResult.SessionNotInProgress, result);
             Assert.AreEqual(0, threatCount);
+        }
+        
+        // ==========================
+        //      게임 종료 조건 테스트
+        // ==========================
+
+        [Test]
+        public void AdvanceTime_TimeExpires_SetsStateToFailed()
+        {
+            // Arrange
+            MinigamePhaseConfig shortTimeConfig = WithTimeLimit(1f);
+            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, shortTimeConfig);
+            
+            // Act
+            session.AdvanceTime(2f);
+            
+            // Assert
+            Assert.AreEqual(0f, session.RemainingSeconds, 0.0001f);
+            Assert.AreEqual(SessionState.Failed, session.State);
+        }
+
+        [Test]
+        public void UseDestructiveTool_RevealedAllPolyominoes_SetStateToSucceeded()
+        {
+            // Arrange
+            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            // Act: 기본으로 세팅되는 우하단 dot 폴리오미노를 개봉
+            DestroyResult result = session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Safe);
+            
+            // Assert
+            Assert.IsTrue(grid.GetTile(1, 1).IsRevealed);
+            Assert.AreEqual(SessionState.Succeeded, session.State);
+            Assert.AreEqual(DestroyResult.Success, result);
+        }
+
+        [Test]
+        public void UseDestructiveTool_RevealedLastTarget_NoRemainingUses_SetStateToSucceeded()
+        {
+            // Arrange
+            MinigamePhaseConfig oneUseConfig = WithDestructiveToolLimit(1);
+            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, oneUseConfig);
+            
+            // Act
+            DestroyResult result = session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Safe);
+            
+            // Assert
+            Assert.IsTrue(grid.GetTile(1, 1).IsRevealed);
+            Assert.AreEqual(0, session.RemainingDestructiveToolUses);
+            Assert.AreEqual(SessionState.Succeeded, session.State);
+            Assert.AreEqual(DestroyResult.Success, result);
         }
         
         // ==============
