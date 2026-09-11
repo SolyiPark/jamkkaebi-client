@@ -128,21 +128,10 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         [Test]
-        public void UseTool_WithNoUsesRemaining_ReturnsNoUsesRemaining()
+        public void UseDestructiveTool_WithNoUsesRemaining_ReturnsNoUsesRemaining()
         {
             // Arrange
-            MinigamePhaseConfig zeroUsesConfig = new MinigamePhaseConfig(
-                width: 7,
-                height: 8,
-                shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
-                threatTileCount: 5,
-                helperTileCount: 2,
-                reinforcedTileCount: 3,
-                timeLimit: 60f,
-                destructiveToolLimit: 0,
-                scoutToolLimit: 3,
-                allowedThreatHits: 3 
-            );
+            MinigamePhaseConfig zeroUsesConfig = WithDestructiveToolLimit(0);
 
             MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
             MinigameSession session = new MinigameSession(grid, zeroUsesConfig);
@@ -159,18 +148,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseDestructiveTool_SessionAlreadyFailed_ReturnsSessionNotInProgress()
         {
             // Arrange
-            MinigamePhaseConfig shortTimeConfig = new MinigamePhaseConfig(
-                width: 7,
-                height: 8,
-                shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
-                threatTileCount: 5,
-                helperTileCount: 2,
-                reinforcedTileCount: 3,
-                timeLimit: 1f,
-                destructiveToolLimit: 19,
-                scoutToolLimit: 3,
-                allowedThreatHits: 3 
-            );
+            MinigamePhaseConfig shortTimeConfig = WithTimeLimit(1f);
             
             MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
             MinigameSession session = new MinigameSession(grid, shortTimeConfig);
@@ -276,6 +254,114 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsTrue(grid.GetTile(0, 0).IsRevealed);
             Assert.IsTrue(grid.GetTile(0, 2).IsRevealed);
         }
+
+        [Test]
+        public void UseScoutTool_CountsThreatsInSurroundingCells()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                { new Vector2Int(0, 0), TileContent.Threat }, // origin 기준 대각선 위
+                { new Vector2Int(1, 0), TileContent.Threat }, // origin 기준 위
+                { new Vector2Int(1, 1), TileContent.Threat } // origin 본인. 8칸에 포함되지 않음
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            // Act
+            ScoutResult result = session.UseScoutTool(new Vector2Int(1, 1), out int threatCount);
+            
+            // Assert
+            Assert.AreEqual(ScoutResult.Success, result);
+            Assert.AreEqual(2, threatCount);    // origin 자신은 제외하고 나머지 8방향 타일의 위협 타일을 카운트
+        }
+        
+        [Test]
+        public void UseScoutTool_DoesNotRevealAnyTiles()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                { new Vector2Int(0, 0), TileContent.Threat },
+                { new Vector2Int(1, 0), TileContent.Threat },
+                { new Vector2Int(1, 1), TileContent.Threat }
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            // Act
+            session.UseScoutTool(new Vector2Int(1, 1), out int threatCount);
+            
+            // Assert : 타일이 개봉되지 않고, 손상 게이지도 변화 없음
+            Assert.IsFalse(grid.GetTile(1, 1).IsRevealed);
+            Assert.IsFalse(grid.GetTile(0, 0).IsRevealed);
+            Assert.IsFalse(grid.GetTile(1, 0).IsRevealed);
+            Assert.AreEqual(0f, session.DamageGauge, 0.0001f);
+        }
+        
+        [Test]
+        public void UseScoutTool_ConsumesOnlyScoutToolUses()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                { new Vector2Int(0, 0), TileContent.Threat },
+                { new Vector2Int(1, 0), TileContent.Threat },
+                { new Vector2Int(1, 1), TileContent.Threat }
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            
+            // Act
+            session.UseScoutTool(new Vector2Int(1, 1), out int threatCount);
+            
+            // Assert : 정찰형 도구 자원만 소모되고 파괴형 도구 자원은 소모되지 않음
+            Assert.AreEqual(config.ScoutToolLimit - 1, session.RemainingScoutToolUses);
+            Assert.AreEqual(config.DestructiveToolLimit, session.RemainingDestructiveToolUses);
+        }
+        
+        [Test]
+        public void UseScoutTool_WithNoUsesRemaining_ReturnsNoUsesRemaining()
+        {
+            // Arrange
+            MinigamePhaseConfig zeroUsesConfig = WithScoutToolLimit(0);
+
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                { new Vector2Int(0, 0), TileContent.Threat },
+                { new Vector2Int(1, 0), TileContent.Threat },
+                { new Vector2Int(1, 1), TileContent.Threat }
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, zeroUsesConfig);
+            
+            // Act
+            ScoutResult result = session.UseScoutTool(new Vector2Int(0, 0), out int threatCount);
+            
+            // Assert
+            Assert.AreEqual(ScoutResult.NoUsesRemaining, result);
+            Assert.AreEqual(0, threatCount);
+        }
+
+        [Test]
+        public void UseScoutTool_SessionAlreadyFailed_ReturnsSessionNotInProgress()
+        {
+            // Arrange
+            MinigamePhaseConfig shortTimeConfig = WithTimeLimit(1f);
+            
+            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
+            MinigameSession session = new MinigameSession(grid, shortTimeConfig);
+            
+            session.AdvanceTime(2f);
+            Assert.AreEqual(SessionState.Failed, session.State);
+            
+            // Act
+            ScoutResult result = session.UseScoutTool(new Vector2Int(0, 0), out int threatCount);
+            
+            // Assert
+            Assert.AreEqual(ScoutResult.SessionNotInProgress, result);
+            Assert.AreEqual(0, threatCount);
+        }
         
         // ==============
         //      헬퍼들
@@ -338,6 +424,39 @@ namespace Jamkkaebi.Tests.EditMode
             };
             
             return new MinigameGrid(tiles, finalGroups);
+        }
+        
+        private MinigamePhaseConfig WithDestructiveToolLimit(int limit)
+        {
+            return new MinigamePhaseConfig(
+                width: config.Width, height: config.Height, shapes: config.Shapes,
+                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
+                reinforcedTileCount: config.ReinforcedTileCount, timeLimit: config.TimeLimit,
+                destructiveToolLimit: limit, scoutToolLimit: config.ScoutToolLimit,
+                allowedThreatHits: config.AllowedThreatHits
+            );
+        }
+        
+        private MinigamePhaseConfig WithScoutToolLimit(int limit)
+        {
+            return new MinigamePhaseConfig(
+                width: config.Width, height: config.Height, shapes: config.Shapes,
+                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
+                reinforcedTileCount: config.ReinforcedTileCount, timeLimit: config.TimeLimit,
+                destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: limit,
+                allowedThreatHits: config.AllowedThreatHits
+            );
+        }
+        
+        private MinigamePhaseConfig WithTimeLimit(float limit)
+        {
+            return new MinigamePhaseConfig(
+                width: config.Width, height: config.Height, shapes: config.Shapes,
+                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
+                reinforcedTileCount: config.ReinforcedTileCount, timeLimit: limit,
+                destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: config.ScoutToolLimit,
+                allowedThreatHits: config.AllowedThreatHits
+            );
         }
     }
 }
