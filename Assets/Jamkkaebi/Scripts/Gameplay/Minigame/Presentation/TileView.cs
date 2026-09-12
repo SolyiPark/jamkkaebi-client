@@ -20,12 +20,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _renderer = GetComponent<SpriteRenderer>();
         }
 
-        public void showCovered(bool isReinforced)
+        public void ShowCovered(bool isReinforced)
         {
             _renderer.color = isReinforced ? _reinforcedColor : _coveredColor;
         }
 
-        public void showRevealed(TileContent content)
+        public void ShowRevealed(TileContent content)
         {
             _renderer.color = content switch
             {

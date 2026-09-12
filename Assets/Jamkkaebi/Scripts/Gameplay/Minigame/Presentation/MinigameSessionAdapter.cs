@@ -43,7 +43,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 instance.transform.localPosition = GridToWorldPosition(coord);
                 
                 TileView view = instance.GetComponent<TileView>();
-                view.showCovered(tile.IsReinforced);
+                view.ShowCovered(tile.IsReinforced);
                 
                 _tileViews[coord] = view;
             }
@@ -97,7 +97,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     break;
                 case ToolMode.Scout:
                     _session.UseScoutTool(coord, out int threatCount);
-                    // threatCount 결과를 텍스트로 표시
+                    // TODO: threatCount 결과를 텍스트로 표시
                     break;
             }
         }
@@ -111,10 +111,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 case RevealOutcome.AlreadyRevealed:
                     break;
                 case RevealOutcome.ReinforcementConsumed:
-                    view.showCovered(false);
+                    view.ShowCovered(false);
                     break;
                 case RevealOutcome.Revealed:
-                    view.showRevealed(result.Content);
+                    view.ShowRevealed(result.Content);
                     break;
             }
         }
