@@ -1,4 +1,4 @@
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public enum DestructiveToolType
     {

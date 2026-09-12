@@ -1,4 +1,5 @@
 using Jamkkaebi.Scripts.Gameplay.Minigame;
+using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using UnityEngine;
 using UnityEngine.Serialization;
 

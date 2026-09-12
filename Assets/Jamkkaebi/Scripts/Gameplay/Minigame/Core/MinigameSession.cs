@@ -1,9 +1,9 @@
 using System;
-using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public class MinigameSession
     {

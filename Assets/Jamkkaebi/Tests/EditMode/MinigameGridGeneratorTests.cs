@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Minigame;
+using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using NUnit.Framework;
 using UnityEngine;
 

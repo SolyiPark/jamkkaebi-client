@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public static class MinigameGridGenerator
     {

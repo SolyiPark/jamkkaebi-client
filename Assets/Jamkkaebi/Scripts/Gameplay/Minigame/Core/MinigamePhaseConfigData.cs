@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     [Serializable]
     public class MinigamePhaseConfigData

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public static class PolyominoShapes
     {

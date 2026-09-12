@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public readonly struct MinigamePhaseConfig
     {
