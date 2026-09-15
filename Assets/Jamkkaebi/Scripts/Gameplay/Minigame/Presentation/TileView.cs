@@ -13,11 +13,24 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private Color _helperColor = Color.green;
         [SerializeField] private Color _threatColor = Color.red;
 
+        public Vector2Int Coordinate { get; private set; }
+        public event Action<Vector2Int> Clicked;
+        
         private SpriteRenderer _renderer;
 
         private void Awake()
         {
             _renderer = GetComponent<SpriteRenderer>();
+        }
+
+        public void Initialize(Vector2Int coordinate)
+        {
+            Coordinate = coordinate;
+        }
+
+        private void OnMouseDown()
+        {
+            Clicked?.Invoke(Coordinate);
         }
 
         public void ShowCovered(bool isReinforced)

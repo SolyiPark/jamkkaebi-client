@@ -14,6 +14,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private GameObject _tilePrefab;
         [SerializeField] private Transform _gridContainer;
         [SerializeField] private float _tileSize = 1f;
+        [SerializeField] [Range(0.5f, 1f)] private float _tileFillRatio = 0.9f;
         
         private MinigameSession _session;
         private Dictionary<Vector2Int, TileView> _tileViews;
@@ -31,6 +32,34 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 return;
             }
             
+            BeginSession();
+        }
+
+        public void BeginSession()
+        {
+            // 1. 이전 세션 정리
+            if (_session != null)
+            {
+                _session.TileRevealAttempted -= OnTileRevealAttempted;
+            }
+
+            if (_tickCoroutine != null)
+            {
+                StopCoroutine(_tickCoroutine);
+                _tickCoroutine = null;
+            }
+
+            if (_tileViews != null)
+            {
+                foreach (TileView view in _tileViews.Values)
+                {
+                    Destroy(view.gameObject);
+                }
+            }
+            
+            _hasHandledEnd = false;
+            
+            // 2. 새 세션 생성
             MinigamePhaseConfig config = _relicData.GetPhaseConfig(_phaseIndex);
             _session = new MinigameSession(config);
             _tileViews = new Dictionary<Vector2Int, TileView>();
@@ -41,15 +70,26 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 
                 GameObject instance = Instantiate(_tilePrefab, _gridContainer);
                 instance.transform.localPosition = GridToWorldPosition(coord);
+                instance.transform.localScale = new Vector3(_tileSize * _tileFillRatio, _tileSize * _tileFillRatio, 1f);
                 
                 TileView view = instance.GetComponent<TileView>();
+                view.Initialize(coord);
                 view.ShowCovered(tile.IsReinforced);
+                view.Clicked += HandleTileClicked;
                 
                 _tileViews[coord] = view;
             }
             
             _session.TileRevealAttempted += OnTileRevealAttempted;
             _tickCoroutine = StartCoroutine(TickRoutine());
+        }
+
+        private void Update()
+        {
+            // TODO: 정식 도구 선택 UI 완성되면 해당 Update는 필요 없음
+            if (Input.GetKeyDown(KeyCode.Alpha1)) SelectTool(ToolMode.SafeDestroy);
+            if (Input.GetKeyDown(KeyCode.Alpha2)) SelectTool(ToolMode.AttackDestroy);
+            if (Input.GetKeyDown(KeyCode.Alpha3)) SelectTool(ToolMode.Scout);
         }
 
         private void OnDisable()
@@ -62,7 +102,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private Vector2 GridToWorldPosition(Vector2Int coord)
         {
-            return new Vector2(coord.x * _tileSize, coord.y * _tileSize);
+            float offsetX = (_session.Grid.Width - 1) * _tileSize * 0.5f;
+            float offsetY = (_session.Grid.Height - 1) * _tileSize * 0.5f;
+            return new Vector2(coord.x * _tileSize - offsetX, coord.y * _tileSize - offsetY);
         }
 
         private IEnumerator TickRoutine()
@@ -80,6 +122,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public void SelectTool(ToolMode mode)
         {
             _selectedTool = mode;
+            Debug.Log($"도구 변경: {mode}");
             ToolSelectionChanged?.Invoke(mode);
         }
 
@@ -88,22 +131,33 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             switch (_selectedTool)
             {
                 case ToolMode.SafeDestroy:
-                    _session.UseDestructiveTool(coord, DestructiveToolType.Safe);
+                {
+                    DestroyResult result = _session.UseDestructiveTool(coord, DestructiveToolType.Safe);
+                    Debug.Log($"({coord.x}, {coord.y}) 안전 파괴 결과: {result}");
                     HandleSessionEndIfNeeded();
                     break;
+                }
                 case ToolMode.AttackDestroy:
-                    _session.UseDestructiveTool(coord, DestructiveToolType.Attack);
+                {
+                    DestroyResult result = _session.UseDestructiveTool(coord, DestructiveToolType.Attack);
+                    Debug.Log($"({coord.x}, {coord.y}) 공격 파괴 결과: {result}");
                     HandleSessionEndIfNeeded();
                     break;
+                }
                 case ToolMode.Scout:
-                    _session.UseScoutTool(coord, out int threatCount);
-                    // TODO: threatCount 결과를 텍스트로 표시
+                {
+                    ScoutResult result = _session.UseScoutTool(coord, out int threatCount);
+                    Debug.Log($"({coord.x}, {coord.y}) 정찰 결과: {result}, 위협 타일 {threatCount}개");
+                    // TODO: threatCount 결과를 타일 위에 텍스트로 표시
                     break;
+                }
             }
         }
 
         private void OnTileRevealAttempted(TileRevealResult result)
         {
+            Debug.Log($"({result.Coordinate.x}, {result.Coordinate.y}) {result.Content} / {result.Outcome}");
+            
             TileView view = _tileViews[result.Coordinate];
 
             switch (result.Outcome)
