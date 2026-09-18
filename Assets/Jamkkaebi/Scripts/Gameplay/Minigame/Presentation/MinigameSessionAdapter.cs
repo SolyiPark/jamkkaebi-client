@@ -86,6 +86,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private void Update()
         {
+            if (Time.timeScale <= 0f) return;       // 일시정지 중 도구 전환 무시
+            
             // TODO: 정식 도구 선택 UI 완성되면 해당 Update는 필요 없음
             if (Input.GetKeyDown(KeyCode.Alpha1)) SelectTool(ToolMode.SafeDestroy);
             if (Input.GetKeyDown(KeyCode.Alpha2)) SelectTool(ToolMode.AttackDestroy);
@@ -132,6 +134,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private void HandleTileClicked(Vector2Int coord)
         {
+            if (Time.timeScale <= 0f) return;       // 일시정지 중 클릭 무시
+            
             switch (_selectedTool)
             {
                 case ToolMode.SafeDestroy:
