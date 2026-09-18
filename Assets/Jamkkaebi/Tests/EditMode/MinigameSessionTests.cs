@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Jamkkaebi.Scripts.Gameplay.Minigame;
+using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -271,7 +271,7 @@ namespace Jamkkaebi.Tests.EditMode
             {
                 { new Vector2Int(0, 0), TileContent.Threat }, // origin 기준 대각선 위
                 { new Vector2Int(1, 0), TileContent.Threat }, // origin 기준 위
-                { new Vector2Int(1, 1), TileContent.Threat } // origin 본인. 8칸에 포함되지 않음
+                { new Vector2Int(1, 1), TileContent.Threat } // origin 본인
             };
             MinigameGrid grid = BuildGrid(3, 3, layout);
             MinigameSession session = new MinigameSession(grid, config);
@@ -281,7 +281,7 @@ namespace Jamkkaebi.Tests.EditMode
             
             // Assert
             Assert.AreEqual(ScoutResult.Success, result);
-            Assert.AreEqual(2, threatCount);    // origin 자신은 제외하고 나머지 8방향 타일의 위협 타일을 카운트
+            Assert.AreEqual(3, threatCount);
         }
         
         [Test]

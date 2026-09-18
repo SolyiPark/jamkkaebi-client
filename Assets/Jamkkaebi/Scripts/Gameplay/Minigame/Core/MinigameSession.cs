@@ -1,9 +1,9 @@
 using System;
-using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public class MinigameSession
     {
@@ -207,7 +207,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
                 return ScoutResult.InvalidOrigin;
             }
 
-            List<Vector2Int> coordinates = GetSurroundingCoordinates(origin);
+            List<Vector2Int> coordinates = GetScoutArea(origin);
             
             threatCount = coordinates.Count(c => Grid.GetTile(c.x, c.y).Content == TileContent.Threat);
 
@@ -216,18 +216,17 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
             return ScoutResult.Success;
         }
 
-        private List<Vector2Int> GetSurroundingCoordinates(Vector2Int origin)
+        private List<Vector2Int> GetScoutArea(Vector2Int origin)
         {
             List<Vector2Int> candidates = new List<Vector2Int>();
             
-            candidates.Add(new Vector2Int(origin.x-1, origin.y-1));
-            candidates.Add(new Vector2Int(origin.x, origin.y-1));
-            candidates.Add(new Vector2Int(origin.x+1, origin.y-1));
-            candidates.Add(new Vector2Int(origin.x-1, origin.y));
-            candidates.Add(new Vector2Int(origin.x+1, origin.y));
-            candidates.Add(new Vector2Int(origin.x-1, origin.y+1));
-            candidates.Add(new Vector2Int(origin.x, origin.y+1));
-            candidates.Add(new Vector2Int(origin.x+1, origin.y+1));
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    candidates.Add(new Vector2Int(origin.x + dx, origin.y + dy));
+                }
+            }
             
             return candidates.Where(c => Grid.InBounds(c.x, c.y)).ToList();
         }

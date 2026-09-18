@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Jamkkaebi.Scripts.Gameplay.Minigame
+namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public class MinigameGrid
     {
@@ -68,6 +68,17 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame
         public bool AreAllPolyominoesExcavated()
         {
             return PolyominoGroups.All(IsExcavated);
+        }
+        
+        public IEnumerable<Vector2Int> AllCoordinates()
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    yield return new Vector2Int(x, y);
+                }
+            }
         }
     }
 }
