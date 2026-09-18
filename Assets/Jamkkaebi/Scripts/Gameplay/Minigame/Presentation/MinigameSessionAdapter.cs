@@ -109,10 +109,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private IEnumerator TickRoutine()
         {
+            float lastTime = Time.time;
+            
             while (_session.State == SessionState.InProgress)
             {
                 yield return new WaitForSeconds(1f);
-                _session.AdvanceTime(1f);
+                float now = Time.time;
+                _session.AdvanceTime(now - lastTime);
+                lastTime = now;
                 // TODO: 타이머 텍스트 갱신
             }
             
