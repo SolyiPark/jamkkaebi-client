@@ -177,6 +177,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         {
             if (_hasHandledEnd || _session.State == SessionState.InProgress) return;
             _hasHandledEnd = true;
+            Debug.Log($"세션 종료: {_session.State} (남은 시간: {_session.RemainingSeconds:F1}s, 손상도: {_session.DamageGauge:P0})");
             // TODO: 세션 종료 결과 화면 처리
         }
     }
