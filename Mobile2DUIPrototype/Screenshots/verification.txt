@@ -1,0 +1,29 @@
+ALL CHECKS PASSED
+PASS four additive scenes loaded
+PASS home selected; profile visible
+PASS isolated camera layer 0
+PASS RenderTexture allocated 0
+PASS isolated camera layer 1
+PASS RenderTexture allocated 1
+PASS isolated camera layer 2
+PASS RenderTexture allocated 2
+PASS isolated camera layer 3
+PASS RenderTexture allocated 3
+PASS profile data event updates visible UI
+PASS mirrored uGUI button receives pointer click
+PASS mirrored 2D collider receives drag
+PASS non-home viewport expands into header area
+PASS hidden home continues running by default
+PASS input only reaches selected scene
+PASS tab return preserves counter and dragged object
+PASS pause policy freezes hidden scene updates
+PASS paused scene resumes with state retained
+PASS restart-on-return reloads scene to initial state
+PASS developer restart command resets current scene
+PASS pointer mapping works on tab 0
+PASS pointer mapping works on tab 1
+PASS pointer mapping works on tab 2
+PASS pointer mapping works on tab 3
+PASS tall-screen render target matches viewport aspect
+PASS pointer mapping survives resolution change
+PASS layout supports wider portrait screen
