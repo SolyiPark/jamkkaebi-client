@@ -1,10 +1,11 @@
 using System;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 {
-    public class TileView : MonoBehaviour
+    public class TileView : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] private Color _coveredColor = Color.gray;
         [SerializeField] private Color _reinforcedColor = new Color(0.3f, 0.3f, 0.3f); // 진한 회색
@@ -14,6 +15,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private Color _threatColor = Color.red;
 
         public Vector2Int Coordinate { get; private set; }
+        public bool UsesPointerEvents { get; set; }
         public event Action<Vector2Int> Clicked;
         
         private SpriteRenderer _renderer;
@@ -30,7 +32,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private void OnMouseDown()
         {
-            Clicked?.Invoke(Coordinate);
+            if (!UsesPointerEvents) Clicked?.Invoke(Coordinate);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (UsesPointerEvents && eventData.button == PointerEventData.InputButton.Left)
+                Clicked?.Invoke(Coordinate);
         }
 
         public void ShowCovered(bool isReinforced)

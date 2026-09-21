@@ -1,0 +1,4 @@
+{
+  "name": "MobileUI.Runtime",
+  "references": ["Unity.ugui", "Jamkkaebi.Runtime"]
+}
