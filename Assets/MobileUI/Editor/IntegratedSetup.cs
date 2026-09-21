@@ -103,7 +103,7 @@ public static class IntegratedSetup
         }
         var shell = EditorSceneManager.OpenScene(PrototypeSetup.Shell);
         foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None)) cam.GetUniversalAdditionalCameraData().renderPostProcessing = false;
-        new GameObject("Integrated Verification (opt-in)", typeof(IntegratedVerification));
+        EnsureSingleVerification(shell);
         EditorSceneManager.SaveScene(shell);
         PrototypeSetup.SyncBuildScenes();
         PlayerSettings.defaultScreenWidth = 540;
@@ -114,6 +114,21 @@ public static class IntegratedSetup
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
         AssetDatabase.SaveAssets();
         Debug.Log("INTEGRATION_PREPARED");
+    }
+
+    internal static void EnsureSingleVerification(UnityEngine.SceneManagement.Scene scene)
+    {
+        var verifications = scene.GetRootGameObjects()
+            .SelectMany(root => root.GetComponentsInChildren<IntegratedVerification>(true)).ToArray();
+        if (verifications.Length == 0)
+        {
+            var verification = new GameObject("Integrated Verification (opt-in)", typeof(IntegratedVerification));
+            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(verification, scene);
+            return;
+        }
+
+        // Remove only duplicate components; their objects may contain other scene content.
+        foreach (var duplicate in verifications.Skip(1)) Object.DestroyImmediate(duplicate);
     }
 
     private static Button Button(string name, string label, Transform parent, Font font, Vector2 min, Vector2 max)
