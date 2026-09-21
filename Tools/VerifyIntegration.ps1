@@ -28,4 +28,9 @@ $process = Start-Process -FilePath $player -ArgumentList @(
 $report = Join-Path $runOutput 'verification.txt'
 if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw "Player verification failed; see $runOutput" }
 if ((Get-Content -LiteralPath $report -First 1) -ne 'ALL CHECKS PASSED') { throw "Checks failed; see $report" }
+# The in-player report is written before shutdown. Check the final log as well.
+$playerLog = Join-Path $runOutput 'player.log'
+if (Select-String -LiteralPath $playerLog -Pattern 'GarbageCollector disposing of ComputeBuffer|Unreleased non-evictable resource|Sprite fallback buffer cleanup is unavailable' -Quiet) {
+    throw "GPU buffer shutdown validation failed; see $playerLog"
+}
 Write-Output "EditMode tests and integrated player checks passed. Results: $outputRoot"
