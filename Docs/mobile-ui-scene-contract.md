@@ -15,4 +15,4 @@
 
 씬을 추가하면 `Prototype > Sync Build Scenes From Catalog`를 실행합니다. GUID와 .meta를 보존하고 Library/Temp/Builds/Logs를 소스에 추가하지 않습니다. 공통 셸, 패키지, 입력 설정, 빌드 목록을 변경하면 전체 탭 검증을 수행합니다.
 
-`IntegratedVerification`은 현재 홈 더미·작업대 미니게임·도감 더미·친구 더미 구성을 검증합니다. 콘텐츠가 바뀌면 검증도 함께 갱신합니다. 원래 네 더미 씬 전용 `PrototypeVerification` 결과를 통합 검증으로 사용하지 않습니다.
+`IntegratedVerification`은 현재 홈 더미·작업대 미니게임·도감 더미·친구 더미 구성을 검증합니다. 콘텐츠가 바뀌면 검증도 함께 갱신합니다. 원래 네 더미 씬 전용 구형 검증 코드는 제거했습니다.

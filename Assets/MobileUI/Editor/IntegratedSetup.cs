@@ -103,7 +103,6 @@ public static class IntegratedSetup
         }
         var shell = EditorSceneManager.OpenScene(PrototypeSetup.Shell);
         foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None)) cam.GetUniversalAdditionalCameraData().renderPostProcessing = false;
-        foreach (var old in Object.FindObjectsByType<PrototypeVerification>(FindObjectsSortMode.None)) Object.DestroyImmediate(old);
         new GameObject("Integrated Verification (opt-in)", typeof(IntegratedVerification));
         EditorSceneManager.SaveScene(shell);
         PrototypeSetup.SyncBuildScenes();
