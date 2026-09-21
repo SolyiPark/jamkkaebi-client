@@ -1,3 +1,4 @@
 {
-  "name": "Jamkkaebi.Runtime"
+  "name": "Jamkkaebi.Runtime",
+  "references": ["Unity.ugui"]
 }

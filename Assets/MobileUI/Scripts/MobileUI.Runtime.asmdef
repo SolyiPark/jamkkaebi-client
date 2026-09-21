@@ -1,0 +1,11 @@
+{
+  "name": "MobileUI.Runtime",
+  "references": ["Unity.ugui", "Jamkkaebi.Runtime"],
+  "versionDefines": [
+    {
+      "name": "com.unity.2d.animation",
+      "expression": "[13.0.6,13.0.7)",
+      "define": "SPRITE_FALLBACK_CLEANUP_13_0_6"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+<linker>
+  <!-- 2D Animation 13.0.6 Windows shutdown workaround uses this private method. -->
+  <assembly fullname="Unity.2D.Animation.Runtime" ignoreIfMissing="1">
+    <type fullname="UnityEngine.U2D.Animation.GpuDeformationSystem" preserve="nothing">
+      <method name="ClearFallbackBuffer" />
+    </type>
+  </assembly>
+</linker>
