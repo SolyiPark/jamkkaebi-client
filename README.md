@@ -19,7 +19,7 @@
 - `Packages/`, `ProjectSettings/`: 프로젝트 전체에서 한 벌만 사용합니다. 기존 URP 및 Both 입력 설정을 유지합니다.
 - `Assets/MobileUI/Configuration/MainTabs.asset`: 탭 목록과 배경 실행 정책.
 
-기본적으로 숨겨진 탭도 계속 실행되므로 작업대 타이머도 진행됩니다. `Background Policy`를 `Pause While Hidden`으로 바꾸면 숨긴 동안 멈추고, `Restart On Return`은 돌아올 때 초기화합니다.
+작업대는 `Background Policy`가 `Pause While Hidden`으로 설정되어 있어 탭을 떠나면 타이머와 게임이 멈추고, 돌아오면 같은 상태에서 이어집니다. 다른 탭은 계속 실행됩니다. `MainTabs`에서 탭별로 `Continue Running`(계속 실행), `Pause While Hidden`(숨김 중 동결), `Restart On Return`(복귀 시 초기화)을 선택할 수 있습니다.
 
 단독 미니게임 개발에는 `Assets/Jamkkaebi/Scenes/Minigame.unity`를 사용할 수 있습니다. 통합 작업대 씬은 이를 바탕으로 구성했고, 공통 UI 안에서는 포인터 입력을 사용합니다.
 

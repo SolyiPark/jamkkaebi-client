@@ -12,7 +12,7 @@
 | 자산 GUID 중복 / .meta 누락 | 0 / 0 |
 | 기존 미니게임 Core·Data 및 패키지·Unity 버전 | 원본 main과 동일 |
 
-통합 검사는 셸과 콘텐츠 씬 로드, 공용 EventSystem/AudioListener 단일성, 프로필 갱신, 홈 버튼·드래그, 하단 탭 선택, 탭별 카메라 격리, URP 출력, 56개 발굴 타일 생성, 타일 클릭 1회당 도구 1회 소비, 모델 및 스프라이트 갱신, 정찰과 피드백, 전역 일시정지 입력 차단, 숨겨진 작업대의 시간 진행 및 입력 차단, 숨김 일시정지·복귀·씬 재시작, 새 발굴, 화면 비율 변경을 포함합니다.
+통합 검사는 셸과 콘텐츠 씬 로드, 공용 EventSystem/AudioListener 단일성, 프로필 갱신, 홈 버튼·드래그, 하단 탭 선택, 탭별 카메라 격리, URP 출력, 56개 발굴 타일 생성, 타일 클릭 1회당 도구 1회 소비, 모델 및 스프라이트 갱신, 정찰과 피드백, 전역 일시정지 입력 차단, 숨겨진 작업대의 타이머 동결 및 입력 차단, 숨김 일시정지·복귀·씬 재시작, 새 발굴, 화면 비율 변경을 포함합니다.
 
 검사 화면 크기는 540×960, 480×1040, 768×1024입니다. GPU 출력에서 내용이 그려지고 오류 셰이더 색상이 없는지 검사했고, 저장된 화면도 시각적으로 확인했습니다.
 
@@ -38,8 +38,12 @@ Unity Editor를 닫고 저장소 루트에서 실행합니다.
 .\Tools\VerifyIntegration.ps1 -EditorPath 'D:\UnityEditors\6000.3.23f1\Editor\Unity.exe'
 ```
 
-`Logs/Integration/EditMode.xml`, `Logs/Integration/build.log`, `Logs/Integration/Player-20260921-190859/verification.txt`가 이번 로컬 실행의 증거입니다. 로그와 빌드 산출물은 Git에서 제외되며, 재검증하면 새 실행 폴더가 생성됩니다.
+`Logs/Integration/EditMode.xml`, `Logs/Integration/build-pause.log`, `Logs/Integration/Player-Pause-20260921-191319/verification.txt`가 이번 로컬 실행의 증거입니다. 로그와 빌드 산출물은 Git에서 제외되며, 재검증하면 새 실행 폴더가 생성됩니다.
 
 일반 실행 파일: `Builds/Integrated/Jamkkaebi.exe`. 검증 옵션 없이 실행하면 자동 테스트 없이 조작할 수 있습니다.
 
 이 결과는 위 범위의 통합 검증 통과를 뜻하며 모든 기기에서 무결함을 보장하지 않습니다. 통합 작업은 로컬에만 보관했고 GitHub push/PR 변경/병합은 수행하지 않았습니다.
+
+## 작업대 동결 기본값 적용
+
+작업대의 Background Policy를 Pause While Hidden으로 변경한 후 Windows 실행 파일을 다시 빌드했습니다. 기본 설정 그대로 작업대를 떠났을 때 남은 시간이 변하지 않고, 복귀 시 도구 사용 횟수와 진행 상태를 유지한 채 재개하는 검사를 포함하여 통합 검사 49개가 모두 통과했습니다. 정책은 MainTabs Inspector에서 계속 변경할 수 있습니다.

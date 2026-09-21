@@ -165,7 +165,9 @@ namespace MobilePrototype
             Time.timeScale = 1;
             float remaining = adapter.Session.RemainingSeconds;
             host.SelectTab(0); yield return new WaitForSeconds(.35f);
-            Check(adapter.Session.RemainingSeconds < remaining - .2f, "default hidden workshop continues ticking");
+            Check(host.catalog.tabs[1].backgroundPolicy == BackgroundPolicy.PauseWhileHidden &&
+                Mathf.Abs(adapter.Session.RemainingSeconds - remaining) < .001f,
+                "default hidden workshop freezes timer and retains session");
             adapter.SelectTool(ToolMode.AttackDestroy);
             Check(adapter.SelectedTool == ToolMode.Scout && !adapter.CanAcceptInput, "hidden workshop rejects input");
             Check(homeCounter.count == 1, "minigame input does not change home");
@@ -188,7 +190,7 @@ namespace MobilePrototype
             adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
             presenter = host.GetRoot(1).GetComponent<WorkshopPresenter>();
             Check(!host.IsBusy && adapter.Session != previousSession && adapter.Session.RemainingDestructiveToolUses == 30, "return restart creates fresh minigame session");
-            host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.ContinueRunning;
+            host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
             Click(host, CoveredEmpty(adapter).transform.position);
             Click(host, presenter.restartButton.transform.position);
             yield return null;

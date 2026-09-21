@@ -11,7 +11,7 @@
 
 탭은 별도 Physics2D 씬으로 Additive 로드됩니다. 층 8~31은 탭별 카메라 격리에 예약되어 있습니다. 런타임 생성 오브젝트는 해당 콘텐츠 씬 및 부모 레이어를 따라야 합니다. 2D 입력에는 Collider2D와 포인터 인터페이스를 사용합니다. 중앙 RawImage의 `MirrorInput`만 선택된 탭에 입력을 전달합니다. 장식 UI는 Raycast Target을 끕니다.
 
-기본 배경 정책은 계속 실행입니다. 숨김 상태에서 게임 시간이 진행되는 점을 고려하세요. Pause While Hidden은 루트 비활성화 방식이므로 구독 및 코루틴 수명 처리를 구현해야 합니다. Restart On Return은 씬을 다시 로드합니다. 전역 timeScale을 바꾸어 특정 탭만 멈추지 않습니다.
+작업대는 Pause While Hidden, 나머지 탭은 Continue Running으로 설정되어 있습니다. 작업대를 떠나면 타이머와 게임이 동결되고 돌아오면 상태를 유지하며 재개합니다. Pause While Hidden은 루트 비활성화 방식이므로 구독 및 코루틴 수명 처리를 구현해야 합니다. Restart On Return은 씬을 다시 로드합니다. 전역 timeScale을 바꾸어 특정 탭만 멈추지 않습니다.
 
 씬을 추가하면 `Prototype > Sync Build Scenes From Catalog`를 실행합니다. GUID와 .meta를 보존하고 Library/Temp/Builds/Logs를 소스에 추가하지 않습니다. 공통 셸, 패키지, 입력 설정, 빌드 목록을 변경하면 전체 탭 검증을 수행합니다.
 
