@@ -1,0 +1,80 @@
+ALL CHECKS PASSED
+PASS shell and four content scenes load
+PASS one shared EventSystem
+PASS one enabled AudioListener
+PASS home profile visible
+PASS profile updates from data source
+PASS home has ten independent artwork layers
+PASS home demo replaced by exhibition
+PASS session introduction completes
+PASS housing uses invisible 7x7 logical grid
+PASS logical cell stable through screen mapping and zoom 1
+PASS logical cell stable through screen mapping and zoom 1.4
+PASS logical cell stable through screen mapping and zoom 0.8
+PASS swipe parallax operates independently after introduction
+PASS screenshot contains visible rendered frame: Home_Swipe_Preview.png
+PASS short held swipe cancels and resets parallax
+PASS swipe left selects tab 1
+PASS swipe left selects tab 2
+PASS swipe left selects tab 3
+PASS last tab does not wrap
+PASS swipe right selects tab 2
+PASS swipe right selects tab 1
+PASS swipe right selects tab 0
+PASS first tab does not wrap or replay intro
+PASS bottom tab button selects 0
+PASS isolated camera layer 0
+PASS profile visibility 0
+PASS tab renders content without error-shader pixels: 0
+PASS screenshot contains visible rendered frame: 01_Home.png
+PASS bottom tab button selects 1
+PASS isolated camera layer 1
+PASS profile visibility 1
+PASS tab renders content without error-shader pixels: 1
+PASS screenshot contains visible rendered frame: 02_Workshop.png
+PASS bottom tab button selects 2
+PASS isolated camera layer 2
+PASS profile visibility 2
+PASS tab renders content without error-shader pixels: 2
+PASS screenshot contains visible rendered frame: 03_Collection.png
+PASS bottom tab button selects 3
+PASS isolated camera layer 3
+PASS profile visibility 3
+PASS tab renders content without error-shader pixels: 3
+PASS screenshot contains visible rendered frame: 04_Friends.png
+PASS dedicated object drag retains gesture instead of switching tab
+PASS existing 7x8 excavation grid instantiated
+PASS spawned tiles belong to workshop scene and render layer
+PASS swiping from excavation tile does not click it
+PASS preview does not resume hidden workshop
+PASS input cancellation restores tab
+PASS mirrored tile click consumes exactly one tool use
+PASS tile click updates existing core model
+PASS tile model event updates sprite
+PASS touch tool selection chooses scout
+PASS scout updates count and UI feedback
+PASS global pause blocks tool selection
+PASS global pause blocks tile input
+PASS default hidden workshop freezes timer and retains session
+PASS hidden workshop rejects input
+PASS minigame input does not replay home intro
+PASS hidden pause freezes workshop timer
+PASS resume retains state and resumes timer
+PASS tile event subscription restored after pause
+PASS return restart creates fresh minigame session
+PASS new excavation resets session without duplicate tiles
+PASS screenshot contains visible rendered frame: Home_480x1040.png
+PASS grid mapping after viewport resize (480, 1040)
+PASS render texture matches viewport (480, 1040)
+PASS grid stays between controls (480, 1040)
+PASS tile mapping after resize (480, 1040)
+PASS tab renders content without error-shader pixels: 1
+PASS screenshot contains visible rendered frame: Workshop_480x1040.png
+PASS screenshot contains visible rendered frame: Home_768x1024.png
+PASS grid mapping after viewport resize (768, 1024)
+PASS render texture matches viewport (768, 1024)
+PASS grid stays between controls (768, 1024)
+PASS tile mapping after resize (768, 1024)
+PASS tab renders content without error-shader pixels: 1
+PASS screenshot contains visible rendered frame: Workshop_768x1024.png
+PASS no runtime errors during integration checks

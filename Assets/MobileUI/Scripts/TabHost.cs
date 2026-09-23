@@ -1,4 +1,5 @@
 using System;
+using MobilePrototype.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,7 +21,10 @@ namespace MobilePrototype
         public float toolbarHeight = 124;
         public int ActiveIndex { get; private set; } = -1;
         public bool IsReady { get; private set; }
-        public bool IsBusy { get; private set; }
+        private bool _loading;
+        private TabTransition _transition;
+        public bool IsBusy { get => _loading || (_transition && _transition.IsActive); private set => _loading = value; }
+        public TabTransition Transition => _transition;
         public MirrorSceneRoot ActiveRoot => ActiveIndex >= 0 ? roots[ActiveIndex] : null;
         private MirrorSceneRoot[] roots;
         private RenderTexture[] textures;
@@ -39,6 +43,9 @@ namespace MobilePrototype
             roots = new MirrorSceneRoot[catalog.tabs.Count];
             textures = new RenderTexture[roots.Length];
             visited = new bool[roots.Length];
+            _transition = gameObject.AddComponent<TabTransition>();
+            _transition.Initialize(this);
+            input.ConfigureNavigation(this);
             BuildToolbar();
             IsBusy = true;
             int first = Mathf.Clamp(catalog.initialTab, 0, roots.Length - 1);
@@ -50,6 +57,10 @@ namespace MobilePrototype
                 yield return Load(i);
                 if (!roots[i]) { IsBusy = false; yield break; }
             }
+            // Capture initial previews once; inactive PauseWhileHidden scenes never run during swipes.
+            foreach (var root in roots) root.sceneCamera.enabled = true;
+            yield return null;
+            yield return null;
             IsReady = true; IsBusy = false;
             status.gameObject.SetActive(false);
             Show(first);
@@ -87,7 +98,7 @@ namespace MobilePrototype
             }
             textures[index] = NewTexture(index);
             roots[index].Configure(8 + index, textures[index]);
-            roots[index].SetPaused(definition.backgroundPolicy != BackgroundPolicy.ContinueRunning);
+            roots[index].SetPaused(false);
         }
         private RenderTexture NewTexture(int index)
         {
@@ -122,8 +133,11 @@ namespace MobilePrototype
                 {
                     if (!roots[i]) continue;
                     roots[i].sceneCamera.targetTexture = null;
-                    textures[i].Release(); Destroy(textures[i]);
+                    var previous = textures[i];
                     textures[i] = NewTexture(i);
+                    // Preserve paused-tab previews across aspect changes without running their gameplay.
+                    Graphics.Blit(previous, textures[i]);
+                    previous.Release(); Destroy(previous);
                     roots[i].sceneCamera.targetTexture = textures[i];
                 }
                 mirror.texture = textures[ActiveIndex];
@@ -142,9 +156,24 @@ namespace MobilePrototype
             if (!IsReady || index < 0 || index >= roots.Length) return;
             if (IsBusy) { pendingTab = index; return; }
             if (index == ActiveIndex) return;
-            if (visited[index] && catalog.tabs[index].backgroundPolicy == BackgroundPolicy.RestartOnReturn)
+            input.Cancel();
+            if (_transition.Begin(index)) _transition.Settle(true);
+        }
+        public bool BeginSwipe(int direction)
+        {
+            if (!IsReady || IsBusy) return false;
+            return _transition.Begin(ActiveIndex + direction);
+        }
+        public void CompleteTransition(int index)
+        {
+            if (index != ActiveIndex && visited[index] && catalog.tabs[index].backgroundPolicy == BackgroundPolicy.RestartOnReturn)
                 StartCoroutine(Restart(index, true));
-            else Show(index);
+            else { Show(index); ProcessPending(); }
+        }
+        private void ProcessPending()
+        {
+            if (pendingTab < 0) return;
+            int next = pendingTab; pendingTab = -1; SelectTab(next);
         }
         private void Show(int index)
         {
@@ -159,6 +188,8 @@ namespace MobilePrototype
             Layout(catalog.tabs[index].showProfile);
             mirror.texture = textures[index];
             input.Bind(roots[index]);
+            var exhibition = roots[index].GetComponent<ExhibitionView>();
+            if (exhibition) exhibition.NotifyVisible();
             RefreshStyles();
         }
         [ContextMenu("Restart Current Scene Now")]

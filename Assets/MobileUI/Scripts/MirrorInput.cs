@@ -16,6 +16,15 @@ namespace MobilePrototype
         private int? pointer;
         private GameObject pressed, dragged;
         private bool dragging;
+        private TabHost _host;
+        private bool _swiping;
+        private bool _verticalGesture;
+        private Vector2 _screenPress;
+        private Vector2 _lastScreen;
+        private float _lastTime;
+        private float _velocity;
+        public void ConfigureNavigation(TabHost host) => _host = host;
+        private float ViewportScreenWidth => Mathf.Max(1, ((RectTransform)transform).rect.width * GetComponentInParent<Canvas>().scaleFactor);
         private readonly List<RaycastResult> hits = new List<RaycastResult>();
         public void Bind(MirrorSceneRoot target) { Cancel(); Target = target; }
         public Vector2 MapPosition(Vector2 screenPosition, Camera eventCamera)
@@ -61,9 +70,13 @@ namespace MobilePrototype
         }
         public void OnPointerDown(PointerEventData input)
         {
-            if (pointer.HasValue || !Target || !Target.sceneCamera.targetTexture) return;
+            if (pointer.HasValue || !Target || !Target.sceneCamera.targetTexture || (_host && _host.IsBusy)) return;
             if (input.button != PointerEventData.InputButton.Left) return;
             pointer = input.pointerId;
+            _screenPress = _lastScreen = input.position;
+            _lastTime = Time.unscaledTime;
+            _velocity = 0;
+            _verticalGesture = false;
             forwarded = new PointerEventData(EventSystem.current) { pointerId = input.pointerId, button = input.button, eligibleForClick = true };
             UpdatePosition(input);
             forwarded.delta = Vector2.zero;
@@ -84,6 +97,32 @@ namespace MobilePrototype
         public void OnDrag(PointerEventData input)
         {
             if (pointer != input.pointerId || forwarded == null || !Target) return;
+            var screenDelta = input.position - _screenPress;
+            float now = Time.unscaledTime;
+            _velocity = (input.position.x - _lastScreen.x) / Mathf.Max(.016f, now - _lastTime) / ViewportScreenWidth;
+            _lastScreen = input.position; _lastTime = now;
+            // Dedicated draggable objects retain their gesture. Empty areas and buttons allow tab swipes.
+            if (!_swiping && !dragged && !_verticalGesture && _host)
+            {
+                float threshold = Mathf.Max(12, ViewportScreenWidth * .018f);
+                if (Mathf.Abs(screenDelta.y) > threshold && Mathf.Abs(screenDelta.y) > Mathf.Abs(screenDelta.x))
+                    _verticalGesture = true;
+                else if (Mathf.Abs(screenDelta.x) > threshold && Mathf.Abs(screenDelta.x) > Mathf.Abs(screenDelta.y) * 1.2f)
+                {
+                    _swiping = _host.BeginSwipe(screenDelta.x < 0 ? 1 : -1);
+                    if (_swiping)
+                    {
+                        forwarded.eligibleForClick = false;
+                        if (pressed) ExecuteEvents.Execute(pressed, forwarded, ExecuteEvents.pointerUpHandler);
+                        pressed = null;
+                    }
+                }
+            }
+            if (_swiping)
+            {
+                _host.Transition.Drag(screenDelta.x / ViewportScreenWidth);
+                return;
+            }
             UpdatePosition(input);
             if (!dragging)
             {
@@ -97,6 +136,13 @@ namespace MobilePrototype
         public void OnPointerUp(PointerEventData input)
         {
             if (pointer != input.pointerId || forwarded == null || !Target) return;
+            if (_swiping)
+            {
+                float velocity = Time.unscaledTime - _lastTime > .12f ? 0 : _velocity;
+                Clear();
+                _host.Transition.Release(velocity);
+                return;
+            }
             UpdatePosition(input);
             if (pressed) ExecuteEvents.Execute(pressed, forwarded, ExecuteEvents.pointerUpHandler);
             var click = ExecuteEvents.GetEventHandler<IPointerClickHandler>(forwarded.pointerCurrentRaycast.gameObject);
@@ -107,6 +153,8 @@ namespace MobilePrototype
         }
         public void Cancel()
         {
+            bool cancelSwipe = _swiping;
+            _swiping = false;
             if (forwarded != null)
             {
                 forwarded.eligibleForClick = false;
@@ -114,8 +162,9 @@ namespace MobilePrototype
                 if (dragging && dragged) ExecuteEvents.Execute(dragged, forwarded, ExecuteEvents.endDragHandler);
             }
             Clear();
+            if (cancelSwipe && _host) _host.Transition.Cancel();
         }
-        private void Clear() { pointer = null; forwarded = null; pressed = dragged = null; dragging = false; }
+        private void Clear() { _swiping = false; _verticalGesture = false; pointer = null; forwarded = null; pressed = dragged = null; dragging = false; }
         private void OnDisable() => Cancel();
         private void OnApplicationFocus(bool focus) { if (!focus) Cancel(); }
     }

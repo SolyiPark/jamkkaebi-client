@@ -1,4 +1,5 @@
 using System;
+using MobilePrototype.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -96,12 +97,33 @@ namespace MobilePrototype
         {
             var screenshot = ScreenCapture.CaptureScreenshotAsTexture();
             if (!screenshot) throw new Exception("Screenshot capture failed: " + filename);
+            Check(screenshot.GetPixels32().Count(c => c.r > 20 || c.g > 20 || c.b > 20) > screenshot.width * screenshot.height / 4,
+                "screenshot contains visible rendered frame: " + filename);
             File.WriteAllBytes(Path.Combine(_output, filename), screenshot.EncodeToPNG());
             Destroy(screenshot);
+        }
+        private PointerEventData PointerAt(TabHost host, Vector2 uv)
+        {
+            var rect = host.viewport.rect;
+            var screen = RectTransformUtility.WorldToScreenPoint(null, host.viewport.TransformPoint(new Vector3(
+                Mathf.Lerp(rect.xMin, rect.xMax, uv.x), Mathf.Lerp(rect.yMin, rect.yMax, uv.y))));
+            return new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = screen, button = PointerEventData.InputButton.Left };
+        }
+        private IEnumerator Swipe(TabHost host, float direction)
+        {
+            var pointer = PointerAt(host, new Vector2(.5f, .8f));
+            host.input.OnPointerDown(pointer);
+            pointer.position += Vector2.right * Screen.width * .4f * direction;
+            host.input.OnDrag(pointer);
+            host.input.OnPointerUp(pointer);
+            yield return new WaitForSeconds(.35f);
         }
         private IEnumerator Run()
         {
             // Establish the test viewport after a hidden process launch as well.
+            Screen.SetResolution(541, 961, FullScreenMode.Windowed);
+            yield return new WaitForSeconds(.2f);
             Screen.SetResolution(540, 960, FullScreenMode.Windowed);
             yield return new WaitForSeconds(.5f);
             var host = FindFirstObjectByType<TabHost>();
@@ -116,17 +138,53 @@ namespace MobilePrototype
             Check(host.profileBar.GetComponent<ProfileBar>().nickname.text == "통합 테스트", "profile updates from data source");
             profile.SetProfile(new ProfileData());
             yield return new WaitForSeconds(.4f);
-            var homeCounter = host.GetRoot(0).GetComponentInChildren<DemoCounter>();
-            Click(host, homeCounter.button.transform.position);
-            Check(homeCounter.count == 1, "home mirrored button click");
-            var drag = host.GetRoot(0).GetComponentInChildren<DemoDraggable>();
-            var before = drag.transform.position;
-            var pointer = new PointerEventData(EventSystem.current)
-            { pointerId = -1, position = ScreenPoint(host, before), button = PointerEventData.InputButton.Left };
-            host.input.OnPointerDown(pointer);
-            pointer.position += new Vector2(50, 30);
-            host.input.OnDrag(pointer); host.input.OnPointerUp(pointer);
-            Check(Vector3.Distance(before, drag.transform.position) > .1f, "home mirrored collider drag");
+            var exhibition = host.GetRoot(0).GetComponent<ExhibitionView>();
+            Check(exhibition && exhibition.GetComponentsInChildren<ExhibitionLayer>().Length == 10, "home has ten independent artwork layers");
+            Check(!host.GetRoot(0).GetComponentInChildren<DemoCounter>(), "home demo replaced by exhibition");
+            yield return new WaitForSeconds(1.5f);
+            Check(exhibition.Intro.IsComplete, "session introduction completes");
+            var surface = exhibition.GetComponentInChildren<ExhibitionSurface>();
+            Check(surface && surface.Grid && surface.Grid.Size == new Vector2Int(7, 7), "housing uses invisible 7x7 logical grid");
+            var expectedCell = new Vector2Int(3, 4);
+            foreach (float zoom in new[] { 1f, 1.4f, .8f })
+            {
+                exhibition.SetView(new Vector2(.1f, -.1f), zoom);
+                yield return null;
+                yield return null;
+                var mapped = host.input.MapPosition(ScreenPoint(host, surface.CellWorldPosition(expectedCell)), null);
+                Check(surface.TryGetCell(host.ActiveRoot.sceneCamera, mapped, out var cell) && cell == expectedCell,
+                    "logical cell stable through screen mapping and zoom " + zoom);
+            }
+            exhibition.SetView(Vector2.zero, 1);
+            yield return null;
+            var dragPointer = PointerAt(host, new Vector2(.5f, .8f));
+            host.input.OnPointerDown(dragPointer);
+            dragPointer.position -= Vector2.right * Screen.width * .12f;
+            host.input.OnDrag(dragPointer);
+            yield return null;
+            Check(host.Transition.IsActive && exhibition.TransitionOffset < 0 && exhibition.Intro.IsComplete,
+                "swipe parallax operates independently after introduction");
+            yield return new WaitForEndOfFrame();
+            Capture("Home_Swipe_Preview.png");
+            yield return new WaitForSeconds(.15f);
+            host.input.OnPointerUp(dragPointer);
+            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 0 && !host.IsBusy && exhibition.TransitionOffset == 0,
+                "short held swipe cancels and resets parallax");
+            for (int i = 1; i < 4; i++)
+            {
+                yield return Swipe(host, -1);
+                Check(host.ActiveIndex == i, "swipe left selects tab " + i);
+            }
+            yield return Swipe(host, -1);
+            Check(host.ActiveIndex == 3, "last tab does not wrap");
+            for (int i = 2; i >= 0; i--)
+            {
+                yield return Swipe(host, 1);
+                Check(host.ActiveIndex == i, "swipe right selects tab " + i);
+            }
+            yield return Swipe(host, 1);
+            Check(host.ActiveIndex == 0 && exhibition.Intro.IsComplete, "first tab does not wrap or replay intro");
             for (int i = 0; i < 4; i++)
             {
                 var button = host.toolbar.GetChild(i).GetComponent<Button>();
@@ -140,11 +198,41 @@ namespace MobilePrototype
                 Capture($"0{i+1}_{host.catalog.tabs[i].id}.png");
                 yield return null;
             }
-            host.SelectTab(1); yield return new WaitForSeconds(.3f);
+            host.SelectTab(2); yield return new WaitForSeconds(.35f);
+            var contentDrag = host.GetRoot(2).GetComponentInChildren<DemoDraggable>();
+            var dragBefore = contentDrag.transform.position;
+            var contentPointer = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, dragBefore), button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(contentPointer);
+            contentPointer.position += new Vector2(50, 30);
+            host.input.OnDrag(contentPointer); host.input.OnPointerUp(contentPointer);
+            Check(host.ActiveIndex == 2 && !host.IsBusy && Vector3.Distance(dragBefore, contentDrag.transform.position) > .1f,
+                "dedicated object drag retains gesture instead of switching tab");
+            host.SelectTab(1); yield return new WaitForSeconds(.35f);
             var adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
             var presenter = host.GetRoot(1).GetComponent<WorkshopPresenter>();
             Check(adapter.Session != null && adapter.TileViews.Count == 56, "existing 7x8 excavation grid instantiated");
             Check(adapter.TileViews.Values.All(t => t.gameObject.layer == 9 && t.gameObject.scene == adapter.gameObject.scene && t.UsesPointerEvents), "spawned tiles belong to workshop scene and render layer");
+            int beforeSwipeUses = adapter.Session.RemainingDestructiveToolUses;
+            var tilePointer = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, CoveredEmpty(adapter).transform.position), button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(tilePointer);
+            tilePointer.position += Vector2.right * Screen.width * .4f;
+            host.input.OnDrag(tilePointer); host.input.OnPointerUp(tilePointer);
+            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 0 && adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses,
+                "swiping from excavation tile does not click it");
+            float hiddenSeconds = adapter.Session.RemainingSeconds;
+            dragPointer = PointerAt(host, new Vector2(.5f, .8f));
+            host.input.OnPointerDown(dragPointer);
+            dragPointer.position -= Vector2.right * Screen.width * .1f;
+            host.input.OnDrag(dragPointer);
+            yield return new WaitForSeconds(.2f);
+            Check(Mathf.Abs(adapter.Session.RemainingSeconds - hiddenSeconds) < .001f, "preview does not resume hidden workshop");
+            host.input.Cancel();
+            yield return null;
+            Check(host.ActiveIndex == 0 && !host.IsBusy, "input cancellation restores tab");
+            host.SelectTab(1); yield return new WaitForSeconds(.35f);
             var tileView = CoveredEmpty(adapter);
             int uses = adapter.Session.RemainingDestructiveToolUses;
             Click(host, tileView.transform.position);
@@ -163,20 +251,21 @@ namespace MobilePrototype
             Click(host, CoveredEmpty(adapter).transform.position);
             Check(adapter.Session.RemainingScoutToolUses == pausedUses, "global pause blocks tile input");
             Time.timeScale = 1;
-            float remaining = adapter.Session.RemainingSeconds;
             host.SelectTab(0); yield return new WaitForSeconds(.35f);
+            float remaining = adapter.Session.RemainingSeconds;
+            yield return new WaitForSeconds(.15f);
             Check(host.catalog.tabs[1].backgroundPolicy == BackgroundPolicy.PauseWhileHidden &&
                 Mathf.Abs(adapter.Session.RemainingSeconds - remaining) < .001f,
                 "default hidden workshop freezes timer and retains session");
             adapter.SelectTool(ToolMode.AttackDestroy);
             Check(adapter.SelectedTool == ToolMode.Scout && !adapter.CanAcceptInput, "hidden workshop rejects input");
-            Check(homeCounter.count == 1, "minigame input does not change home");
-            host.SelectTab(1); yield return null;
+            Check(exhibition.Intro.IsComplete, "minigame input does not replay home intro");
+            host.SelectTab(1); yield return new WaitForSeconds(.35f);
             host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
-            host.SelectTab(0); remaining = adapter.Session.RemainingSeconds;
+            host.SelectTab(0); yield return new WaitForSeconds(.35f); remaining = adapter.Session.RemainingSeconds;
             yield return new WaitForSeconds(.35f);
             Check(Mathf.Abs(adapter.Session.RemainingSeconds - remaining) < .001f, "hidden pause freezes workshop timer");
-            host.SelectTab(1); yield return new WaitForSeconds(.25f);
+            host.SelectTab(1); yield return new WaitForSeconds(.45f);
             Check(adapter.Session.RemainingSeconds < remaining && adapter.Session.RemainingDestructiveToolUses == uses - 1, "resume retains state and resumes timer");
             Click(host, presenter.toolButtons[0].transform.position);
             tileView = CoveredEmpty(adapter); Click(host, tileView.transform.position);
@@ -199,6 +288,13 @@ namespace MobilePrototype
             {
                 Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
                 yield return new WaitForSeconds(.6f);
+                host.SelectTab(0); yield return new WaitForSeconds(.4f);
+                yield return new WaitForEndOfFrame();
+                Capture($"Home_{size.x}x{size.y}.png");
+                var mappedCell = host.input.MapPosition(ScreenPoint(host, surface.CellWorldPosition(expectedCell)), null);
+                Check(surface.TryGetCell(host.ActiveRoot.sceneCamera, mappedCell, out var resizedCell) && resizedCell == expectedCell,
+                    "grid mapping after viewport resize " + size);
+                host.SelectTab(1); yield return new WaitForSeconds(.4f);
                 var texture = host.ActiveRoot.sceneCamera.targetTexture;
                 Check(Mathf.Abs((float)texture.width / texture.height - host.viewport.rect.width / host.viewport.rect.height) < .01f, "render texture matches viewport " + size);
                 var corners = new[] { new Vector2Int(0, 0), new Vector2Int(6, 7) };
