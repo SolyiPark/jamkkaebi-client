@@ -24,6 +24,9 @@ namespace MobilePrototype
         public bool IsActive { get; private set; }
         public float Progress => _progress;
 
+        /// <summary>
+        /// 입력 뷰포트는 고정한 채 현재·다음 탭을 표시할 이미지를 생성하고 프로필 전환 상태를 준비합니다.
+        /// </summary>
         public void Initialize(TabHost host)
         {
             _host = host;
@@ -39,6 +42,9 @@ namespace MobilePrototype
             _profile = host.profileBar.GetComponent<CanvasGroup>();
             if (!_profile) _profile = host.profileBar.AddComponent<CanvasGroup>();
         }
+        /// <summary>
+        /// 진행 중 전환이 없고 호스트가 준비되었을 때 전환을 시작합니다. 숨김 탭은 저장된 화면을 사용하며 범위 밖 대상은 끝 경계 연출로 처리합니다.
+        /// </summary>
         public bool Begin(int target)
         {
             if (IsActive || !_host.IsReady) return false;
@@ -60,6 +66,9 @@ namespace MobilePrototype
             Apply();
             return true;
         }
+        /// <summary>
+        /// 뷰포트 너비 단위의 수평 이동을 전환 진행률로 반영합니다. 오른쪽 이동은 양수이며 끝 경계에서는 이동량을 제한합니다.
+        /// </summary>
         public void Drag(float distanceInViewportWidths)
         {
             if (!IsActive || _settling) return;
@@ -68,6 +77,9 @@ namespace MobilePrototype
             _progress = progress;
             Apply();
         }
+        /// <summary>
+        /// 뷰포트 너비/초 단위의 수평 속도와 누적 이동량으로 전환 확정 여부를 결정합니다. 범위 밖 대상은 항상 복귀합니다.
+        /// </summary>
         public void Release(float velocityInViewportWidths)
         {
             if (!IsActive || _settling) return;
@@ -76,6 +88,9 @@ namespace MobilePrototype
                 (_progress > .025f && -velocityInViewportWidths * _direction >= _velocityThreshold));
             Settle(commit);
         }
+        /// <summary>
+        /// 현재 진행률에서 확정이면 1, 취소이면 0으로 정착할 보간 상태를 준비합니다. 시작된 전환에서 호출합니다.
+        /// </summary>
         public void Settle(bool commit)
         {
             _settling = true;
@@ -83,6 +98,9 @@ namespace MobilePrototype
             _destination = commit ? 1 : 0;
             _elapsed = 0;
         }
+        /// <summary>
+        /// 시간 배율과 무관하게 정착 애니메이션을 진행하고 완료 시 탭을 확정합니다. 화면 크기가 바뀌면 전환을 취소합니다.
+        /// </summary>
         private void Update()
         {
             if (!IsActive) return;
@@ -95,6 +113,9 @@ namespace MobilePrototype
             Apply();
             if (t >= 1) Finish(_destination > .5f);
         }
+        /// <summary>
+        /// 전환 진행률로 두 탭 이미지의 위치·홈 시차·프로필 투명도와 뷰포트 높이를 함께 갱신합니다.
+        /// </summary>
         private void Apply()
         {
             float width = _host.viewport.rect.width;
@@ -111,11 +132,17 @@ namespace MobilePrototype
             _profile.blocksRaycasts = false;
             _host.viewport.offsetMax = new Vector2(0, -_host.headerHeight * profile);
         }
+        /// <summary>
+        /// 해당 탭에 전시관 뷰가 있으면 시차 오프셋을 전달하며 다른 탭에는 영향을 주지 않습니다.
+        /// </summary>
         private void SetParallax(int index, float offset)
         {
             var view = _host.GetRoot(index)?.GetComponent<ExhibitionView>();
             if (view) view.SetTransitionOffset(offset);
         }
+        /// <summary>
+        /// 시차와 이미지·프로필 상태를 정리하고 호스트에 목적 탭 또는 취소 시 원래 탭의 표시를 요청합니다.
+        /// </summary>
         private void Finish(bool commit)
         {
             int target = commit ? _target : _host.ActiveIndex;
@@ -129,8 +156,17 @@ namespace MobilePrototype
             _profile.blocksRaycasts = true;
             _host.CompleteTransition(target);
         }
+        /// <summary>
+        /// 진행 중인 전환을 즉시 취소해 원래 탭으로 복귀합니다. 전환이 없으면 아무 작업도 하지 않습니다.
+        /// </summary>
         public void Cancel() { if (IsActive) Finish(false); }
+        /// <summary>
+        /// 앱이 포커스를 잃으면 진행 중 전환을 취소합니다.
+        /// </summary>
         private void OnApplicationFocus(bool focus) { if (!focus) Cancel(); }
+        /// <summary>
+        /// 호스트가 연결된 전환 컴포넌트가 비활성화되면 미완료 전환을 취소합니다.
+        /// </summary>
         private void OnDisable() { if (_host && IsActive) Cancel(); }
     }
 }

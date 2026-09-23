@@ -19,6 +19,9 @@ namespace MobilePrototype
         private readonly List<string> _results = new List<string>();
         private readonly List<string> _errors = new List<string>();
         private string _output;
+        /// <summary>
+        /// 개발 플레이어에 검증 출력 경로가 명시된 경우에만 검사를 실행하고, 오류를 수집해 결과 파일과 종료 코드로 전달합니다.
+        /// </summary>
         private IEnumerator Start()
         {
             string option = Environment.GetCommandLineArgs().FirstOrDefault(x => x.StartsWith("--verify-output="));
@@ -38,11 +41,17 @@ namespace MobilePrototype
             }
             Finish();
         }
+        /// <summary>
+        /// Unity 오류·예외·단언 실패 로그를 스택과 함께 수집해 실행 검증 실패로 반영합니다.
+        /// </summary>
         private void RecordError(string message, string stack, LogType type)
         {
             if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
                 _errors.Add(message + "\n" + stack);
         }
+        /// <summary>
+        /// 로그 구독과 시간 배율을 정리하고 검증 결과를 저장한 뒤 성공은 0, 실패는 1로 플레이어를 종료합니다.
+        /// </summary>
         private void Finish()
         {
             Application.logMessageReceived -= RecordError;
@@ -51,11 +60,17 @@ namespace MobilePrototype
                 new[] { _errors.Count == 0 ? "ALL CHECKS PASSED" : "CHECKS FAILED" }.Concat(_results).Concat(_errors));
             Application.Quit(_errors.Count == 0 ? 0 : 1);
         }
+        /// <summary>
+        /// 조건이 참이면 통과 목록에 추가하고, 거짓이면 검사 이름을 담은 예외로 검증을 중단합니다.
+        /// </summary>
         private void Check(bool condition, string label)
         {
             if (!condition) throw new Exception(label);
             _results.Add("PASS " + label);
         }
+        /// <summary>
+        /// 활성 탭의 월드 위치를 카메라와 공통 뷰포트를 거쳐 실제 화면 좌표로 변환합니다.
+        /// </summary>
         private Vector2 ScreenPoint(TabHost host, Vector3 world)
         {
             var uv = host.ActiveRoot.sceneCamera.WorldToViewportPoint(world);
@@ -63,6 +78,9 @@ namespace MobilePrototype
             return RectTransformUtility.WorldToScreenPoint(null, host.viewport.TransformPoint(new Vector3(
                 Mathf.Lerp(rect.xMin, rect.xMax, uv.x), Mathf.Lerp(rect.yMin, rect.yMax, uv.y))));
         }
+        /// <summary>
+        /// 월드 위치에 해당하는 화면 지점에서 입력 브리지의 누름·놓기를 호출해 실제 클릭 전달 경로를 검증합니다.
+        /// </summary>
         private void Click(TabHost host, Vector3 world)
         {
             var pointer = new PointerEventData(EventSystem.current)
@@ -70,6 +88,9 @@ namespace MobilePrototype
             host.input.OnPointerDown(pointer);
             host.input.OnPointerUp(pointer);
         }
+        /// <summary>
+        /// 발굴 검사에 사용할 미공개·비강화 빈 타일을 찾습니다. 조건을 만족하는 타일이 없으면 실패합니다.
+        /// </summary>
         private TileView CoveredEmpty(MinigameSessionAdapter adapter)
         {
             return adapter.TileViews.Values.First(view =>
@@ -78,6 +99,9 @@ namespace MobilePrototype
                 return !tile.IsRevealed && !tile.IsReinforced && tile.Content == TileContent.Empty;
             });
         }
+        /// <summary>
+        /// 활성 탭의 렌더 텍스처에서 콘텐츠 픽셀과 오류 셰이더 색상을 검사하고 읽기 전 렌더 타깃을 복원합니다.
+        /// </summary>
         private void CheckRender(TabHost host)
         {
             var previous = RenderTexture.active;
@@ -93,6 +117,9 @@ namespace MobilePrototype
             RenderTexture.active = previous;
             Check(dark > colors.Length / 100 && magenta < colors.Length / 100, "tab renders content without error-shader pixels: " + host.ActiveIndex);
         }
+        /// <summary>
+        /// 현재 화면에 충분한 가시 픽셀이 있는지 확인한 뒤 출력 폴더에 PNG로 저장합니다. 렌더 완료 후 호출해야 합니다.
+        /// </summary>
         private void Capture(string filename)
         {
             var screenshot = ScreenCapture.CaptureScreenshotAsTexture();
@@ -102,6 +129,9 @@ namespace MobilePrototype
             File.WriteAllBytes(Path.Combine(_output, filename), screenshot.EncodeToPNG());
             Destroy(screenshot);
         }
+        /// <summary>
+        /// 뷰포트 내 정규화 좌표를 화면 좌표로 바꿔 검증용 단일 왼쪽 포인터 이벤트를 생성합니다.
+        /// </summary>
         private PointerEventData PointerAt(TabHost host, Vector2 uv)
         {
             var rect = host.viewport.rect;
@@ -110,6 +140,9 @@ namespace MobilePrototype
             return new PointerEventData(EventSystem.current)
             { pointerId = -1, position = screen, button = PointerEventData.InputButton.Left };
         }
+        /// <summary>
+        /// 화면 폭의 40%만큼 지정 방향으로 포인터를 이동·해제하고 탭 전환 정착을 기다립니다. 음수 방향은 왼쪽입니다.
+        /// </summary>
         private IEnumerator Swipe(TabHost host, float direction)
         {
             var pointer = PointerAt(host, new Vector2(.5f, .8f));
@@ -119,6 +152,9 @@ namespace MobilePrototype
             host.input.OnPointerUp(pointer);
             yield return new WaitForSeconds(.35f);
         }
+        /// <summary>
+        /// 실제 씬과 입력 브리지로 초기 로딩 정책·전시관·탭 전환·발굴·일시정지·해상도 변경을 검증하고 화면을 저장합니다.
+        /// </summary>
         private IEnumerator Run()
         {
             var host = FindFirstObjectByType<TabHost>();

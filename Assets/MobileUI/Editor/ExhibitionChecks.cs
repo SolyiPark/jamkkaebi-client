@@ -6,6 +6,9 @@ using UnityEngine;
 
 public static class ExhibitionChecks
 {
+    /// <summary>
+    /// 격자 좌표 왕복·경계·배치 범위·표시 순서와 홈 씬 참조를 검사하며, 실패하면 예외를 발생시킵니다.
+    /// </summary>
     public static void Run()
     {
         var grid = AssetDatabase.LoadAssetAtPath<ExhibitionGrid>("Assets/MobileUI/Configuration/ExhibitionGrid.asset");
@@ -31,6 +34,9 @@ public static class ExhibitionChecks
         IntegratedSetup.ValidateScenes();
         Debug.Log("EXHIBITION_CHECKS_PASSED");
     }
+    /// <summary>
+    /// 조건이 거짓이면 검사 이름을 담은 예외를 발생시키고, 참이면 통과 기록을 출력합니다.
+    /// </summary>
     private static void Check(bool condition, string label)
     { if (!condition) throw new Exception(label); Debug.Log("PASS " + label); }
 }

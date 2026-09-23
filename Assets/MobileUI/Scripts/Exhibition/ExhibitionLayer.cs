@@ -14,14 +14,23 @@ namespace MobilePrototype.Exhibition
         private Vector3 _basePosition;
         private Vector3 _baseScale;
         public float Parallax => _parallax;
+        /// <summary>
+        /// 레이어의 시차 계수·등장 지연·불투명도와 배경 또는 장식 폭 채우기 방식을 설정합니다.
+        /// </summary>
         public void Configure(float parallax, float introDelay, float opacity, bool cover, bool fillSceneryWidth = false)
         { _parallax = parallax; _introDelay = introDelay; _opacity = opacity; _coverBackground = cover; _fillSceneryWidth = fillSceneryWidth; }
+        /// <summary>
+        /// 렌더러와 원래 로컬 위치·배율을 저장해 연출을 적용할 때 변형이 누적되지 않도록 합니다.
+        /// </summary>
         private void Awake()
         {
             _renderer = GetComponent<SpriteRenderer>();
             _basePosition = transform.localPosition;
             _baseScale = transform.localScale;
         }
+        /// <summary>
+        /// 등장 시간과 전환 오프셋을 원래 위치에 합성하고 불투명도를 갱신합니다. 배경·장식만 카메라 크기에 맞춰 확대하며 플랫폼 배율은 유지합니다.
+        /// </summary>
         public void Apply(float introTime, float transitionOffset, Camera camera)
         {
             float appearance = Mathf.SmoothStep(0, 1, Mathf.Clamp01((introTime - _introDelay) / .65f));

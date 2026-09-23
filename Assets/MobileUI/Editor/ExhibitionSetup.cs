@@ -12,6 +12,9 @@ public static class ExhibitionSetup
     private const string ArtPath = "Assets/MobileUI/Art/Exhibition";
     private const string GridPath = "Assets/MobileUI/Configuration/ExhibitionGrid.asset";
 
+    /// <summary>
+    /// 전시관 및 기존 회귀 검사를 수행한 뒤 Windows 개발 빌드를 생성합니다.
+    /// </summary>
     public static void ValidateAndBuild()
     {
         ExhibitionChecks.Run();
@@ -20,6 +23,9 @@ public static class ExhibitionSetup
     }
 
     // Explicit batch migration only. Never regenerate the home automatically on editor startup.
+    /// <summary>
+    /// 배치 모드에서 배경 임포트 설정과 홈 씬을 생성하는 일회성 마이그레이션입니다. 기존 홈 씬을 덮어쓰므로 수동 편집 후 재실행하지 않습니다.
+    /// </summary>
     public static void Prepare()
     {
         if (!Application.isBatchMode) throw new InvalidOperationException("Run the one-time home migration in batch mode.");
