@@ -1,4 +1,5 @@
 ALL CHECKS PASSED
+PASS background policies hold while initial tabs load
 PASS shell and four content scenes load
 PASS one shared EventSystem
 PASS one enabled AudioListener

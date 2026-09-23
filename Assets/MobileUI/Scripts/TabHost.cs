@@ -3,6 +3,7 @@ using MobilePrototype.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -57,10 +58,19 @@ namespace MobilePrototype
                 yield return Load(i);
                 if (!roots[i]) { IsBusy = false; yield break; }
             }
-            // Capture initial previews once; inactive PauseWhileHidden scenes never run during swipes.
-            foreach (var root in roots) root.sceneCamera.enabled = true;
-            yield return null;
-            yield return null;
+            // Render synchronously: paused roots never remain active across a simulation frame.
+            foreach (var root in roots)
+            {
+                bool paused = root.IsPaused;
+                try
+                {
+                    root.SetPaused(false);
+                    Canvas.ForceUpdateCanvases();
+                    RenderPipeline.SubmitRenderRequest(root.sceneCamera,
+                        new RenderPipeline.StandardRequest { destination = root.sceneCamera.targetTexture });
+                }
+                finally { root.SetPaused(paused); }
+            }
             IsReady = true; IsBusy = false;
             status.gameObject.SetActive(false);
             Show(first);
@@ -98,7 +108,7 @@ namespace MobilePrototype
             }
             textures[index] = NewTexture(index);
             roots[index].Configure(8 + index, textures[index]);
-            roots[index].SetPaused(false);
+            roots[index].SetPaused(index != ActiveIndex && definition.backgroundPolicy != BackgroundPolicy.ContinueRunning);
         }
         private RenderTexture NewTexture(int index)
         {

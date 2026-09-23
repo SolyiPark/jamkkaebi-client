@@ -59,3 +59,9 @@ Android/iOS 실제 기기의 터치 감각, Safe Area와 GPU 성능은 별도의
 - `git diff --check` 통과. Android/iOS 실기기 검증과 GPU 성능 측정은 수행하지 않았다.
 
 [실행 검증 결과](ExhibitionScreenshots/verification.txt) · [기본 세로 화면](ExhibitionScreenshots/Home_540x960.png) · [긴 세로 화면](ExhibitionScreenshots/Home_480x1040.png) · [태블릿 화면](ExhibitionScreenshots/Home_768x1024.png) · [스와이프 도중 화면](ExhibitionScreenshots/Home_Swipe_Preview.png)
+
+## 초기 로딩 일시정지 회귀 수정
+
+2026-09-23: `Load`에서 비활성 탭의 배경 실행 정책을 적용한다. 최초 미리보기는 동기 렌더 요청으로 캡처하고 즉시 원래 일시정지 상태를 복원하므로, 캡처를 위해 활성화한 루트에서 업데이트·물리 프레임이 진행되지 않는다.
+
+Unity 6000.3.23f1에서 에디터 검사와 Windows 개발 빌드를 다시 실행해 통과했다. 초기 로딩 중 배경 실행 정책 검사 1개를 추가해 실행 검사 총 80개가 통과했다. 아래 실행 결과 텍스트를 갱신했으며 기존 화면 캡처는 유지했다.

@@ -121,14 +121,28 @@ namespace MobilePrototype
         }
         private IEnumerator Run()
         {
+            var host = FindFirstObjectByType<TabHost>();
+            float deadline = Time.realtimeSinceStartup + 45;
+            int observedHiddenRoots = 0;
+            while (!host.IsReady && Time.realtimeSinceStartup < deadline)
+            {
+                for (int i = 0; i < host.catalog.tabs.Count; i++)
+                {
+                    var root = host.GetRoot(i);
+                    if (!root || i == host.ActiveIndex) continue;
+                    bool shouldPause = host.catalog.tabs[i].backgroundPolicy != BackgroundPolicy.ContinueRunning;
+                    if (root.IsPaused != shouldPause)
+                        throw new Exception("loaded hidden root violates background policy: " + i);
+                    observedHiddenRoots++;
+                }
+                yield return null;
+            }
+            Check(host.IsReady && observedHiddenRoots > 0, "background policies hold while initial tabs load");
             // Establish the test viewport after a hidden process launch as well.
             Screen.SetResolution(541, 961, FullScreenMode.Windowed);
             yield return new WaitForSeconds(.2f);
             Screen.SetResolution(540, 960, FullScreenMode.Windowed);
             yield return new WaitForSeconds(.5f);
-            var host = FindFirstObjectByType<TabHost>();
-            float deadline = Time.realtimeSinceStartup + 45;
-            while (!host.IsReady && Time.realtimeSinceStartup < deadline) yield return null;
             Check(host.IsReady && SceneManager.sceneCount == 5, "shell and four content scenes load");
             Check(FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Length == 1, "one shared EventSystem");
             Check(FindObjectsByType<AudioListener>(FindObjectsSortMode.None).Count(x => x.enabled) == 1, "one enabled AudioListener");
