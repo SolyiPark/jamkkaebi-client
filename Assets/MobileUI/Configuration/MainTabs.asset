@@ -40,7 +40,7 @@ MonoBehaviour:
   - id: Collection
     title: "\uB3C4\uAC10"
     scenePath: Assets/MobileUI/Scenes/Collection.unity
-    showProfile: 0
+    showProfile: 1
     icon: {fileID: 0}
     background: {fileID: 0}
     selectedBackground: {fileID: 0}

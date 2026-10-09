@@ -1,9 +1,12 @@
 using System;
+using MobilePrototype.Collection;
 using MobilePrototype.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using Jamkkaebi.Scripts.Gameplay.Collection;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
 using UnityEngine;
@@ -205,6 +208,418 @@ namespace MobilePrototype
             host.input.OnPointerUp(pointer);
             yield return new WaitForSeconds(.35f);
         }
+
+        /// <summary>
+        /// 도감의 실제 버튼·미러 입력으로 복원 기준 잠금, 상세 열람, 제스처 소유권과 탭 재방문 상태를 검증합니다.
+        /// </summary>
+        private IEnumerator VerifyCollection(TabHost host)
+        {
+            host.SelectTab(2);
+            yield return new WaitForSeconds(.35f);
+            var root = host.GetRoot(2);
+            var collection = root.GetComponent<CollectionPresenter>();
+            Check(collection && collection.Catalog && collection.Progress != null,
+                "collection catalog and dummy restoration progress initialized");
+            Check(collection.Appearance, "collection scene references shared appearance asset");
+            var expectedEraIds = new[] { "samguk", "goryeo", "joseon" };
+            var expectedEraNames = new[] { "삼국", "고려", "조선" };
+            var expectedRelicIds = new[]
+            {
+                "samguk-standing-buddha", "samguk-incense-burner", "samguk-crown",
+                "goryeo-stone-buddha", "goryeo-celadon", "goryeo-lacquerware",
+                "joseon-royal-seal", "joseon-horse-medallion", "joseon-cat-sparrow-painting"
+            };
+            var expectedRelicNames = new[]
+            {
+                "금동여래입상", "금동대향로", "금관", "석불", "고려청자", "나전칠기", "옥새", "마패", "묘작도"
+            };
+            Check(collection.Catalog.Eras.Select(era => era.Id).SequenceEqual(expectedEraIds) &&
+                collection.Catalog.Eras.Select(era => era.Name).SequenceEqual(expectedEraNames),
+                "collection era order and names match confirmed source sheet");
+            Check(collection.Catalog.Relics.Select(relic => relic.Id).SequenceEqual(expectedRelicIds) &&
+                collection.Catalog.Relics.Select(relic => relic.Name).SequenceEqual(expectedRelicNames) &&
+                collection.Catalog.Relics.Select(relic => relic.EraId).SequenceEqual(
+                    expectedEraIds.SelectMany(eraId => Enumerable.Repeat(eraId, 3))),
+                "collection contains exactly nine confirmed relics in source order and eras");
+            var removedRelicIds = new[]
+            {
+                "samguk-pottery", "goryeo-bronze-mirror", "goryeo-bell",
+                "joseon-white-porcelain", "joseon-brush", "joseon-sundial"
+            };
+            Check(removedRelicIds.All(relicId => collection.Catalog.FindRelic(relicId) == null &&
+                !collection.Progress.RegisterRestorationCompleted(relicId)) && collection.Progress.RestoredCount == 5,
+                "removed provisional relics cannot be found or registered as restored");
+            Check(!root.GetComponentInChildren<DemoCounter>(true) && !root.GetComponentInChildren<DemoDraggable>(true),
+                "collection demo components replaced by collection screens");
+            Check(root.GetComponentsInChildren<Transform>(true).All(child =>
+                child.gameObject.scene == root.gameObject.scene && child.gameObject.layer == root.RenderLayer),
+                "runtime collection UI belongs to collection scene and render layer");
+            collection.ShowOverview();
+            yield return new WaitForEndOfFrame();
+            Check(collection.Page == CollectionPage.Overview && collection.EraButtons.Count == 3 &&
+                collection.StatsText.text.Contains("5 / 9") && collection.StatsText.text.Contains("1 / 3") &&
+                collection.StatsText.text.Contains("55%"),
+                "collection overview counts restored relic types and excludes buildings from rate");
+            Capture("Collection_Overview.png");
+
+            var firstEra = collection.Catalog.Eras.First(era =>
+                collection.Progress.RestoredInEra(era.Id) == 1);
+            var restoredRelic = collection.Catalog.Relics.First(relic =>
+                relic.EraId == firstEra.Id && collection.Progress.IsRestored(relic.Id));
+            var lockedRelic = collection.Catalog.Relics.First(relic =>
+                relic.EraId == firstEra.Id && !collection.Progress.IsRestored(relic.Id));
+            Click(host, collection.EraButtons[firstEra.Id].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(collection.Page == CollectionPage.Era && collection.SelectedEraId == firstEra.Id &&
+                collection.RelicButtons.Count == 3 && !collection.RelicButtons[lockedRelic.Id].interactable,
+                "era card opens three relics with unrestored types locked");
+            Check(collection.GetComponentsInChildren<Text>().Any(text => text.text.Contains("1 / 3")) &&
+                !collection.BuildingStatusText.text.Contains("해금 완료"),
+                "era shows restoration count and locked building");
+            Click(host, collection.RelicButtons[lockedRelic.Id].transform.position);
+            collection.ShowRelic(lockedRelic.Id);
+            Check(collection.Page == CollectionPage.Era && collection.SelectedEraId == firstEra.Id,
+                "locked relic cannot open through pointer or direct navigation");
+            Capture("Collection_Era.png");
+
+            Check(collection.Progress.IsUnread(restoredRelic.Id), "new restored relic begins unread");
+            Click(host, collection.RelicButtons[restoredRelic.Id].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(collection.Page == CollectionPage.Relic && collection.SelectedRelicId == restoredRelic.Id &&
+                !collection.Progress.IsUnread(restoredRelic.Id),
+                "restored relic click opens detail and marks new record viewed");
+            Check(collection.GetComponentsInChildren<Text>().Any(text => text.text.Contains(restoredRelic.Name)) &&
+                collection.GetComponentsInChildren<Text>().Any(text => text.text.Contains(restoredRelic.SpiritName)),
+                "relic detail displays relic and spirit identity");
+            Capture("Collection_Relic.png");
+
+            collection.Scroll.StopMovement();
+            collection.Scroll.verticalNormalizedPosition = 1;
+            Canvas.ForceUpdateCanvases();
+            var scrollPointer = new PointerEventData(EventSystem.current)
+            {
+                pointerId = -1,
+                position = ScreenPoint(host, collection.Scroll.viewport.TransformPoint(collection.Scroll.viewport.rect.center)),
+                button = PointerEventData.InputButton.Left
+            };
+            host.input.OnPointerDown(scrollPointer);
+            scrollPointer.position += Vector2.up * 60;
+            host.input.OnDrag(scrollPointer);
+            scrollPointer.position += Vector2.up * 100;
+            host.input.OnDrag(scrollPointer);
+            host.input.OnPointerUp(scrollPointer);
+            yield return null;
+            collection.Scroll.StopMovement();
+            Check(host.ActiveIndex == 2 && !host.IsBusy && collection.Page == CollectionPage.Relic &&
+                collection.Scroll.verticalNormalizedPosition < .98f,
+                "vertical collection drag scrolls content without changing tab or page");
+            collection.Scroll.verticalNormalizedPosition = 0;
+            yield return new WaitForEndOfFrame();
+            Capture("Collection_Relic_Scrolled.png");
+            float scrollPosition = collection.Scroll.verticalNormalizedPosition;
+            host.SelectTab(3);
+            yield return new WaitForSeconds(.35f);
+            host.SelectTab(2);
+            yield return new WaitForSeconds(.35f);
+            Check(collection.Page == CollectionPage.Relic && collection.SelectedRelicId == restoredRelic.Id &&
+                Mathf.Abs(collection.Scroll.verticalNormalizedPosition - scrollPosition) < .02f,
+                "collection tab revisit preserves detail and scroll position");
+
+            Click(host, collection.BackButton.transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(collection.Page == CollectionPage.Era && collection.SelectedEraId == firstEra.Id &&
+                !collection.RelicButtons[restoredRelic.Id].GetComponentsInChildren<Transform>(true).Any(child =>
+                    child.name == "New" && child.gameObject.activeInHierarchy),
+                "detail back restores era and removes viewed relic new badge");
+            var cardSwipe = new PointerEventData(EventSystem.current)
+            {
+                pointerId = -1,
+                position = ScreenPoint(host, collection.RelicButtons[restoredRelic.Id].transform.position),
+                button = PointerEventData.InputButton.Left
+            };
+            host.input.OnPointerDown(cardSwipe);
+            cardSwipe.position -= Vector2.right * Screen.width * .4f;
+            host.input.OnDrag(cardSwipe);
+            host.input.OnPointerUp(cardSwipe);
+            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 3 && collection.Page == CollectionPage.Era,
+                "horizontal swipe on relic card changes tab and cancels card click");
+            host.SelectTab(2);
+            yield return new WaitForSeconds(.35f);
+            Click(host, collection.BackButton.transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(collection.Page == CollectionPage.Overview, "era back returns to collection overview");
+            var completedEra = collection.Catalog.Eras.First(era => collection.Progress.IsBuildingUnlocked(era.Id));
+            Click(host, collection.EraButtons[completedEra.Id].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(collection.Page == CollectionPage.Era && collection.BuildingStatusText.text.Contains("해금 완료"),
+                "all restored relic types unlock era building");
+            Capture("Collection_Era_Complete.png");
+
+            collection.ShowEra(firstEra.Id);
+            bool completionAccepted = collection.Progress.RegisterRestorationCompleted(lockedRelic.Id);
+            yield return new WaitForEndOfFrame();
+            Check(completionAccepted &&
+                collection.RelicButtons[lockedRelic.Id].interactable,
+                "restoration completion bridge refreshes visible locked relic");
+            Capture("Collection_Era_Updated.png");
+            collection.ShowRelic(lockedRelic.Id);
+            yield return new WaitForEndOfFrame();
+            Check(collection.GetComponentsInChildren<Text>().Any(text => text.text == lockedRelic.Name),
+                "newly restored confirmed relic displays its exact source name in detail");
+            Capture("Collection_Relic_Updated.png");
+            collection.ShowOverview();
+            Check(collection.StatsText.text.Contains("6 / 9") && collection.StatsText.text.Contains("66%") &&
+                !collection.Progress.RegisterRestorationCompleted(lockedRelic.Id) && collection.Progress.RestoredCount == 6,
+                "restoration completion updates collection count once per relic type");
+            var originalProgress = collection.Progress;
+            collection.ShowRelic(restoredRelic.Id);
+            collection.BindProgress(new CollectionProgress(collection.Catalog));
+            yield return new WaitForEndOfFrame();
+            Check(collection.Page == CollectionPage.Era && collection.SelectedRelicId == null &&
+                !collection.RelicButtons[restoredRelic.Id].interactable,
+                "binding empty shared progress closes now-locked detail and locks its relic card");
+            collection.BindProgress(originalProgress);
+            yield return new WaitForEndOfFrame();
+            collection.ShowOverview();
+            Check(collection.StatsText.text.Contains("6 / 9") && collection.Progress == originalProgress,
+                "rebinding original progress restores collection view without losing records");
+        }
+
+        private Image ActiveImage(Transform scope, string name)
+        {
+            return scope.GetComponentsInChildren<Image>(true).FirstOrDefault(image =>
+                image.name == name && image.gameObject.activeInHierarchy);
+        }
+
+        private bool MatchesImage(Transform scope, string name, Sprite sprite, bool surface = false, bool raycast = false)
+        {
+            var image = ActiveImage(scope, name);
+            return image && image.sprite == sprite && image.color == Color.white && image.raycastTarget == raycast &&
+                (!surface || image.type == Image.Type.Sliced && !image.preserveAspect);
+        }
+
+        private bool HasVectorArtwork(Transform scope, string name)
+        {
+            return scope.GetComponentsInChildren<CollectionArtwork>(true).Any(artwork =>
+                artwork.name == name && artwork.gameObject.activeInHierarchy);
+        }
+
+        private void OverrideSprite(object target, string fieldName, Sprite sprite, List<Action> restore)
+        {
+            var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null || field.FieldType != typeof(Sprite))
+                throw new Exception("Missing serialized sprite slot: " + target.GetType().Name + "." + fieldName);
+            var previous = field.GetValue(target);
+            restore.Add(() => field.SetValue(target, previous));
+            field.SetValue(target, sprite);
+        }
+
+        private Sprite VerificationSprite(Color color, List<UnityEngine.Object> temporary)
+        {
+            var texture = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            temporary.Add(texture);
+            texture.SetPixels(Enumerable.Repeat(color, 16).ToArray());
+            texture.Apply();
+            var sprite = Sprite.Create(texture, new Rect(0, 0, 4, 4), new Vector2(.5f, .5f),
+                100, 0, SpriteMeshType.FullRect, Vector4.one);
+            temporary.Add(sprite);
+            return sprite;
+        }
+
+        private void CheckBackgroundRender(TabHost host, int dominantChannel, string label)
+        {
+            var target = host.ActiveRoot.sceneCamera.targetTexture;
+            var previous = RenderTexture.active;
+            var pixel = new Texture2D(1, 1, TextureFormat.RGB24, false);
+            Color rendered;
+            try
+            {
+                RenderTexture.active = target;
+                pixel.ReadPixels(new Rect(Mathf.FloorToInt(target.width * .02f), target.height / 2, 1, 1), 0, 0);
+                pixel.Apply();
+                rendered = pixel.GetPixel(0, 0);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                Destroy(pixel);
+            }
+            var channels = new[] { rendered.r, rendered.g, rendered.b };
+            Check(channels[dominantChannel] > .1f && channels[dominantChannel] >
+                channels.Where((value, index) => index != dominantChannel).Max() * 1.15f, label);
+        }
+
+        /// <summary>
+        /// 기본 화면 캡처를 마친 뒤 실제 스프라이트로 표시 경로와 대체 순서를 검사하고 모든 임시 참조를 복원합니다.
+        /// </summary>
+        private IEnumerator VerifyCollectionArtwork(TabHost host)
+        {
+            host.SelectTab(2);
+            yield return new WaitForSeconds(.35f);
+            var collection = host.GetRoot(2).GetComponent<CollectionPresenter>();
+            var originalAppearance = collection.Appearance;
+            var originalProgress = collection.Progress;
+            int restoredCount = originalProgress.RestoredCount;
+            var restoredIds = collection.Catalog.Relics.Where(relic => originalProgress.IsRestored(relic.Id))
+                .Select(relic => relic.Id).ToArray();
+            var unreadIds = collection.Catalog.Relics.Where(relic => originalProgress.IsUnread(relic.Id))
+                .Select(relic => relic.Id).ToArray();
+            var relicIds = collection.Catalog.Relics.Select(relic => relic.Id).ToArray();
+            var restoredRelic = collection.Catalog.Relics.First(relic =>
+                originalProgress.IsRestored(relic.Id) && !originalProgress.IsUnread(relic.Id));
+            var era = collection.Catalog.FindEra(restoredRelic.EraId);
+            var lockedRelic = collection.Catalog.Relics.First(relic =>
+                relic.EraId == era.Id && !originalProgress.IsRestored(relic.Id));
+            var completedEra = collection.Catalog.Eras.First(item => originalProgress.IsBuildingUnlocked(item.Id));
+            var restore = new List<Action>();
+            var temporary = new List<UnityEngine.Object>();
+            try
+            {
+                var blue = VerificationSprite(new Color(.2f, .3f, .75f), temporary);
+                var green = VerificationSprite(new Color(.2f, .7f, .3f), temporary);
+                var red = VerificationSprite(new Color(.8f, .25f, .2f), temporary);
+                var appearance = ScriptableObject.CreateInstance<CollectionAppearance>();
+                temporary.Add(appearance);
+                foreach (string field in new[]
+                {
+                    "_pageBackground", "_backButtonBackground", "_lockIllustration", "_progressTrack", "_spiritPlateBackground"
+                }) OverrideSprite(appearance, field, blue, restore);
+                foreach (string field in new[]
+                {
+                    "_eraCardBackground", "_restoredRelicCardBackground", "_buildingCardBackground", "_newBadgeIcon",
+                    "_completionIcon", "_progressFill", "_accentStrip"
+                }) OverrideSprite(appearance, field, green, restore);
+                foreach (string field in new[]
+                {
+                    "_lockedRelicCardBackground", "_relicPlateBackground", "_newBadgeBackground", "_backIcon", "_divider"
+                }) OverrideSprite(appearance, field, red, restore);
+                OverrideSprite(era, "_overviewIllustration", green, restore);
+                OverrideSprite(era, "_contextIllustration", blue, restore);
+                OverrideSprite(era, "_lockedBuildingIllustration", red, restore);
+                OverrideSprite(era, "_backgroundIllustration", green, restore);
+                OverrideSprite(completedEra, "_buildingIllustration", red, restore);
+                OverrideSprite(restoredRelic, "_illustration", blue, restore);
+                OverrideSprite(restoredRelic, "_thumbnail", green, restore);
+                OverrideSprite(restoredRelic, "_spiritIllustration", red, restore);
+                OverrideSprite(restoredRelic, "_backgroundIllustration", red, restore);
+                // A locked type deliberately also has restored artwork; the lock path must keep it hidden.
+                OverrideSprite(lockedRelic, "_illustration", blue, restore);
+                OverrideSprite(lockedRelic, "_thumbnail", green, restore);
+                OverrideSprite(lockedRelic, "_lockedIllustration", red, restore);
+                collection.BindAppearance(appearance);
+                collection.ShowOverview();
+                yield return new WaitForEndOfFrame();
+                Check(MatchesImage(collection.transform, "Paper", blue, true) &&
+                    MatchesImage(collection.EraButtons[era.Id].transform, "Era Emblem", green) &&
+                    MatchesImage(collection.EraButtons[era.Id].transform, "Era_" + era.Id, green, true, true),
+                    "assigned shared background and era artwork render without tint and with sliced card frames");
+                Check(MatchesImage(collection.transform, "New Icon", green) &&
+                    MatchesImage(collection.EraButtons[completedEra.Id].transform, "Complete Icon", green) &&
+                    MatchesImage(collection.transform, "New", red, true) &&
+                    MatchesImage(collection.transform, "Accent", green, true) &&
+                    MatchesImage(collection.transform, "Stats Rule", red, true) &&
+                    MatchesImage(collection.transform, "Progress Track", blue, true) &&
+                    MatchesImage(collection.transform, "Progress Fill", green, true),
+                    "shared new and completion icons and collection decorations use assigned images");
+                CheckBackgroundRender(host, 2, "shared page sprite produces blue pixels in actual collection render");
+                Click(host, collection.EraButtons[era.Id].transform.position);
+                yield return new WaitForEndOfFrame();
+                Check(collection.Page == CollectionPage.Era &&
+                    MatchesImage(collection.RelicButtons[restoredRelic.Id].transform, "Relic Emblem", green) &&
+                    MatchesImage(collection.RelicButtons[lockedRelic.Id].transform, "Relic Emblem", red) &&
+                    MatchesImage(collection.RelicButtons[restoredRelic.Id].transform, "Relic_" + restoredRelic.Id, green, true, true) &&
+                    MatchesImage(collection.RelicButtons[lockedRelic.Id].transform, "Relic_" + lockedRelic.Id, red, true, true),
+                    "image-decorated era button accepts mirror input and relic cards separate thumbnails from locked artwork");
+                Check(MatchesImage(collection.transform, "Context Emblem", blue) &&
+                    MatchesImage(collection.transform, "Building Emblem", red) &&
+                    MatchesImage(collection.transform, "Building Card", green, true) &&
+                    MatchesImage(collection.transform, "Back Icon", red) &&
+                    MatchesImage(collection.BackButton.transform, "Back", blue, true, true) &&
+                    MatchesImage(collection.transform, "Header Rule", red, true),
+                    "era context locked building and back control use their assigned images");
+                CheckBackgroundRender(host, 1, "era background overrides shared page sprite in actual render");
+
+                OverrideSprite(restoredRelic, "_thumbnail", null, restore);
+                OverrideSprite(lockedRelic, "_lockedIllustration", null, restore);
+                OverrideSprite(era, "_contextIllustration", null, restore);
+                OverrideSprite(era, "_lockedBuildingIllustration", null, restore);
+                collection.ShowEra(era.Id);
+                yield return new WaitForEndOfFrame();
+                Check(MatchesImage(collection.RelicButtons[restoredRelic.Id].transform, "Relic Emblem", blue) &&
+                    MatchesImage(collection.RelicButtons[lockedRelic.Id].transform, "Relic Emblem", blue) &&
+                    MatchesImage(collection.transform, "Context Emblem", green) &&
+                    MatchesImage(collection.transform, "Building Emblem", blue),
+                    "missing thumbnail context and individual locks fall back to detailed artwork era artwork and shared lock");
+                OverrideSprite(appearance, "_lockIllustration", null, restore);
+                collection.BindAppearance(appearance);
+                Check(HasVectorArtwork(collection.RelicButtons[lockedRelic.Id].transform, "Relic Emblem") &&
+                    HasVectorArtwork(collection.transform, "Building Emblem"),
+                    "missing individual and shared locks retain vector locks without exposing restored artwork");
+                OverrideSprite(appearance, "_lockIllustration", blue, restore);
+                collection.BindAppearance(appearance);
+                collection.ShowEra(completedEra.Id);
+                yield return new WaitForEndOfFrame();
+                Check(MatchesImage(collection.transform, "Building Emblem", red),
+                    "unlocked building uses era building illustration");
+                collection.ShowEra(era.Id);
+                // This era may retain the bottom position from the preceding progress-binding checks.
+                collection.Scroll.StopMovement();
+                collection.Scroll.verticalNormalizedPosition = 1;
+                yield return new WaitForEndOfFrame();
+                Click(host, collection.RelicButtons[restoredRelic.Id].transform.position);
+                yield return new WaitForEndOfFrame();
+                Check(collection.Page == CollectionPage.Relic,
+                    "image-decorated relic card accepts mirror input after canvas update");
+                Check(MatchesImage(collection.transform, "Relic Illustration", blue) &&
+                    MatchesImage(collection.transform, "Spirit Illustration", red) &&
+                    MatchesImage(collection.transform, "Illustration Plate", red, true) &&
+                    MatchesImage(collection.transform, "Spirit Plate", blue, true),
+                    "image-decorated relic card opens distinct detailed relic and spirit images");
+                Check(collection.GetComponentsInChildren<Image>(true).Where(image =>
+                    image.gameObject.activeInHierarchy && image.sprite && !image.GetComponent<Button>())
+                    .All(image => image.color == Color.white && !image.raycastTarget),
+                    "all assigned decorative images preserve source color and leave input to controls");
+                CheckBackgroundRender(host, 0, "relic background overrides era and shared page sprites in actual render");
+                CheckRender(host);
+                OverrideSprite(restoredRelic, "_backgroundIllustration", null, restore);
+                collection.ShowRelic(restoredRelic.Id);
+                yield return new WaitForEndOfFrame();
+                CheckBackgroundRender(host, 1, "missing relic background falls back to era sprite in actual render");
+                OverrideSprite(era, "_backgroundIllustration", null, restore);
+                collection.ShowRelic(restoredRelic.Id);
+                yield return new WaitForEndOfFrame();
+                CheckBackgroundRender(host, 2, "missing relic and era backgrounds fall back to shared sprite in actual render");
+                collection.BindAppearance(null);
+                var paper = ActiveImage(collection.transform, "Paper");
+                Check(collection.Appearance == null && paper && !paper.sprite && paper.type == Image.Type.Simple &&
+                    !ActiveImage(collection.transform, "Back Icon") &&
+                    collection.BackButton.GetComponentsInChildren<Text>().Any(text => text.text == "‹"),
+                    "removing shared appearance restores default background and back label");
+                collection.GoBack();
+                Check(HasVectorArtwork(collection.RelicButtons[lockedRelic.Id].transform, "Relic Emblem"),
+                    "removing shared appearance retains vector lock fallback");
+                collection.BindAppearance(appearance);
+                Check(collection.Appearance == appearance &&
+                    MatchesImage(collection.transform, "Paper", blue, true) &&
+                    MatchesImage(collection.RelicButtons[lockedRelic.Id].transform, "Relic Emblem", blue),
+                    "rebinding shared appearance restores its background and lock images");
+            }
+            finally
+            {
+                for (int i = restore.Count - 1; i >= 0; i--) restore[i]();
+                collection.BindAppearance(originalAppearance);
+                collection.ShowOverview();
+                for (int i = temporary.Count - 1; i >= 0; i--) Destroy(temporary[i]);
+            }
+            yield return new WaitForEndOfFrame();
+            Check(collection.Appearance == originalAppearance && collection.Progress == originalProgress &&
+                collection.Progress.RestoredCount == restoredCount &&
+                collection.Catalog.Relics.Select(relic => relic.Id).SequenceEqual(relicIds) &&
+                collection.Catalog.Relics.Where(relic => collection.Progress.IsRestored(relic.Id)).Select(relic => relic.Id).SequenceEqual(restoredIds) &&
+                collection.Catalog.Relics.Where(relic => collection.Progress.IsUnread(relic.Id)).Select(relic => relic.Id).SequenceEqual(unreadIds),
+                "temporary artwork verification restores original references without changing collection records");
+        }
         /// <summary>
         /// 실제 씬과 입력 브리지로 초기 로딩 정책·전시관·탭 전환·발굴·일시정지·해상도 변경을 검증하고 화면을 저장합니다.
         /// </summary>
@@ -389,21 +804,22 @@ namespace MobilePrototype
                 yield return new WaitForSeconds(.3f);
                 Check(host.ActiveIndex == i, "bottom tab button selects " + i);
                 Check(host.GetRoot(i).sceneCamera.cullingMask == 1 << (8 + i), "isolated camera layer " + i);
-                Check(host.profileBar.activeSelf == (i == 0), "profile visibility " + i);
+                Check(host.profileBar.activeSelf == host.catalog.tabs[i].showProfile, "profile visibility " + i);
                 yield return new WaitForEndOfFrame();
                 CheckRender(host);
                 Capture($"0{i+1}_{host.catalog.tabs[i].id}.png");
                 yield return null;
             }
-            host.SelectTab(2); yield return new WaitForSeconds(.35f);
-            var contentDrag = host.GetRoot(2).GetComponentInChildren<DemoDraggable>();
+            yield return VerifyCollection(host);
+            host.SelectTab(3); yield return new WaitForSeconds(.35f);
+            var contentDrag = host.GetRoot(3).GetComponentInChildren<DemoDraggable>();
             var dragBefore = contentDrag.transform.position;
             var contentPointer = new PointerEventData(EventSystem.current)
             { pointerId = -1, position = ScreenPoint(host, dragBefore), button = PointerEventData.InputButton.Left };
             host.input.OnPointerDown(contentPointer);
             contentPointer.position += new Vector2(50, 30);
             host.input.OnDrag(contentPointer); host.input.OnPointerUp(contentPointer);
-            Check(host.ActiveIndex == 2 && !host.IsBusy && Vector3.Distance(dragBefore, contentDrag.transform.position) > .1f,
+            Check(host.ActiveIndex == 3 && !host.IsBusy && Vector3.Distance(dragBefore, contentDrag.transform.position) > .1f,
                 "dedicated object drag retains gesture instead of switching tab");
             host.SelectTab(1); yield return new WaitForSeconds(.35f);
             var adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
@@ -491,6 +907,11 @@ namespace MobilePrototype
                 var mappedCell = host.input.MapPosition(ScreenPoint(host, surface.CellWorldPosition(expectedCell)), null);
                 Check(surface.TryGetCell(host.ActiveRoot.sceneCamera, mappedCell, out var resizedCell) && resizedCell == expectedCell,
                     "grid mapping after viewport resize " + size);
+                host.SelectTab(2); yield return new WaitForSeconds(.4f);
+                host.GetRoot(2).GetComponent<CollectionPresenter>().ShowOverview();
+                yield return new WaitForEndOfFrame();
+                CheckRender(host);
+                Capture($"Collection_Overview_{size.x}x{size.y}.png");
                 host.SelectTab(1); yield return new WaitForSeconds(.4f);
                 var texture = host.ActiveRoot.sceneCamera.targetTexture;
                 Check(Mathf.Abs((float)texture.width / texture.height - host.viewport.rect.width / host.viewport.rect.height) < .01f, "render texture matches viewport " + size);
@@ -503,6 +924,7 @@ namespace MobilePrototype
                 Capture($"Workshop_{size.x}x{size.y}.png");
                 yield return null;
             }
+            yield return VerifyCollectionArtwork(host);
             Check(_errors.Count == 0, "no runtime errors during integration checks");
             yield return new WaitForSeconds(.3f);
         }
