@@ -237,6 +237,65 @@ namespace Jamkkaebi.Tests.EditMode
             }
         }
 
+        /// <summary>Inspector의 직렬화 배열 교체 후 읽기 전용 목록·ID 조회·수집 집계가 변경한 정의를 함께 사용하는지 검사합니다.</summary>
+        [Test]
+        public void InspectorArrayReplacement_KeepsReadOnlyListsLookupsAndProgressCountsConsistent()
+        {
+            string assetPath = "Assets/CollectionCatalogInspectorTest_" + Guid.NewGuid().ToString("N") + ".asset";
+            try
+            {
+                AssetDatabase.CreateAsset(_catalog, assetPath);
+                AssetDatabase.SaveAssets();
+                // 먼저 읽기 전용 래퍼를 사용한 뒤 Inspector와 같은 직렬화 경로로 배열을 교체합니다.
+                Assert.AreEqual(3, _catalog.Eras.Count);
+                Assert.AreEqual(3, _catalog.Relics.Count);
+
+                using (SerializedObject serialized = new SerializedObject(_catalog))
+                {
+                    SerializedProperty eras = serialized.FindProperty("_eras");
+                    eras.arraySize = 1;
+                    SerializedProperty era = eras.GetArrayElementAtIndex(0);
+                    era.FindPropertyRelative("_id").stringValue = "replacement-era";
+                    era.FindPropertyRelative("_name").stringValue = "교체한 시대";
+
+                    SerializedProperty relics = serialized.FindProperty("_relics");
+                    relics.arraySize = 2;
+                    for (int i = 0; i < relics.arraySize; i++)
+                    {
+                        SerializedProperty relic = relics.GetArrayElementAtIndex(i);
+                        relic.FindPropertyRelative("_id").stringValue = "replacement-relic-" + i;
+                        relic.FindPropertyRelative("_eraId").stringValue = "replacement-era";
+                    }
+
+                    Assert.IsTrue(serialized.ApplyModifiedProperties());
+                }
+
+                Assert.AreEqual(1, _catalog.Eras.Count);
+                Assert.AreEqual(2, _catalog.Relics.Count);
+                Assert.AreSame(_catalog.Eras[0], _catalog.FindEra("replacement-era"));
+                Assert.AreSame(_catalog.Relics[0], _catalog.FindRelic("replacement-relic-0"));
+                Assert.AreSame(_catalog.Relics[1], _catalog.FindRelic("replacement-relic-1"));
+                Assert.IsNull(_catalog.FindEra("era-a"));
+                Assert.IsNull(_catalog.FindRelic("relic-a1"));
+                Assert.AreEqual(2, _progress.TotalCount);
+                Assert.AreEqual(2, _progress.TotalInEra("replacement-era"));
+                Assert.AreEqual(0, _progress.TotalInEra("era-a"));
+
+                Assert.IsTrue(_progress.RegisterRestorationCompleted("replacement-relic-0"));
+                Assert.AreEqual(1, _progress.RestoredInEra("replacement-era"));
+                Assert.AreEqual(.5f, _progress.CollectionRate);
+                Assert.IsFalse(_progress.IsBuildingUnlocked("replacement-era"));
+                Assert.IsTrue(_progress.RegisterRestorationCompleted("replacement-relic-1"));
+                Assert.AreEqual(1, _progress.CompletedBuildingCount);
+                Assert.IsTrue(_progress.IsBuildingUnlocked("replacement-era"));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+                _catalog = null;
+            }
+        }
+
         /// <summary>직렬화 배열이 null이면 읽기 모델 사용 전에 명시적 정의 검증에서 거절하는지 검사합니다.</summary>
         /// <param name="fieldName">null로 바꿀 시대 또는 유물 목록의 직렬화 필드 이름입니다.</param>
         [TestCase("_eras")]

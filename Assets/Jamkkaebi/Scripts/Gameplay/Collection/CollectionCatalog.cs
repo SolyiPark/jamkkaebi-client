@@ -121,5 +121,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Collection
             _readOnlyEras = null;
             _readOnlyRelics = null;
         }
+
+        /// <summary>Inspector에서 직렬화 목록을 바꿀 때 읽기 전용 래퍼 캐시를 지워 조회와 집계가 같은 배열을 사용하게 합니다.</summary>
+        private void OnValidate()
+        {
+            _readOnlyEras = null;
+            _readOnlyRelics = null;
+        }
     }
 }

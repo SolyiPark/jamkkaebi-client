@@ -57,3 +57,13 @@
 같은 날 초기 화면 구현 검증은 EditMode 60개·Player 156개(`Player-20261009-165930/`), 확정 데이터 반영 검증은 63개·162개(`Player-20261009-171431/`)였다. 당시 Noto CJK 글리프 잘림과 숨김 탭 리사이즈 후 스크롤 위치 문제를 수정했고, 이번 이미지 교체 실행에서도 해당 회귀 검사를 통과했다.
 
 실제 Android/iOS 손가락 입력, 노치, 모바일 성능과 배포 빌드는 검증하지 않았다.
+
+## PR 리뷰 보완 검증
+
+2026-10-09, PR #6의 함수 문서화 경고와 카탈로그 캐시 지적을 보완했다. 도감의 생성자·Unity 콜백·비공개 보조 함수·테스트에 XML 문서 주석을 작성하고, 공개 API에는 필요한 매개변수·반환값·예외와 복원 완료 기준을 기록했다. 문서화 기준인 80%는 변경하지 않았다.
+
+Unity에 포함된 Roslyn으로 PR의 변경 줄과 함수 구문 범위를 비교했다. 보완 전 대상은 리뷰와 같은 19개 C# 파일·122개 함수였다. 문서 주석 커밋은 133개 대상 함수 모두 `summary`가 있으며 HEAD와 실행 토큰이 동일했다. 이어서 추가한 캐시 콜백과 회귀 테스트까지 포함한 최종 대상 **135/135개 함수(100%)**에 `summary`가 있고, C# 및 XML 문서 구문 오류는 0개였다. 이 수치는 로컬 구문 검사 결과이며 CodeRabbit 서버의 검사 결과와 구분한다.
+
+`CollectionCatalog.OnValidate`가 Inspector 직렬화 편집 후 읽기 전용 목록의 캐시를 무효화한다. 새 테스트는 임시 저장 자산에 `SerializedObject.ApplyModifiedProperties`로 시대·유물 배열을 교체하고, 목록·ID 조회·전체 개수·시대별 집계·복원률·건물 해금이 같은 정의를 사용하는지 검사한다. 운영 자산은 변경하지 않으며 테스트 자산은 정리한다.
+
+Unity **6000.3.23f1**에서 EditMode 전체 **65/65 통과**, 실패·건너뜀 0개, 종료 코드 0을 확인했다. `git diff --check`도 통과했다. 로그는 `Logs/Integration/collection-review-editmode.xml`, `collection-review-editmode.log`, `collection-review-docstrings-comments.log`, `collection-review-docstrings-final.log`다. 이번 동작 수정은 Inspector 캐시 갱신에 한정되며, 위 Windows Player 183개 검사는 앞선 구현 검증 결과다.
