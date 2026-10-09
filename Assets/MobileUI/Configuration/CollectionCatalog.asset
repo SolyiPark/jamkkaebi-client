@@ -1,0 +1,207 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4611d21a0a064b7e924ec44ce5efcd50, type: 3}
+  m_Name: CollectionCatalog
+  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Collection.CollectionCatalog
+  _eras:
+  - _id: samguk
+    _name: "\uC0BC\uAD6D"
+    _period: "\uACE0\uAD6C\uB824 \xB7 \uBC31\uC81C \xB7 \uC2E0\uB77C"
+    _description: "\uAE08\uB3D9\uC5EC\uB798\uC785\uC0C1, \uAE08\uB3D9\uB300\uD5A5\uB85C,
+      \uAE08\uAD00\uC744 \uBCF5\uC6D0\uD574 \uC0BC\uAD6D\uC758 \uC804\uC2DC\uC2E4\uC744
+      \uCC44\uC6CC \uBCF4\uC138\uC694."
+    _buildingName: "\uC0BC\uAD6D \uC804\uC2DC\uAC01"
+    _accent: {r: 0.7607843, g: 0.5176471, b: 0.3019608, a: 1}
+    _overviewIllustration: {fileID: 0}
+    _contextIllustration: {fileID: 0}
+    _buildingIllustration: {fileID: 0}
+    _lockedBuildingIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: goryeo
+    _name: "\uACE0\uB824"
+    _period: "\uBD88\uC0C1\uACFC \uACF5\uC608\uC758 \uC804\uC2DC\uC2E4"
+    _description: "\uC11D\uBD88, \uACE0\uB824\uCCAD\uC790, \uB098\uC804\uCE60\uAE30\uB97C
+      \uBAA8\uC544 \uACE0\uB824\uC758 \uC804\uC2DC\uC2E4\uC744 \uC644\uC131\uD574
+      \uBCF4\uC138\uC694."
+    _buildingName: "\uACE0\uB824 \uC804\uC2DC\uAC01"
+    _accent: {r: 0.36862746, g: 0.6156863, b: 0.5372549, a: 1}
+    _overviewIllustration: {fileID: 0}
+    _contextIllustration: {fileID: 0}
+    _buildingIllustration: {fileID: 0}
+    _lockedBuildingIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: joseon
+    _name: "\uC870\uC120"
+    _period: "\uC778\uC7A5\uACFC \uC99D\uD45C, \uADF8\uB9BC\uC758 \uC804\uC2DC\uC2E4"
+    _description: "\uC625\uC0C8, \uB9C8\uD328, \uBB18\uC791\uB3C4\uB97C \uBCF5\uC6D0\uD558\uBA70
+      \uC870\uC120\uC758 \uC804\uC2DC\uC2E4\uC744 \uCC44\uC6CC \uBCF4\uC138\uC694."
+    _buildingName: "\uC870\uC120 \uC804\uC2DC\uAC01"
+    _accent: {r: 0.44705883, g: 0.5529412, b: 0.67058825, a: 1}
+    _overviewIllustration: {fileID: 0}
+    _contextIllustration: {fileID: 0}
+    _buildingIllustration: {fileID: 0}
+    _lockedBuildingIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  _relics:
+  - _id: samguk-standing-buddha
+    _eraId: samguk
+    _name: "\uAE08\uB3D9\uC5EC\uB798\uC785\uC0C1"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uAE08\uB3D9\uC5EC\uB798\uC785\uC0C1\uC758
+      \uBAA8\uC2B5\uC744 \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC
+      \uC815\uB839 \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uAE08\uB3D9\uC5EC\uB798\uC785\uC0C1\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.7607843, g: 0.5176471, b: 0.3019608, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: samguk-incense-burner
+    _eraId: samguk
+    _name: "\uAE08\uB3D9\uB300\uD5A5\uB85C"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uAE08\uB3D9\uB300\uD5A5\uB85C\uC758
+      \uBAA8\uC2B5\uC744 \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC
+      \uC815\uB839 \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uAE08\uB3D9\uB300\uD5A5\uB85C\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.7607843, g: 0.5176471, b: 0.3019608, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: samguk-crown
+    _eraId: samguk
+    _name: "\uAE08\uAD00"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uAE08\uAD00\uC758 \uBAA8\uC2B5\uC744
+      \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC \uC815\uB839
+      \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uAE08\uAD00\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.7607843, g: 0.5176471, b: 0.3019608, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: goryeo-stone-buddha
+    _eraId: goryeo
+    _name: "\uC11D\uBD88"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uC11D\uBD88\uC758 \uBAA8\uC2B5\uC744
+      \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC \uC815\uB839
+      \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uC11D\uBD88\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.36862746, g: 0.6156863, b: 0.5372549, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: goryeo-celadon
+    _eraId: goryeo
+    _name: "\uACE0\uB824\uCCAD\uC790"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uACE0\uB824\uCCAD\uC790\uC758 \uBAA8\uC2B5\uC744
+      \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC \uC815\uB839
+      \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uACE0\uB824\uCCAD\uC790\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.36862746, g: 0.6156863, b: 0.5372549, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: goryeo-lacquerware
+    _eraId: goryeo
+    _name: "\uB098\uC804\uCE60\uAE30"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uB098\uC804\uCE60\uAE30\uC758 \uBAA8\uC2B5\uC744
+      \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC \uC815\uB839
+      \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uB098\uC804\uCE60\uAE30\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.36862746, g: 0.6156863, b: 0.5372549, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: joseon-royal-seal
+    _eraId: joseon
+    _name: "\uC625\uC0C8"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uC625\uC0C8\uC758 \uBAA8\uC2B5\uC744
+      \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC \uC815\uB839
+      \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uC625\uC0C8\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.44705883, g: 0.5529412, b: 0.67058825, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: joseon-horse-medallion
+    _eraId: joseon
+    _name: "\uB9C8\uD328"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uB9C8\uD328\uC758 \uBAA8\uC2B5\uC744
+      \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC \uC815\uB839
+      \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uB9C8\uD328\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.44705883, g: 0.5529412, b: 0.67058825, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}
+  - _id: joseon-cat-sparrow-painting
+    _eraId: joseon
+    _name: "\uBB18\uC791\uB3C4"
+    _spiritName: "\uC815\uB839 \uC774\uB984 \uBBF8\uC815"
+    _description: "[\uC784\uC2DC \uC124\uBA85] \uBB18\uC791\uB3C4\uC758 \uBAA8\uC2B5\uC744
+      \uC0B4\uD3B4\uBCF4\uC138\uC694. \uC720\uBB3C \uD574\uC124\uACFC \uC815\uB839
+      \uC774\uC57C\uAE30\uB294 \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _conservationNote: "[\uC784\uC2DC \uBCF5\uC6D0 \uAE30\uB85D] \uBB18\uC791\uB3C4\uC758
+      \uBCF5\uC6D0\uC744 \uB9C8\uCCD0 \uB3C4\uAC10\uC5D0 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.
+      \uBC1C\uAD74\xB7\uBCF4\uC874 \uACFC\uC815\uC758 \uC0C1\uC138 \uC774\uC57C\uAE30\uB294
+      \uCD94\uD6C4 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    _accent: {r: 0.44705883, g: 0.5529412, b: 0.67058825, a: 1}
+    _illustration: {fileID: 0}
+    _spiritIllustration: {fileID: 0}
+    _thumbnail: {fileID: 0}
+    _lockedIllustration: {fileID: 0}
+    _backgroundIllustration: {fileID: 0}

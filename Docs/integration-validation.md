@@ -1,5 +1,7 @@
 # 로컬 통합 검증 결과
 
+2026-10-09 도감 이미지 교체 슬롯 확장 후 검증: Unity 6000.3.23f1에서 EditMode **64개**, Windows Development Player **183개** 통과. 최종 빌드·Player 종료 코드 0, GPU 버퍼 종료 오류 패턴 0개. 시대·유물·정령·건물·잠금과 공통 UI 그림 교체, 빈 슬롯 대체, 원본 색·9-slice·입력 유지, 동기화 후 그림 참조 보존을 검사했다. 작업대 연결은 구현하지 않았다. 상세 범위와 실제 로그·화면 경로는 [collection-validation.md](collection-validation.md), 후속 작업대 연결 계약과 이미지 교체 안내는 [collection-integration.md](collection-integration.md)를 참고한다. 같은 날 초기 화면 구현은 60개/156개, 확정 데이터 반영은 63개/162개였으며 아래 2026-09-21 기록은 당시 실행 결과다.
+
 검증일: 2026-09-21. Unity 6000.3.23f1 / Windows x64 Development Player / 기본 D3D12 렌더링.
 
 | 검증 | 결과 |

@@ -15,4 +15,6 @@
 
 씬을 추가하면 `Prototype > Sync Build Scenes From Catalog`를 실행합니다. GUID와 .meta를 보존하고 Library/Temp/Builds/Logs를 소스에 추가하지 않습니다. 공통 셸, 패키지, 입력 설정, 빌드 목록을 변경하면 전체 탭 검증을 수행합니다.
 
-`IntegratedVerification`은 홈 전시관·하우징·도깨비 더미, 작업대 미니게임, 도감 더미·친구 더미 구성을 검증합니다. 콘텐츠가 바뀌면 검증도 함께 갱신합니다. 원래 네 더미 씬 전용 구형 검증 코드는 제거했습니다.
+`IntegratedVerification`은 홈 전시관·하우징·도깨비 더미, 작업대 미니게임, 샘플 복원 기록으로 동작하는 도감 세 화면과 친구 더미 구성을 검증합니다. 콘텐츠가 바뀌면 검증도 함께 갱신합니다. 원래 네 더미 씬 전용 구형 검증 코드는 제거했습니다.
+
+도감은 기존 `Collection.unity` 안에서 시대 목록·시대 상세·유물 상세를 전환합니다. 공통 프로필은 `MainTabs.asset`의 도감 `showProfile`로 표시하고 내부 셸이나 프로필 바를 복제하지 않습니다. 세로 스크롤은 `CollectionScrollRect`가 소유하며 가로 드래그는 공통 탭 전환에 전달합니다. 도감 등록은 최종 복원 완료한 유물 종류 기준이고 현재 작업대 연결과 저장은 더미입니다. 실제 연결 계층의 계약은 `collection-integration.md`를 따릅니다.

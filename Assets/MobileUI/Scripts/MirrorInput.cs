@@ -122,8 +122,10 @@ namespace MobilePrototype
         /// </summary>
         public void OnEndDrag(PointerEventData data) { }
         /// <summary>
-        /// 전용 콘텐츠 드래그를 우선하고 일반 수평 제스처만 탭 스와이프로 전환합니다. 스와이프가 시작되면 기존 클릭을 취소합니다.
+        /// 콘텐츠의 제스처 소유권을 확인한 뒤 세로 드래그 또는 수평 탭 스와이프를 전달합니다.
+        /// 콘텐츠가 축을 판별하는 동안 드래그 시작을 보류하고, 스와이프가 시작되면 기존 클릭을 취소합니다.
         /// </summary>
+        /// <param name="input">공통 뷰포트에서 캡처한 포인터의 현재 화면 좌표와 이동 정보입니다.</param>
         public void OnDrag(PointerEventData input)
         {
             if (pointer != input.pointerId || forwarded == null || !Target) return;
@@ -158,6 +160,13 @@ namespace MobilePrototype
             if (_swiping)
             {
                 _host.Transition.Drag(screenDelta.x / ViewportScreenWidth);
+                return;
+            }
+            // Conditional owners may still be deciding the axis. Do not begin a drag early:
+            // once dragging is set, a later vertical capture would miss its begin callback.
+            if (owner != null && !ownsDrag)
+            {
+                forwarded.eligibleForClick = false;
                 return;
             }
             UpdatePosition(input);

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2e0df7fa13d435e999e3b332e02941c, type: 3}
+  m_Name: CollectionAppearance
+  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Collection.CollectionAppearance
+  _pageBackground: {fileID: 0}
+  _eraCardBackground: {fileID: 0}
+  _restoredRelicCardBackground: {fileID: 0}
+  _lockedRelicCardBackground: {fileID: 0}
+  _buildingCardBackground: {fileID: 0}
+  _relicPlateBackground: {fileID: 0}
+  _spiritPlateBackground: {fileID: 0}
+  _newBadgeBackground: {fileID: 0}
+  _newBadgeIcon: {fileID: 0}
+  _backButtonBackground: {fileID: 0}
+  _backIcon: {fileID: 0}
+  _lockIllustration: {fileID: 0}
+  _progressTrack: {fileID: 0}
+  _progressFill: {fileID: 0}
+  _divider: {fileID: 0}
+  _accentStrip: {fileID: 0}
+  _completionIcon: {fileID: 0}
