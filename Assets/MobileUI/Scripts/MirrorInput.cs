@@ -131,8 +131,15 @@ namespace MobilePrototype
             float now = Time.unscaledTime;
             _velocity = (input.position.x - _lastScreen.x) / Mathf.Max(.016f, now - _lastTime) / ViewportScreenWidth;
             _lastScreen = input.position; _lastTime = now;
+            var owner = dragged ? dragged.GetComponent<IMirrorGestureOwner>() : null;
+            if (!_swiping && owner != null && !owner.OwnsGesture)
+            {
+                UpdatePosition(input);
+                ExecuteEvents.Execute(dragged, forwarded, ExecuteEvents.dragHandler);
+            }
+            bool ownsDrag = dragged && (owner == null || owner.OwnsGesture);
             // Dedicated draggable objects retain their gesture. Empty areas and buttons allow tab swipes.
-            if (!_swiping && !dragged && !_verticalGesture && _host)
+            if (!_swiping && !ownsDrag && !_verticalGesture && _host)
             {
                 float threshold = Mathf.Max(12, ViewportScreenWidth * .018f);
                 if (Mathf.Abs(screenDelta.y) > threshold && Mathf.Abs(screenDelta.y) > Mathf.Abs(screenDelta.x))
@@ -179,7 +186,7 @@ namespace MobilePrototype
             UpdatePosition(input);
             if (pressed) ExecuteEvents.Execute(pressed, forwarded, ExecuteEvents.pointerUpHandler);
             var click = ExecuteEvents.GetEventHandler<IPointerClickHandler>(forwarded.pointerCurrentRaycast.gameObject);
-            if (!dragging && pressed && pressed == click)
+            if (!dragging && forwarded.eligibleForClick && pressed && pressed == click)
                 ExecuteEvents.Execute(pressed, forwarded, ExecuteEvents.pointerClickHandler);
             if (dragging && dragged) ExecuteEvents.Execute(dragged, forwarded, ExecuteEvents.endDragHandler);
             Clear();

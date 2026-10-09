@@ -29,14 +29,18 @@ namespace MobilePrototype
             _output = option.Substring("--verify-output=".Length);
             Directory.CreateDirectory(_output);
             Application.logMessageReceived += RecordError;
-            var routine = Run();
-            while (true)
+            var routines = new Stack<IEnumerator>();
+            routines.Push(Run());
+            while (routines.Count > 0)
             {
                 object next = null;
                 bool more;
+                var routine = routines.Peek();
                 try { more = routine.MoveNext(); if (more) next = routine.Current; }
                 catch (Exception ex) { _errors.Add(ex.ToString()); Finish(); yield break; }
-                if (!more) break;
+                if (!more) { routines.Pop(); continue; }
+                // Catch nested verification failures too, so the player always writes a report and exits.
+                if (next is IEnumerator nested) { routines.Push(nested); continue; }
                 yield return next;
             }
             Finish();
@@ -87,6 +91,55 @@ namespace MobilePrototype
             { pointerId = -1, position = ScreenPoint(host, world), button = PointerEventData.InputButton.Left };
             host.input.OnPointerDown(pointer);
             host.input.OnPointerUp(pointer);
+        }
+
+        private IEnumerator HousingGesture(TabHost host, ExhibitionHousing housing, Vector2Int cell, HousingAction action)
+        {
+            var pointer = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, housing.Surface.CellWorldPosition(cell) +
+                housing.Surface.transform.TransformVector(Vector3.up * .16f)), button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(pointer);
+            Check(!housing.Menu.IsVisible, "housing UI waits for long press " + action);
+            yield return new WaitForSeconds(.55f);
+            Check(housing.Menu.IsVisible && !housing.Menu.IsFloorMenu && housing.Menu.VisibleActionCount == 3,
+                "object hold reveals exactly three local actions " + action);
+            if (action == HousingAction.Move)
+            {
+                yield return new WaitForEndOfFrame();
+                Capture("Housing_Hold_Menu.png");
+            }
+            pointer.position = ScreenPoint(host, housing.Menu.ActionWorldPosition(action));
+            host.input.OnDrag(pointer);
+            host.input.OnDrag(pointer);
+            Check(host.ActiveIndex == 0 && !host.Transition.IsActive && housing.Menu.IsVisible,
+                "radial action owns swipe until release " + action);
+            host.input.OnPointerUp(pointer);
+            Check(!housing.Menu.IsVisible, "all housing UI closes on release " + action);
+        }
+
+        private IEnumerator BeginHousingPlacement(TabHost host, ExhibitionHousing housing, Vector2Int cell,
+            HousingAction action = HousingAction.Place)
+        {
+            var pointer = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, housing.Surface.CellWorldPosition(cell)),
+                button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(pointer);
+            yield return new WaitForSeconds(.55f);
+            Check(housing.Menu.IsVisible && housing.Menu.IsFloorMenu && housing.Menu.VisibleActionCount == 2,
+                "empty floor hold reveals exactly two local actions " + action);
+            if (action == HousingAction.Place)
+            {
+                yield return new WaitForEndOfFrame();
+                Capture("Housing_Empty_Menu.png");
+            }
+            pointer.position = ScreenPoint(host, housing.Menu.ActionWorldPosition(action));
+            host.input.OnDrag(pointer);
+            host.input.OnDrag(pointer);
+            Check(housing.IsPlacing == (action == HousingAction.Place) && !host.Transition.IsActive,
+                "empty floor swipe executes local action once " + action);
+            host.input.OnPointerUp(pointer);
+            Check(!housing.Menu.IsVisible && housing.IsPlacing == (action == HousingAction.Place),
+                "empty floor menu hides while action state persists " + action);
         }
         /// <summary>
         /// 발굴 검사에 사용할 미공개·비강화 빈 타일을 찾습니다. 조건을 만족하는 타일이 없으면 실패합니다.
@@ -207,6 +260,100 @@ namespace MobilePrototype
             }
             exhibition.SetView(Vector2.zero, 1);
             yield return null;
+            var housing = exhibition.GetComponent<ExhibitionHousing>();
+            Check(housing && housing.Layout != null && housing.Wanderer, "housing and dokkaebi initialized");
+            Check(!housing.Menu.IsVisible && !housing.GetComponentsInChildren<RectTransform>(true).Any(rect => rect.name == "Controls"),
+                "home has no bottom housing panel or persistent instructions");
+            yield return BeginHousingPlacement(host, housing, new Vector2Int(5, 5));
+            yield return BeginHousingPlacement(host, housing, new Vector2Int(5, 5), HousingAction.Cancel);
+            yield return BeginHousingPlacement(host, housing, new Vector2Int(5, 5));
+            int initialCount = housing.Layout.Placements.Count;
+            var newCell = new Vector2Int(4, 4);
+            Click(host, surface.CellWorldPosition(newCell));
+            Check(housing.Layout.Placements.Count == initialCount + 1 && housing.Layout.At(newCell) != null,
+                "mirror UI button and floor click place a stand");
+            var placement = housing.Layout.At(newCell);
+            Click(host, surface.CellWorldPosition(newCell));
+            Check(!housing.Menu.IsVisible && placement.Cell == newCell, "short tap does not open menu or move stand");
+            var quickSwipe = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, surface.CellWorldPosition(newCell)),
+                button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(quickSwipe);
+            quickSwipe.position -= Vector2.right * Screen.width * .12f;
+            host.input.OnDrag(quickSwipe);
+            yield return new WaitForSeconds(.55f);
+            Check(!housing.Menu.IsVisible && host.Transition.IsActive, "swiping before hold keeps tab gesture ownership");
+            host.input.OnPointerUp(quickSwipe);
+            yield return new WaitForSeconds(.35f);
+            yield return HousingGesture(host, housing, newCell, HousingAction.Move);
+            var movedCell = new Vector2Int(5, 4);
+            Click(host, surface.CellWorldPosition(movedCell));
+            Check(placement.Cell == movedCell && housing.Layout.At(newCell) == null,
+                "floor selection moves stand and releases old occupancy");
+            yield return HousingGesture(host, housing, movedCell, HousingAction.Rotate);
+            Check(placement.QuarterTurns == 1 && placement.Cell == movedCell,
+                "rotation executes once per hold and preserves 1x1 anchor");
+            var cancelHold = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, surface.CellWorldPosition(movedCell)),
+                button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(cancelHold);
+            yield return new WaitForSeconds(.55f);
+            Check(housing.Menu.IsVisible, "long press captures floor input");
+            host.input.Cancel();
+            Check(!housing.Menu.IsVisible && placement.QuarterTurns == 1,
+                "input cancellation closes menu without another action");
+            yield return HousingGesture(host, housing, movedCell, HousingAction.Recall);
+            Check(housing.Layout.At(movedCell) == null && housing.Layout.Placements.Count == initialCount,
+                "remove control releases occupied cell");
+            yield return BeginHousingPlacement(host, housing, new Vector2Int(5, 5));
+            Click(host, surface.CellWorldPosition(new Vector2Int(2, 2)));
+            Check(housing.Layout.Placements.Count == initialCount, "occupied floor rejects another stand");
+            var floorSwipe = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, surface.CellWorldPosition(newCell)),
+                button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(floorSwipe);
+            floorSwipe.position -= Vector2.right * Screen.width * .12f;
+            host.input.OnDrag(floorSwipe);
+            yield return new WaitForSeconds(.15f);
+            host.input.OnPointerUp(floorSwipe);
+            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 0 && housing.Layout.Placements.Count == initialCount,
+                "floor swipe cancels click without accidental housing placement");
+            housing.ResetSelection();
+            var externalItem = Instantiate(housing.DefaultItem);
+            JsonUtility.FromJsonOverwrite("{\"_itemId\":\"catalog-bridge-test\",\"_footprint\":{\"x\":2,\"y\":1}}", externalItem);
+            HousingPlacement addedItem = null;
+            HousingPlacement removedItem = null;
+            System.Action requestItem = () => housing.BeginPlacement(externalItem);
+            System.Action<HousingPlacement> onAdded = item => addedItem = item;
+            System.Action<HousingPlacement> onRemoved = item => removedItem = item;
+            housing.PlacementRequested += requestItem;
+            housing.PlacementAdded += onAdded;
+            housing.PlacementRemoved += onRemoved;
+            housing.RequestPlacement();
+            Check(housing.IsPlacing, "external catalog bridge starts item placement");
+            var externalCell = new Vector2Int(4, 4);
+            Check(housing.Layout.CanPlace(externalCell, externalItem.Footprint), "external item test footprint is free");
+            housing.SelectCell(externalCell);
+            Check(addedItem != null && addedItem.ItemId == externalItem.ItemId && addedItem.Size == new Vector2Int(2, 1),
+                "external definition supplies item identity and footprint and emits placement event");
+            housing.ExecuteAction(addedItem.Id, HousingAction.Recall);
+            Check(removedItem == addedItem && housing.Layout.Placements.Count == initialCount,
+                "recall emits item identity for catalog bridge");
+            housing.PlacementRequested -= requestItem;
+            housing.PlacementAdded -= onAdded;
+            housing.PlacementRemoved -= onRemoved;
+            Destroy(externalItem);
+            Check(!housing.Layout.CanPlace(housing.Wanderer.CurrentCell, Vector2Int.one) &&
+                !housing.Layout.CanPlace(housing.Wanderer.TargetCell, Vector2Int.one),
+                "housing cannot cover dokkaebi traversal");
+            int steps = housing.Wanderer.CompletedSteps;
+            yield return new WaitForSeconds(2.5f);
+            Check(housing.Wanderer.CompletedSteps > steps && housing.Layout.IsWalkable(housing.Wanderer.CurrentCell) &&
+                housing.Layout.IsWalkable(housing.Wanderer.TargetCell), "dokkaebi wanders through free adjacent cells");
+            Check(housing.Wanderer.gameObject.scene == host.ActiveRoot.gameObject.scene &&
+                housing.Wanderer.GetComponentsInChildren<Transform>().All(child => child.gameObject.layer == host.ActiveRoot.RenderLayer),
+                "runtime dummy stays in home scene and render layer");
             var dragPointer = PointerAt(host, new Vector2(.5f, .8f));
             host.input.OnPointerDown(dragPointer);
             dragPointer.position -= Vector2.right * Screen.width * .12f;
