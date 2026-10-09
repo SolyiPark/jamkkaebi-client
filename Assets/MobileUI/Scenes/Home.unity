@@ -876,6 +876,7 @@ GameObject:
   - component: {fileID: 1191466250}
   - component: {fileID: 1191466249}
   - component: {fileID: 1191466248}
+  - component: {fileID: 1191466252}
   m_Layer: 8
   m_Name: Home Exhibition
   m_TagString: Untagged
@@ -926,6 +927,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.MirrorSceneRoot
   sceneCamera: {fileID: 339322683}
   uiRaycasters: []
+--- !u!114 &1191466252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1191466247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4b77135840048de9cc7f1cacb5af204, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionHousing
+  _surface: {fileID: 1350913802}
+  _content: {fileID: 1113513872}
+  _font: {fileID: 12800000, guid: 8ff598083fa05724cb7948bd3db7f4ac, type: 3}
+  _material: {fileID: 2100000, guid: 1564d74242bfcee45a13b964d47e96ad, type: 2}
+  _defaultItem: {fileID: 11400000, guid: 7fdda69b935e48688438d17d3e053bc6, type: 2}
+  _initialCell: {x: 2, y: 2}
+  _spawnInitialItem: 1
 --- !u!4 &1191466251
 Transform:
   m_ObjectHideFlags: 0

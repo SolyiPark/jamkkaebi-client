@@ -31,6 +31,12 @@ public static class ExhibitionChecks
         EditorSceneManager.OpenScene("Assets/MobileUI/Scenes/Home.unity");
         var surface = UnityEngine.Object.FindFirstObjectByType<ExhibitionSurface>();
         Check(surface && surface.Grid && surface.Grid.Size == new Vector2Int(7, 7), "home surface references persistent grid asset");
+        var housing = UnityEngine.Object.FindFirstObjectByType<ExhibitionHousing>();
+        Check(housing && housing.Surface == surface, "home housing references platform surface");
+        var housingData = new SerializedObject(housing);
+        foreach (string field in new[] { "_content", "_font", "_material", "_defaultItem" })
+            Check(housingData.FindProperty(field).objectReferenceValue, "housing reference " + field);
+        Check(housing.DefaultItem.IsValid, "default housing item definition is valid");
         IntegratedSetup.ValidateScenes();
         Debug.Log("EXHIBITION_CHECKS_PASSED");
     }
