@@ -9,6 +9,8 @@ namespace MobilePrototype.Collection
     /// </summary>
     public static class CollectionCatalogData
     {
+        /// <summary>확정 시트의 시대·유물 순서와 미정 콘텐츠 표시로 새 메모리 카탈로그를 만듭니다.</summary>
+        /// <returns>저장되지 않은 카탈로그이며 호출 측이 자산으로 저장하거나 사용 후 파괴합니다.</returns>
         public static CollectionCatalog CreateCatalog()
         {
             Color samguk = new Color32(194, 132, 77, 255);
@@ -41,6 +43,7 @@ namespace MobilePrototype.Collection
             return catalog;
         }
 
+        /// <summary>확정 유물 이름에 정령 미정 안내와 임시 설명·복원 기록을 붙여 정의를 만듭니다.</summary>
         private static CollectionRelicDefinition Relic(string id, string eraId, string name, Color accent)
         {
             return new CollectionRelicDefinition(id, eraId, name, "정령 이름 미정",

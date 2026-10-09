@@ -16,7 +16,10 @@ using UnityEngine.UI;
 
 namespace MobilePrototype
 {
-    // Only enabled explicitly in a development player; no automatic gameplay changes.
+    /// <summary>
+    /// 명시적 검증 옵션을 받은 개발 플레이어에서 실제 씬·입력·렌더링을 검사하고 결과를 저장합니다.
+    /// 일반 플레이에서는 검증 흐름을 시작하지 않습니다.
+    /// </summary>
     public class IntegratedVerification : MonoBehaviour
     {
         private readonly List<string> _results = new List<string>();
@@ -25,6 +28,7 @@ namespace MobilePrototype
         /// <summary>
         /// 개발 플레이어에 검증 출력 경로가 명시된 경우에만 검사를 실행하고, 오류를 수집해 결과 파일과 종료 코드로 전달합니다.
         /// </summary>
+        /// <returns>중첩 검증 코루틴의 프레임 대기를 순서대로 실행하는 코루틴입니다.</returns>
         private IEnumerator Start()
         {
             string option = Environment.GetCommandLineArgs().FirstOrDefault(x => x.StartsWith("--verify-output="));
@@ -51,6 +55,9 @@ namespace MobilePrototype
         /// <summary>
         /// Unity 오류·예외·단언 실패 로그를 스택과 함께 수집해 실행 검증 실패로 반영합니다.
         /// </summary>
+        /// <param name="message">Unity가 전달한 로그 메시지입니다.</param>
+        /// <param name="stack">로그 발생 위치의 스택 정보입니다.</param>
+        /// <param name="type">검증 실패로 포함할 오류 수준을 판단하는 로그 종류입니다.</param>
         private void RecordError(string message, string stack, LogType type)
         {
             if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
@@ -70,6 +77,9 @@ namespace MobilePrototype
         /// <summary>
         /// 조건이 참이면 통과 목록에 추가하고, 거짓이면 검사 이름을 담은 예외로 검증을 중단합니다.
         /// </summary>
+        /// <param name="condition">통과 여부를 나타내는 검증 조건입니다.</param>
+        /// <param name="label">결과 파일과 실패 예외에 기록할 검사 이름입니다.</param>
+        /// <exception cref="Exception">검증 조건이 거짓이면 발생합니다.</exception>
         private void Check(bool condition, string label)
         {
             if (!condition) throw new Exception(label);
@@ -78,6 +88,9 @@ namespace MobilePrototype
         /// <summary>
         /// 활성 탭의 월드 위치를 카메라와 공통 뷰포트를 거쳐 실제 화면 좌표로 변환합니다.
         /// </summary>
+        /// <param name="host">현재 탭 카메라와 공통 표시 영역을 제공하는 호스트입니다.</param>
+        /// <param name="world">활성 콘텐츠 씬 안에서 입력할 월드 위치입니다.</param>
+        /// <returns>공통 미러 입력에 전달할 화면 픽셀 좌표입니다.</returns>
         private Vector2 ScreenPoint(TabHost host, Vector3 world)
         {
             var uv = host.ActiveRoot.sceneCamera.WorldToViewportPoint(world);
@@ -88,6 +101,8 @@ namespace MobilePrototype
         /// <summary>
         /// 월드 위치에 해당하는 화면 지점에서 입력 브리지의 누름·놓기를 호출해 실제 클릭 전달 경로를 검증합니다.
         /// </summary>
+        /// <param name="host">입력을 전달할 활성 탭의 호스트입니다.</param>
+        /// <param name="world">렌더와 레이캐스트 준비가 끝난 클릭 대상의 월드 위치입니다.</param>
         private void Click(TabHost host, Vector3 world)
         {
             var pointer = new PointerEventData(EventSystem.current)
@@ -96,6 +111,14 @@ namespace MobilePrototype
             host.input.OnPointerUp(pointer);
         }
 
+        /// <summary>
+        /// 배치물을 길게 눌러 로컬 메뉴를 열고, 지정 동작으로 드래그해 탭 전환 없이 한 번 실행되는지 검사합니다.
+        /// </summary>
+        /// <param name="host">전시관 입력을 전달할 호스트입니다.</param>
+        /// <param name="housing">배치물 메뉴와 배치 상태를 제공하는 하우징입니다.</param>
+        /// <param name="cell">길게 누를 배치물이 차지한 논리 격자 좌표입니다.</param>
+        /// <param name="action">메뉴에서 선택할 이동·회전·회수 동작입니다.</param>
+        /// <returns>길게 누르기와 화면 캡처 대기를 포함한 입력 검증 코루틴입니다.</returns>
         private IEnumerator HousingGesture(TabHost host, ExhibitionHousing housing, Vector2Int cell, HousingAction action)
         {
             var pointer = new PointerEventData(EventSystem.current)
@@ -120,6 +143,14 @@ namespace MobilePrototype
             Check(!housing.Menu.IsVisible, "all housing UI closes on release " + action);
         }
 
+        /// <summary>
+        /// 빈 바닥을 길게 눌러 배치 또는 취소를 선택하고, 메뉴 종료 후에도 선택한 배치 상태가 유지되는지 검사합니다.
+        /// </summary>
+        /// <param name="host">전시관 입력을 전달할 호스트입니다.</param>
+        /// <param name="housing">빈 바닥 메뉴와 배치 대기 상태를 제공하는 하우징입니다.</param>
+        /// <param name="cell">길게 누를 비어 있는 논리 격자 좌표입니다.</param>
+        /// <param name="action">빈 바닥 메뉴에서 선택할 배치 또는 취소 동작입니다.</param>
+        /// <returns>길게 누르기와 메뉴 표시 대기를 포함한 입력 검증 코루틴입니다.</returns>
         private IEnumerator BeginHousingPlacement(TabHost host, ExhibitionHousing housing, Vector2Int cell,
             HousingAction action = HousingAction.Place)
         {
@@ -147,6 +178,8 @@ namespace MobilePrototype
         /// <summary>
         /// 발굴 검사에 사용할 미공개·비강화 빈 타일을 찾습니다. 조건을 만족하는 타일이 없으면 실패합니다.
         /// </summary>
+        /// <param name="adapter">활성 세션의 타일 모델과 표현을 제공하는 미니게임 어댑터입니다.</param>
+        /// <returns>안전한 빈 타일 클릭 검사에 사용할 타일 표현입니다.</returns>
         private TileView CoveredEmpty(MinigameSessionAdapter adapter)
         {
             return adapter.TileViews.Values.First(view =>
@@ -158,6 +191,7 @@ namespace MobilePrototype
         /// <summary>
         /// 활성 탭의 렌더 텍스처에서 콘텐츠 픽셀과 오류 셰이더 색상을 검사하고 읽기 전 렌더 타깃을 복원합니다.
         /// </summary>
+        /// <param name="host">렌더가 완료된 활성 탭의 카메라와 렌더 텍스처를 제공하는 호스트입니다.</param>
         private void CheckRender(TabHost host)
         {
             var previous = RenderTexture.active;
@@ -176,6 +210,7 @@ namespace MobilePrototype
         /// <summary>
         /// 현재 화면에 충분한 가시 픽셀이 있는지 확인한 뒤 출력 폴더에 PNG로 저장합니다. 렌더 완료 후 호출해야 합니다.
         /// </summary>
+        /// <param name="filename">검증 출력 폴더 안에 저장할 PNG 파일 이름입니다.</param>
         private void Capture(string filename)
         {
             var screenshot = ScreenCapture.CaptureScreenshotAsTexture();
@@ -188,6 +223,9 @@ namespace MobilePrototype
         /// <summary>
         /// 뷰포트 내 정규화 좌표를 화면 좌표로 바꿔 검증용 단일 왼쪽 포인터 이벤트를 생성합니다.
         /// </summary>
+        /// <param name="host">공통 표시 영역을 제공하는 탭 호스트입니다.</param>
+        /// <param name="uv">공통 표시 영역 안의 0~1 정규화 좌표입니다.</param>
+        /// <returns>해당 화면 좌표에서 시작할 단일 왼쪽 포인터 이벤트입니다.</returns>
         private PointerEventData PointerAt(TabHost host, Vector2 uv)
         {
             var rect = host.viewport.rect;
@@ -199,6 +237,9 @@ namespace MobilePrototype
         /// <summary>
         /// 화면 폭의 40%만큼 지정 방향으로 포인터를 이동·해제하고 탭 전환 정착을 기다립니다. 음수 방향은 왼쪽입니다.
         /// </summary>
+        /// <param name="host">탭 스와이프 입력을 전달할 호스트입니다.</param>
+        /// <param name="direction">왼쪽은 음수, 오른쪽은 양수로 지정하는 이동 방향입니다.</param>
+        /// <returns>스와이프 전달과 전환 정착 대기를 포함한 코루틴입니다.</returns>
         private IEnumerator Swipe(TabHost host, float direction)
         {
             var pointer = PointerAt(host, new Vector2(.5f, .8f));
@@ -212,6 +253,8 @@ namespace MobilePrototype
         /// <summary>
         /// 도감의 실제 버튼·미러 입력으로 복원 기준 잠금, 상세 열람, 제스처 소유권과 탭 재방문 상태를 검증합니다.
         /// </summary>
+        /// <param name="host">도감과 다른 탭의 전환·입력을 제공하는 통합 호스트입니다.</param>
+        /// <returns>도감 화면 캡처, 기록 교체와 입력 처리를 순서대로 검증하는 코루틴입니다.</returns>
         private IEnumerator VerifyCollection(TabHost host)
         {
             host.SelectTab(2);
@@ -386,12 +429,27 @@ namespace MobilePrototype
                 "rebinding original progress restores collection view without losing records");
         }
 
+        /// <summary>
+        /// 지정 계층에서 이름이 일치하는 활성 이미지를 찾고, 화면 재구성 뒤 제거 대기 중인 비활성 이미지는 제외합니다.
+        /// </summary>
+        /// <param name="scope">이미지를 검색할 부모 계층입니다.</param>
+        /// <param name="name">검색할 이미지 오브젝트의 이름입니다.</param>
+        /// <returns>일치하는 첫 활성 이미지이며, 없으면 null입니다.</returns>
         private Image ActiveImage(Transform scope, string name)
         {
             return scope.GetComponentsInChildren<Image>(true).FirstOrDefault(image =>
                 image.name == name && image.gameObject.activeInHierarchy);
         }
 
+        /// <summary>
+        /// 활성 이미지의 스프라이트·원본 색·입력 설정을 확인하고, UI 바탕이면 9-slice와 늘림 설정도 검사합니다.
+        /// </summary>
+        /// <param name="scope">검사할 이미지가 속한 계층입니다.</param>
+        /// <param name="name">검사할 이미지 오브젝트의 이름입니다.</param>
+        /// <param name="sprite">이미지에 연결되어야 하는 스프라이트입니다.</param>
+        /// <param name="surface">카드나 패널처럼 9-slice로 채워야 하는 UI 바탕인지 나타냅니다.</param>
+        /// <param name="raycast">해당 이미지가 포인터 레이캐스트를 받아야 하는지 나타냅니다.</param>
+        /// <returns>이미지가 존재하고 모든 표시·입력 조건이 일치하면 true입니다.</returns>
         private bool MatchesImage(Transform scope, string name, Sprite sprite, bool surface = false, bool raycast = false)
         {
             var image = ActiveImage(scope, name);
@@ -399,12 +457,26 @@ namespace MobilePrototype
                 (!surface || image.type == Image.Type.Sliced && !image.preserveAspect);
         }
 
+        /// <summary>
+        /// 이미지 슬롯이 비었을 때 지정 위치에 활성 벡터 대체 그림이 생성되었는지 확인합니다.
+        /// </summary>
+        /// <param name="scope">대체 그림을 검색할 부모 계층입니다.</param>
+        /// <param name="name">대체 그림 오브젝트의 이름입니다.</param>
+        /// <returns>이름이 일치하는 활성 벡터 그림이 있으면 true입니다.</returns>
         private bool HasVectorArtwork(Transform scope, string name)
         {
             return scope.GetComponentsInChildren<CollectionArtwork>(true).Any(artwork =>
                 artwork.name == name && artwork.gameObject.activeInHierarchy);
         }
 
+        /// <summary>
+        /// Player 메모리의 직렬화 스프라이트 슬롯만 교체하고, finally에서 역순으로 실행할 원래 참조 복구 동작을 등록합니다.
+        /// </summary>
+        /// <param name="target">교체할 private 스프라이트 필드를 가진 정의 또는 외형 객체입니다.</param>
+        /// <param name="fieldName">교체할 직렬화 필드의 정확한 이름입니다.</param>
+        /// <param name="sprite">검사할 임시 스프라이트이며, null이면 비어 있는 슬롯을 검사합니다.</param>
+        /// <param name="restore">교체 이전 참조를 복구할 동작을 누적하는 목록입니다.</param>
+        /// <exception cref="Exception">지정 필드가 없거나 스프라이트 형식이 아니면 발생합니다.</exception>
         private void OverrideSprite(object target, string fieldName, Sprite sprite, List<Action> restore)
         {
             var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
@@ -415,6 +487,12 @@ namespace MobilePrototype
             field.SetValue(target, sprite);
         }
 
+        /// <summary>
+        /// 실제 렌더 색과 9-slice 검사를 위한 4×4 단색 스프라이트를 만들고 텍스처와 스프라이트를 정리 목록에 등록합니다.
+        /// </summary>
+        /// <param name="color">서로 다른 이미지 경로를 구분할 원본 픽셀 색입니다.</param>
+        /// <param name="temporary">검사가 끝나면 제거할 Unity 객체 목록입니다.</param>
+        /// <returns>네 방향에 1픽셀 테두리가 설정된 임시 스프라이트입니다.</returns>
         private Sprite VerificationSprite(Color color, List<UnityEngine.Object> temporary)
         {
             var texture = new Texture2D(4, 4, TextureFormat.RGBA32, false);
@@ -427,6 +505,12 @@ namespace MobilePrototype
             return sprite;
         }
 
+        /// <summary>
+        /// 실제 렌더 텍스처의 콘텐츠 바깥쪽 배경 픽셀을 읽어 선택된 페이지 배경의 주된 색 채널을 검사합니다.
+        /// </summary>
+        /// <param name="host">렌더가 완료된 활성 도감 탭을 제공하는 호스트입니다.</param>
+        /// <param name="dominantChannel">우세해야 하는 색 채널 인덱스로, 빨강 0·초록 1·파랑 2입니다.</param>
+        /// <param name="label">결과 파일에 기록할 배경 우선순위 검사 이름입니다.</param>
         private void CheckBackgroundRender(TabHost host, int dominantChannel, string label)
         {
             var target = host.ActiveRoot.sceneCamera.targetTexture;
@@ -453,6 +537,8 @@ namespace MobilePrototype
         /// <summary>
         /// 기본 화면 캡처를 마친 뒤 실제 스프라이트로 표시 경로와 대체 순서를 검사하고 모든 임시 참조를 복원합니다.
         /// </summary>
+        /// <param name="host">도감 카메라·미러 입력·실제 렌더 텍스처를 제공하는 통합 호스트입니다.</param>
+        /// <returns>임시 이미지 주입, 화면 전환과 렌더 대기를 포함한 검증 코루틴입니다.</returns>
         private IEnumerator VerifyCollectionArtwork(TabHost host)
         {
             host.SelectTab(2);
@@ -623,6 +709,7 @@ namespace MobilePrototype
         /// <summary>
         /// 실제 씬과 입력 브리지로 초기 로딩 정책·전시관·탭 전환·발굴·일시정지·해상도 변경을 검증하고 화면을 저장합니다.
         /// </summary>
+        /// <returns>통합 씬 로드부터 도감 이미지 참조 복구까지 순서대로 실행하는 전체 검증 코루틴입니다.</returns>
         private IEnumerator Run()
         {
             var host = FindFirstObjectByType<TabHost>();

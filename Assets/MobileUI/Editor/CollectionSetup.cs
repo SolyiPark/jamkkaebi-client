@@ -8,13 +8,22 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
+/// <summary>
+/// 도감의 최초 씬 이관, 확정 카탈로그 동기화와 공통 이미지 자산 연결을 수행하는 에디터 도구입니다.
+/// </summary>
 public static class CollectionSetup
 {
     private const string ScenePath = "Assets/MobileUI/Scenes/Collection.unity";
     private const string CatalogPath = "Assets/MobileUI/Configuration/CollectionCatalog.asset";
     private const string AppearancePath = "Assets/MobileUI/Configuration/CollectionAppearance.asset";
 
-    // Explicit, one-time migration of this tab only. Builds never call this method.
+    /// <summary>
+    /// batch mode에서 기존 도감 더미를 최초 한 번 이관하고 카메라·카탈로그·이미지 참조와 탭 설정을 저장합니다.
+    /// 일반 실행이나 빌드 준비를 위해 재호출하지 않습니다.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// batch mode가 아니거나 기존 도감 루트·카메라가 없거나 이미 이관된 씬이면 발생합니다.
+    /// </exception>
     public static void Apply()
     {
         if (!Application.isBatchMode)
@@ -62,7 +71,10 @@ public static class CollectionSetup
         Debug.Log("COLLECTION_SCENE_CONFIGURED");
     }
 
-    // Updates only the definitions; existing scene GUIDs and assigned artwork are retained.
+    /// <summary>
+    /// Play가 종료된 상태에서 확정 도감 정의를 저장 자산에 반영하고 기존 자산 GUID와 그림 참조를 유지합니다.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Play 중이거나 Play 진입이 예약되어 있으면 발생합니다.</exception>
     [MenuItem("Prototype/Collection/Sync Catalog From Confirmed Data")]
     public static void SyncCatalog()
     {
@@ -71,6 +83,10 @@ public static class CollectionSetup
         SyncCatalogAsset(CatalogPath);
     }
 
+    /// <summary>
+    /// 지정 경로의 카탈로그를 생성하거나 갱신하고, 같은 시대·유물 ID의 모든 그림 참조를 보존한 뒤 저장합니다.
+    /// </summary>
+    /// <param name="catalogPath">생성하거나 갱신할 프로젝트 상대 카탈로그 자산 경로입니다.</param>
     private static void SyncCatalogAsset(string catalogPath)
     {
         CollectionCatalog current = AssetDatabase.LoadAssetAtPath<CollectionCatalog>(catalogPath);
@@ -113,7 +129,12 @@ public static class CollectionSetup
         }
     }
 
-    // Add image configuration to the saved tab without rebuilding its hierarchy.
+    /// <summary>
+    /// batch mode에서 카탈로그를 동기화하고, 기존 씬 계층과 이미 연결된 외형 자산을 유지하며 누락된 이미지 설정을 연결합니다.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// batch mode가 아니거나 도감 표시 컴포넌트가 없거나 공통 이미지 자산 연결에 실패하면 발생합니다.
+    /// </exception>
     public static void ConfigureImages()
     {
         if (!Application.isBatchMode)
@@ -138,6 +159,10 @@ public static class CollectionSetup
         Debug.Log("COLLECTION_IMAGE_SLOTS_CONFIGURED");
     }
 
+    /// <summary>
+    /// 저장된 공통 도감 외형 자산을 반환하고, 자산이 없으면 빈 이미지 슬롯으로 생성해 저장합니다.
+    /// </summary>
+    /// <returns>도감 씬에서 공유할 기존 또는 새 외형 자산입니다.</returns>
     private static CollectionAppearance EnsureAppearanceAsset()
     {
         CollectionAppearance appearance = AssetDatabase.LoadAssetAtPath<CollectionAppearance>(AppearancePath);

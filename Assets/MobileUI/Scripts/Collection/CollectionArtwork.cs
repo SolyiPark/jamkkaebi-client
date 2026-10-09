@@ -3,11 +3,16 @@ using UnityEngine.UI;
 
 namespace MobilePrototype.Collection
 {
-    // Vector placeholders can be replaced by catalog sprites without changing collection state.
+    /// <summary>
+    /// 카탈로그 그림이 비어 있을 때 유물, 정령, 건물과 잠금 상태를 임시 벡터 기호로 표시합니다.
+    /// </summary>
     public sealed class CollectionArtwork : MaskableGraphic
     {
         private CollectionArtworkKind _kind;
 
+        /// <summary>표시할 기호와 색상을 선택하고 포인터 입력을 받지 않는 장식 메시를 갱신합니다.</summary>
+        /// <param name="kind">생성할 임시 기호 종류입니다.</param>
+        /// <param name="tint">기호의 꼭짓점 색상입니다.</param>
         public void Configure(CollectionArtworkKind kind, Color tint)
         {
             _kind = kind;
@@ -16,6 +21,8 @@ namespace MobilePrototype.Collection
             SetVerticesDirty();
         }
 
+        /// <summary>이전 메시를 지우고 선택된 기호를 사각형, 다각형과 원으로 구성합니다.</summary>
+        /// <param name="vertices">선택 기호의 꼭짓점과 삼각형을 기록할 Unity UI 메시 도우미입니다.</param>
         protected override void OnPopulateMesh(VertexHelper vertices)
         {
             vertices.Clear();
@@ -114,6 +121,9 @@ namespace MobilePrototype.Collection
             }
         }
 
+        /// <summary>기호 좌표를 UI 영역의 중심과 짧은 변 길이를 기준으로 변환해 비율을 유지합니다.</summary>
+        /// <param name="point">기호 중심을 원점으로 사용하는 상대 좌표입니다.</param>
+        /// <returns>UI 영역 안의 로컬 꼭짓점 좌표입니다.</returns>
         private Vector2 Position(Vector2 point)
         {
             Rect rect = rectTransform.rect;
@@ -121,6 +131,9 @@ namespace MobilePrototype.Collection
             return rect.center + point * scale;
         }
 
+        /// <summary>나열된 꼭짓점을 추가하고 첫 꼭짓점을 공유하는 삼각형 부채로 연결합니다.</summary>
+        /// <param name="vertices">다각형을 기록할 메시 도우미입니다.</param>
+        /// <param name="points">기호 상대 좌표계에서 순서대로 나열한 경계 꼭짓점입니다.</param>
         private void Polygon(VertexHelper vertices, params Vector2[] points)
         {
             int start = vertices.currentVertCount;
@@ -128,12 +141,22 @@ namespace MobilePrototype.Collection
             for (int i = 1; i < points.Length - 1; i++) vertices.AddTriangle(start, start + i, start + i + 1);
         }
 
+        /// <summary>기호 상대 좌표의 좌측 하단과 크기로 채워진 사각형을 추가합니다.</summary>
+        /// <param name="vertices">사각형을 기록할 메시 도우미입니다.</param>
+        /// <param name="x">좌측 하단의 가로 좌표입니다.</param>
+        /// <param name="y">좌측 하단의 세로 좌표입니다.</param>
+        /// <param name="width">사각형 너비입니다.</param>
+        /// <param name="height">사각형 높이입니다.</param>
         private void Box(VertexHelper vertices, float x, float y, float width, float height)
         {
             Polygon(vertices, new Vector2(x, y), new Vector2(x + width, y),
                 new Vector2(x + width, y + height), new Vector2(x, y + height));
         }
 
+        /// <summary>기호 상대 좌표의 원을 32개의 삼각형으로 채워 메시를 추가합니다.</summary>
+        /// <param name="vertices">원을 기록할 메시 도우미입니다.</param>
+        /// <param name="center">원 중심의 기호 상대 좌표입니다.</param>
+        /// <param name="radius">원의 반지름입니다.</param>
         private void Disc(VertexHelper vertices, Vector2 center, float radius)
         {
             const int Segments = 32;
@@ -147,6 +170,10 @@ namespace MobilePrototype.Collection
             for (int i = 0; i < Segments; i++) vertices.AddTriangle(start, start + 1 + i, start + 1 + (i + 1) % Segments);
         }
 
+        /// <summary>기호 원점 주위에 32개의 사각 조각으로 속이 빈 원형 테두리를 추가합니다.</summary>
+        /// <param name="vertices">원형 테두리를 기록할 메시 도우미입니다.</param>
+        /// <param name="radius">테두리 바깥쪽 반지름입니다.</param>
+        /// <param name="thickness">바깥쪽에서 안쪽으로의 테두리 두께입니다.</param>
         private void Ring(VertexHelper vertices, float radius, float thickness)
         {
             const int Segments = 32;

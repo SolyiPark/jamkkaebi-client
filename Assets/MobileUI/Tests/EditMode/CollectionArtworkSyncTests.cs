@@ -15,9 +15,11 @@ namespace MobilePrototype.Tests.EditMode
         private string _temporaryAssetPath;
         private readonly List<UnityEngine.Object> _createdObjects = new List<UnityEngine.Object>();
 
+        /// <summary>검사 중 실패한 경우에도 임시 자산과 남은 메모리 오브젝트를 정리합니다.</summary>
         [TearDown]
         public void TearDown() => Cleanup();
 
+        /// <summary>순서와 이름을 갱신해도 종류 ID별 그림 10개와 자산 GUID가 저장·재로드 후 보존되는지 검사합니다.</summary>
         [Test]
         public void SyncCatalog_PreservesEveryArtworkSlotAndAssetIdentityByIdAfterReload()
         {
@@ -110,6 +112,7 @@ namespace MobilePrototype.Tests.EditMode
             }
         }
 
+        /// <summary>운영 자산을 변경하지 않고 이 테스트가 생성한 임시 자산과 비영속 오브젝트만 제거합니다.</summary>
         private void Cleanup()
         {
             if (!string.IsNullOrEmpty(_temporaryAssetPath))

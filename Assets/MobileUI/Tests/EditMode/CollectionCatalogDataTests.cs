@@ -11,12 +11,15 @@ namespace MobilePrototype.Tests.EditMode
     {
         private CollectionCatalog _catalog;
 
+        /// <summary>각 검사에 확정 시트 정의의 새 메모리 카탈로그를 제공합니다.</summary>
         [SetUp]
         public void SetUp() => _catalog = CollectionCatalogData.CreateCatalog();
 
+        /// <summary>검사에 사용한 메모리 카탈로그를 파괴합니다.</summary>
         [TearDown]
         public void TearDown() => Object.DestroyImmediate(_catalog);
 
+        /// <summary>시대와 유물의 ID·소속·명칭·순서가 확정 시트의 9개 행과 일치하는지 검사합니다.</summary>
         [Test]
         public void CatalogMatchesConfirmedSheetRowsInOrder()
         {
@@ -39,6 +42,7 @@ namespace MobilePrototype.Tests.EditMode
                 }));
         }
 
+        /// <summary>도감 씬에 사용하는 저장 자산의 순서·표시명·미정 문구가 확정 정의 코드와 일치하는지 검사합니다.</summary>
         [Test]
         public void SceneCatalogAssetMatchesConfirmedDefinitions()
         {
@@ -65,6 +69,7 @@ namespace MobilePrototype.Tests.EditMode
             }
         }
 
+        /// <summary>더미 기록이 확정 유물 5종과 고려 건물 하나만 완료하며 신규 확인 정책을 따르는지 검사합니다.</summary>
         [Test]
         public void DemoProgressUsesConfirmedRelicsAndKeepsCompletionRules()
         {

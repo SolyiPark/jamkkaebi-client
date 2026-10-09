@@ -12,6 +12,7 @@ namespace Jamkkaebi.Tests.EditMode
         private CollectionCatalog _catalog;
         private CollectionProgress _progress;
 
+        /// <summary>시대 3개와 유물 3종으로 각 테스트에 사용할 빈 진행 기록을 구성합니다.</summary>
         [SetUp]
         public void SetUp()
         {
@@ -22,6 +23,7 @@ namespace Jamkkaebi.Tests.EditMode
             _progress = new CollectionProgress(_catalog);
         }
 
+        /// <summary>테스트에서 만든 메모리 카탈로그가 남아 있으면 파괴합니다.</summary>
         [TearDown]
         public void TearDown()
         {
@@ -29,6 +31,7 @@ namespace Jamkkaebi.Tests.EditMode
                 UnityEngine.Object.DestroyImmediate(_catalog);
         }
 
+        /// <summary>빈 기록은 유물만 전체 개수에 포함하고 빈 시대와 미완료 시대의 건물을 잠그는지 검사합니다.</summary>
         [Test]
         public void InitialRecord_OnlyRelicsContributeToTotalAndBuildingsStayLocked()
         {
@@ -41,6 +44,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsFalse(_progress.HasUnreadInEra("era-a"));
         }
 
+        /// <summary>동일 종류의 중복 완료가 수집 개수·수집률·변경 알림을 한 번만 갱신하는지 검사합니다.</summary>
         [Test]
         public void RestorationCompleted_RepeatedNotificationCountsTypeOnlyOnce()
         {
@@ -58,6 +62,8 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsFalse(_progress.IsBuildingUnlocked("era-a"));
         }
 
+        /// <summary>유물 종류로 등록할 수 없는 ID가 기록과 신규 상태, 변경 알림을 만들지 않는지 검사합니다.</summary>
+        /// <param name="relicId">null·빈 문자열·미등록 ID·시대 ID 중 하나인 거절 대상입니다.</param>
         [TestCase(null)]
         [TestCase("")]
         [TestCase("missing-relic")]
@@ -75,6 +81,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(0, notifications);
         }
 
+        /// <summary>상세 확인은 신규 표시만 해제하고 중복 완료 후에도 복원 기록을 유지하는지 검사합니다.</summary>
         [Test]
         public void ViewingDetail_ClearsNewBadgeAndRetainsPermanentRestoration()
         {
@@ -93,6 +100,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(1, notifications);
         }
 
+        /// <summary>시대의 마지막 유물 복원으로 해당 건물만 해금하고 건물을 수집률에서 제외하는지 검사합니다.</summary>
         [Test]
         public void LastRelicInEra_UnlocksOnlyThatEraBuilding()
         {
@@ -113,6 +121,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsFalse(_progress.IsBuildingUnlocked("empty-era"));
         }
 
+        /// <summary>모든 신규 유물 상세를 확인할 때까지 시대 신규 표시가 남는지 검사합니다.</summary>
         [Test]
         public void NewBadgeInEra_RemainsUntilEveryNewRelicHasBeenViewed()
         {
@@ -128,6 +137,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsTrue(_progress.IsBuildingUnlocked("era-a"));
         }
 
+        /// <summary>유물과 시대가 없는 유효한 카탈로그의 수집률과 해금 건물 수가 0인지 검사합니다.</summary>
         [Test]
         public void EmptyCatalog_HasZeroRateAndNoCompletedBuildings()
         {
@@ -139,6 +149,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(0, emptyProgress.CompletedBuildingCount);
         }
 
+        /// <summary>중복 ID와 없는 시대 참조로 구성을 요청해도 기존 유효한 카탈로그가 보존되는지 검사합니다.</summary>
         [Test]
         public void InvalidCatalog_DuplicateIdsOrUnknownEraCannotReplaceValidConfiguration()
         {
@@ -155,6 +166,8 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsNull(_catalog.FindRelic("orphan"));
         }
 
+        /// <summary>직렬화 편집으로 저장한 잘못된 정의가 재로드 후 진행 기록 생성 단계에서도 거절되는지 검사합니다.</summary>
+        /// <param name="invalidKind">시대 ID 중복, 유물 ID 중복 또는 없는 시대 참조의 오류 종류입니다.</param>
         [TestCase("duplicate-era")]
         [TestCase("duplicate-relic")]
         [TestCase("orphan-relic")]
@@ -200,6 +213,7 @@ namespace Jamkkaebi.Tests.EditMode
             }
         }
 
+        /// <summary>유효한 카탈로그를 저장하고 재로드한 뒤에도 복원 등록과 시대 건물 해금이 가능한지 검사합니다.</summary>
         [Test]
         public void SavedCatalog_ValidDefinitionsRemainUsableAfterReload()
         {
@@ -223,6 +237,8 @@ namespace Jamkkaebi.Tests.EditMode
             }
         }
 
+        /// <summary>직렬화 배열이 null이면 읽기 모델 사용 전에 명시적 정의 검증에서 거절하는지 검사합니다.</summary>
+        /// <param name="fieldName">null로 바꿀 시대 또는 유물 목록의 직렬화 필드 이름입니다.</param>
         [TestCase("_eras")]
         [TestCase("_relics")]
         public void Catalog_NullSerializedArrayIsRejectedBeforeReadModelUsesIt(string fieldName)
@@ -234,11 +250,13 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<ArgumentException>(() => new CollectionProgress(_catalog));
         }
 
+        /// <summary>수집 규칙 테스트에 필요한 최소 시대 정의를 지정한 ID로 만듭니다.</summary>
         private static CollectionEraDefinition Era(string id)
         {
             return new CollectionEraDefinition(id, id, "시대", "설명", "건물", Color.white);
         }
 
+        /// <summary>수집 규칙 테스트에 필요한 최소 유물 정의를 지정한 종류·시대 ID로 만듭니다.</summary>
         private static CollectionRelicDefinition Relic(string id, string eraId)
         {
             return new CollectionRelicDefinition(id, eraId, id, "정령", "설명", "복원 초안", Color.white);
