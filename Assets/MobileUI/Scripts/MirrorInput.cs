@@ -160,6 +160,13 @@ namespace MobilePrototype
                 _host.Transition.Drag(screenDelta.x / ViewportScreenWidth);
                 return;
             }
+            // Conditional owners may still be deciding the axis. Do not begin a drag early:
+            // once dragging is set, a later vertical capture would miss its begin callback.
+            if (owner != null && !ownsDrag)
+            {
+                forwarded.eligibleForClick = false;
+                return;
+            }
             UpdatePosition(input);
             if (!dragging)
             {
