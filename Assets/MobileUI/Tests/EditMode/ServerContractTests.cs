@@ -142,4 +142,3 @@ namespace MobilePrototype.Tests
         { foreach (var row in rows) if ((string)row["friendCode"] == code) return row; throw new Exception("친구 없음"); }
     }
 }
-
