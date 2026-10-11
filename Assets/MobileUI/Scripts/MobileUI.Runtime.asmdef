@@ -1,6 +1,6 @@
 {
   "name": "MobileUI.Runtime",
-  "references": ["Unity.ugui", "Jamkkaebi.Runtime"],
+  "references": ["Unity.ugui", "Jamkkaebi.Runtime", "Unity.Newtonsoft.Json"],
   "versionDefines": [
     {
       "name": "com.unity.2d.animation",

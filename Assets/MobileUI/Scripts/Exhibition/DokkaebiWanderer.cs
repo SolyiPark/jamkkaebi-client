@@ -14,6 +14,7 @@ namespace MobilePrototype.Exhibition
         private float _progress;
         private float _idle;
         public Vector2Int CurrentCell => _from;
+        public Vector2Int PlacementCell { get; private set; }
         public Vector2Int TargetCell => _to;
         public int CompletedSteps { get; private set; }
         private static readonly Vector2Int[] Directions =
@@ -22,6 +23,7 @@ namespace MobilePrototype.Exhibition
         public void Configure(HousingLayout layout, ExhibitionSurface surface, Vector2Int cell)
         {
             _layout = layout; _surface = surface; _from = _to = cell;
+            PlacementCell = cell;
             _layout.TryReserveTraversal(cell, cell);
             transform.position = _surface.CellWorldPosition(cell);
         }

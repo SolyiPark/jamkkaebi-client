@@ -123,3 +123,7 @@
 추가 연결 계층은 `ExhibitionHousing.PlacementRequested`를 구독해 도감 선택 화면을 열고, 선택한 정의를 `BeginPlacement(definition)`으로 전달할 수 있다. 구독자가 없을 때만 기존 임시 전시물을 기본으로 사용한다. `PlacementAdded`와 `PlacementRemoved`는 배치 정보와 종류 ID를 전달한다. 해금·보유 수량·소유권 검사·저장은 아직 구현하지 않았으며 연결 계층에서 별도로 설계해야 한다.
 
 실제 아트는 정의의 `VisualPrefab`으로 교체한다. 프리팹은 바닥 접점을 원점으로 하는 표현용 자식이며 하우징의 부모가 셀 위치·레이어·깊이 정렬·터치를 관리한다. 표현 프리팹에는 독립 Camera·EventSystem·AudioListener를 두지 않는다. 방향별 표현이 필요하면 자식 컴포넌트에서 `IHousingRotationView.SetFacing`을 구현한다. 프리팹이 없는 현재 정의는 기존 더미 표현을 사용한다. 도감의 구체적인 데이터 구조를 하우징에 직접 참조하지 않는다.
+
+### 서버 송신 객체와 wrapper (2026-10-11 후속 변경)
+
+NPC·건물의 불변 배치 데이터와 전체 교체 PUT wrapper를 구현했다. 로컬 ItemId·배치 Id와 서버 artifactId·buildingId를 분리하며, 현재 더미에는 서버 ID를 지정하지 않는다. NPC는 이동 애니메이션 좌표 대신 고정 PlacementCell을 캡처한다. 홈 자동 저장과 자산·보유 ID 매핑은 아직 연결되지 않았다. 7×7 홈과 기본 20×20 서버의 격자 불일치, 서버 미지원 회전·다칸 배치는 송신 전에 거부한다. 상세 계약과 실제 HTTP 검증은 [exhibition-layout-transmission.md](exhibition-layout-transmission.md)에 기록했다.
