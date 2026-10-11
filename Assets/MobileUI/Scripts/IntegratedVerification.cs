@@ -1,5 +1,6 @@
 using System;
 using MobilePrototype.Collection;
+using MobilePrototype.Friends;
 using MobilePrototype.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Newtonsoft.Json.Linq;
 
 namespace MobilePrototype
 {
@@ -251,10 +253,112 @@ namespace MobilePrototype
         }
 
         /// <summary>
-        /// 도감의 실제 버튼·미러 입력으로 복원 기준 잠금, 상세 열람, 제스처 소유권과 탭 재방문 상태를 검증합니다.
+        /// 친구 화면의 실제 버튼·미러 입력으로 요청, 전시 방문, 일일 행동과 차단 해제를 검증합니다.
         /// </summary>
-        /// <param name="host">도감과 다른 탭의 전환·입력을 제공하는 통합 호스트입니다.</param>
-        /// <returns>도감 화면 캡처, 기록 교체와 입력 처리를 순서대로 검증하는 코루틴입니다.</returns>
+        /// <param name="host">친구와 다른 탭의 전환·입력을 제공하는 통합 호스트입니다.</param>
+        /// <returns>친구 여섯 화면의 캡처와 입력 처리를 검증하는 코루틴입니다.</returns>
+        private IEnumerator VerifyFriends(TabHost host)
+        {
+            var ownHousing = host.GetRoot(0).GetComponent<ExhibitionHousing>();
+            var ownPlacements = ownHousing.Layout.Placements.Select(p => p.Cell).ToArray();
+            var root = host.GetRoot(3);
+            var friends = root.GetComponent<FriendsPresenter>();
+            Check(friends && friends.State.Friends.Count == 12 && friends.State.Received.Count == 3,
+                "friends PDF frontend replaces demo with sample social state");
+            Check(!root.GetComponentInChildren<DemoDraggable>(true) && !root.GetComponentInChildren<DemoCounter>(true),
+                "friends scene has no old demo components");
+            friends.Show("Friends"); yield return new WaitForEndOfFrame(); Capture("Friends_List.png");
+            var pointer = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, friends.Scroll.viewport.TransformPoint(friends.Scroll.viewport.rect.center)), button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(pointer);
+            pointer.position += Vector2.up * 65; host.input.OnDrag(pointer);
+            pointer.position += Vector2.up * 105; host.input.OnDrag(pointer); host.input.OnPointerUp(pointer);
+            yield return null; friends.Scroll.StopMovement();
+            Check(host.ActiveIndex == 3 && !host.IsBusy && friends.Scroll.verticalNormalizedPosition < .98f,
+                "friends vertical gesture scrolls without switching tab");
+            friends.Show("Friends"); yield return new WaitForEndOfFrame();
+            Click(host, friends.Buttons["Tab_Requests"].transform.position);
+            yield return new WaitForEndOfFrame(); Capture("Friends_Requests.png");
+            var received = friends.State.Received[0];
+            Click(host, friends.Buttons["Accept_" + received.Code].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(friends.State.Friends.Contains(received) && friends.State.Received.Count == 2,
+                "mirrored accept click updates request and friend counts");
+            Click(host, friends.Buttons["Tab_Recommendations"].transform.position);
+            yield return new WaitForEndOfFrame(); Capture("Friends_Recommendations.png");
+            friends.Show("Add"); yield return new WaitForEndOfFrame();
+            friends.CodeInput.text = "G2RY-4ABC";
+            Click(host, friends.Buttons["Lookup"].transform.position);
+            yield return new WaitForEndOfFrame(); Capture("Friends_Add.png");
+            Click(host, friends.Buttons["SendRequest"].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(friends.State.Sent.Contains(friends.State.Recommendations[0]), "friend code lookup sends a local request");
+            friends.Show("Friends"); yield return new WaitForEndOfFrame();
+            Click(host, friends.Buttons["Profile_" + friends.State.Friends[0].Code].transform.position);
+            yield return new WaitForEndOfFrame(); Capture("Friends_Visit_Loading.png");
+            Check(friends.VisitSession.Loading && !friends.Buttons["VisitReward"].interactable,
+                "snapshot loading disables visit actions");
+            yield return new WaitForSeconds(.45f);
+            yield return new WaitForEndOfFrame(); Capture("Friends_Visit.png");
+            Check(friends.Page == "Visit", "friend profile click opens exhibition preview");
+            Check(friends.VisitSession.Scene.Objects.Count == 5 && !friends.VisitSession.CanEdit,
+                "snapshot package reconstructs visit objects in read only mode");
+            var anchors = friends.VisitSession.Scene.Objects.Select(o => o.Placement.Anchor).ToArray();
+            yield return new WaitForSeconds(2.1f);
+            Check(friends.VisitSession.Scene.Objects.Any(o => o.Cell != o.Placement.Anchor) &&
+                friends.VisitSession.Scene.Objects.Select(o => o.Placement.Anchor).SequenceEqual(anchors),
+                "visitor movement leaves snapshot anchors unchanged");
+            friends.Scroll.verticalNormalizedPosition = 0; yield return new WaitForEndOfFrame();
+            Click(host, friends.Buttons["VisitReward"].transform.position);
+            yield return new WaitForSeconds(.45f);
+            yield return new WaitForEndOfFrame();
+            Check(friends.State.VisitClaimed && !friends.Buttons["VisitReward"].interactable,
+                "visit reward becomes unavailable after one local claim");
+            friends.Scroll.verticalNormalizedPosition = 0; yield return new WaitForEndOfFrame();
+            Click(host, friends.Buttons["VisitGift"].transform.position);
+            yield return new WaitForEndOfFrame();
+            Click(host, friends.Buttons["Confirm"].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(friends.State.GiftRecipient == friends.State.Friends[0].Code, "gift confirmation records daily recipient");
+            friends.Show("Blocked"); yield return new WaitForEndOfFrame(); Capture("Friends_Blocked.png");
+            var blocked = friends.State.Blocked[0];
+            Click(host, friends.Buttons["Unblock_" + blocked.Code].transform.position);
+            yield return new WaitForEndOfFrame();
+            Click(host, friends.Buttons["Confirm"].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(!friends.State.Blocked.Contains(blocked) && !friends.State.Friends.Contains(blocked),
+                "unblock removes block without restoring friendship");
+            foreach (var scenario in new[] { ExhibitionPreviewScenario.Empty, ExhibitionPreviewScenario.Unknown,
+                ExhibitionPreviewScenario.Invalid, ExhibitionPreviewScenario.Duplicate, ExhibitionPreviewScenario.Mismatch,
+                ExhibitionPreviewScenario.Denied, ExhibitionPreviewScenario.Error, ExhibitionPreviewScenario.Malformed })
+            {
+                friends.PreviewScenario = scenario;
+                friends.Visit(friends.State.Friends[0]);
+                yield return new WaitForSeconds(.45f); yield return new WaitForEndOfFrame();
+                if (scenario == ExhibitionPreviewScenario.Empty)
+                    Check(friends.VisitSession.Scene.Objects.Count == 0, "empty snapshot renders empty exhibition");
+                else if (scenario == ExhibitionPreviewScenario.Unknown)
+                    Check(friends.VisitSession.Scene.Objects.Any(o => o.Unknown), "unknown snapshot content uses placeholder");
+                else if (scenario == ExhibitionPreviewScenario.Invalid || scenario == ExhibitionPreviewScenario.Duplicate)
+                    Check(friends.VisitSession.Scene.Objects.Count == 5 && friends.VisitSession.Scene.Warnings.Count == 1,
+                        "invalid or duplicate placement is skipped: " + scenario);
+                else Check(!string.IsNullOrEmpty(friends.VisitSession.Error), "snapshot failure is shown: " + scenario);
+                Capture("Friends_Snapshot_" + scenario + ".png");
+            }
+            friends.PreviewScenario = ExhibitionPreviewScenario.Slow;
+            friends.Visit(friends.State.Friends[0]); friends.Show("Friends");
+            yield return new WaitForSeconds(1.9f);
+            Check(friends.Page == "Friends" && friends.VisitSession.Scene == null && !friends.VisitSession.Loading,
+                "leaving during delayed snapshot prevents late reopening");
+            Check(ownHousing.Layout.Placements.Select(p => p.Cell).SequenceEqual(ownPlacements),
+                "friend visit leaves own home placements unchanged");
+            friends.PreviewScenario = ExhibitionPreviewScenario.Normal;
+            friends.Show("Friends"); yield return new WaitForEndOfFrame();
+            Check(root.GetComponentsInChildren<Transform>(true).All(child => child.gameObject.scene == root.gameObject.scene && child.gameObject.layer == root.RenderLayer),
+                "friends runtime UI stays in its content scene and camera layer");
+        }
+
+        /// <summary>도감의 실제 버튼·미러 입력으로 복원 기준 잠금, 상세 열람, 제스처 소유권과 탭 재방문 상태를 검증합니다.</summary>
         private IEnumerator VerifyCollection(TabHost host)
         {
             host.SelectTab(2);
@@ -850,9 +954,19 @@ namespace MobilePrototype
                 !housing.Layout.CanPlace(housing.Wanderer.TargetCell, Vector2Int.one),
                 "housing cannot cover dokkaebi traversal");
             int steps = housing.Wanderer.CompletedSteps;
+            var placementAnchor = housing.Wanderer.PlacementCell;
             yield return new WaitForSeconds(2.5f);
             Check(housing.Wanderer.CompletedSteps > steps && housing.Layout.IsWalkable(housing.Wanderer.CurrentCell) &&
                 housing.Layout.IsWalkable(housing.Wanderer.TargetCell), "dokkaebi wanders through free adjacent cells");
+            var homeDraft = ExhibitionLayoutCapture.Capture(housing, new Dictionary<string, int>(), 0);
+            Check(homeDraft.GridSize == new Vector2Int(7, 7) &&
+                homeDraft.Objects.Count == housing.Layout.Placements.Count + 1,
+                "home capture aggregates actual housing objects with the confirmed grid");
+            Check(homeDraft.Objects[homeDraft.Objects.Count - 1].Cell == placementAnchor &&
+                housing.Wanderer.PlacementCell == placementAnchor,
+                "NPC transmission anchor remains stable while the dummy walks");
+            Check(homeDraft.Objects.All(item => item.ServerId == 0),
+                "unbound home dummy objects never infer server identity from local IDs");
             Check(housing.Wanderer.gameObject.scene == host.ActiveRoot.gameObject.scene &&
                 housing.Wanderer.GetComponentsInChildren<Transform>().All(child => child.gameObject.layer == host.ActiveRoot.RenderLayer),
                 "runtime dummy stays in home scene and render layer");
@@ -899,15 +1013,7 @@ namespace MobilePrototype
             }
             yield return VerifyCollection(host);
             host.SelectTab(3); yield return new WaitForSeconds(.35f);
-            var contentDrag = host.GetRoot(3).GetComponentInChildren<DemoDraggable>();
-            var dragBefore = contentDrag.transform.position;
-            var contentPointer = new PointerEventData(EventSystem.current)
-            { pointerId = -1, position = ScreenPoint(host, dragBefore), button = PointerEventData.InputButton.Left };
-            host.input.OnPointerDown(contentPointer);
-            contentPointer.position += new Vector2(50, 30);
-            host.input.OnDrag(contentPointer); host.input.OnPointerUp(contentPointer);
-            Check(host.ActiveIndex == 3 && !host.IsBusy && Vector3.Distance(dragBefore, contentDrag.transform.position) > .1f,
-                "dedicated object drag retains gesture instead of switching tab");
+            yield return VerifyFriends(host);
             host.SelectTab(1); yield return new WaitForSeconds(.35f);
             var adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
             var presenter = host.GetRoot(1).GetComponent<WorkshopPresenter>();
@@ -999,6 +1105,10 @@ namespace MobilePrototype
                 yield return new WaitForEndOfFrame();
                 CheckRender(host);
                 Capture($"Collection_Overview_{size.x}x{size.y}.png");
+                host.SelectTab(3); yield return new WaitForSeconds(.4f);
+                host.GetRoot(3).GetComponent<FriendsPresenter>().Show("Friends");
+                yield return new WaitForEndOfFrame(); CheckRender(host);
+                Capture($"Friends_List_{size.x}x{size.y}.png");
                 host.SelectTab(1); yield return new WaitForSeconds(.4f);
                 var texture = host.ActiveRoot.sceneCamera.targetTexture;
                 Check(Mathf.Abs((float)texture.width / texture.height - host.viewport.rect.width / host.viewport.rect.height) < .01f, "render texture matches viewport " + size);
@@ -1012,8 +1122,66 @@ namespace MobilePrototype
                 yield return null;
             }
             yield return VerifyCollectionArtwork(host);
+            yield return VerifyServerFriends(host);
             Check(_errors.Count == 0, "no runtime errors during integration checks");
             yield return new WaitForSeconds(.3f);
+        }
+        /// <summary>실제 서버 모드의 친구 UI·요청·취소·방문·격자 오류·인증 실패와 재접속을 검증합니다.</summary>
+        private IEnumerator VerifyServerFriends(TabHost host)
+        {
+            string path = Environment.GetEnvironmentVariable("JAMKKAEBI_CONTRACT_CONFIG");
+            if (string.IsNullOrEmpty(path)) yield break;
+            var config = JObject.Parse(File.ReadAllText(path));
+            host.SelectTab(3); yield return new WaitForSeconds(.4f);
+            var friends = host.GetRoot(3).GetComponent<FriendsPresenter>();
+            friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["accessToken"]));
+            while (friends.ServerBusy) yield return null;
+            Check(friends.UsesServer && friends.State.ServerOwned && friends.State.MyCode == (string)config["myCode"], "server mode receives real authenticated friend list");
+            Check(friends.State.Friends.Count == 3 && friends.State.VisitClaimed && friends.State.GiftRecipient != null,
+                "server summary reflects HTTP contract test mutations rather than preview data (count=" + friends.State.Friends.Count + ", visit=" + friends.State.VisitClaimed + ", gift=" + (friends.State.GiftRecipient != null) + ")");
+            yield return new WaitForEndOfFrame(); Capture("Server_Friends.png");
+            var profile = friends.State.Friends.First(p => p.Code == (string)config["friendCode"]);
+            friends.Visit(profile);
+            while (friends.VisitSession.Loading) yield return null;
+            Check(friends.VisitSession.Scene?.Objects.Count == 2 && friends.VisitSession.Scene.Snapshot.OwnerCode == profile.Code, "server snapshot renders actual DTO artifact and building IDs");
+            Check(friends.VisitSession.Scene.Objects.All(o => o.Unknown), "server objects use placeholders until artwork mapping is defined");
+            Check(!friends.Buttons["VisitReward"].interactable && !friends.Buttons["VisitGift"].interactable, "server claimed reward and sent gift disable visit actions");
+            yield return new WaitForEndOfFrame(); Capture("Server_Visit.png");
+            friends.Visit(friends.State.Friends.First(p => p.Code == (string)config["largeGridCode"]));
+            while (friends.VisitSession.Loading) yield return null;
+            Check(!string.IsNullOrEmpty(friends.VisitSession.Error) && friends.VisitSession.Error.Contains("20×20"), "server default grid incompatibility is explicit and preserves coordinates");
+            Check(friends.VisitSession.Scene == null && !friends.Buttons["VisitReward"].interactable &&
+                !friends.Buttons["VisitGift"].interactable,
+                "failed visit to another friend clears previous exhibition and reward actions");
+            yield return new WaitForEndOfFrame(); Capture("Server_GridMismatch.png");
+            friends.Show("Add"); yield return null;
+            friends.CodeInput.text = (string)config["extraCode"];
+            friends.Buttons["Lookup"].onClick.Invoke(); while (friends.ServerBusy) yield return null;
+            Check(friends.Buttons.ContainsKey("SendRequest") && friends.Buttons["SendRequest"].interactable, "server lookup populates add friend sheet");
+            friends.Buttons["SendRequest"].onClick.Invoke(); while (friends.ServerBusy) yield return null;
+            Check(friends.State.Sent.Any(p => p.Code == (string)config["extraCode"]), "friend request button posts server friendCode body");
+            friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], "invalid-reconnect-token"));
+            bool staleNotification = false;
+            while (friends.ServerBusy)
+            {
+                var feedback = friends.GetComponentsInChildren<Text>(true).FirstOrDefault(text => text.name == "Feedback");
+                staleNotification |= feedback && feedback.gameObject.activeSelf && feedback.text.Contains("요청");
+                yield return null;
+            }
+            yield return null;
+            Check(!staleNotification && friends.State.Friends.Count == 0,
+                "reconnect after nested mutation refresh cannot publish the old request notification");
+            friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["accessToken"]));
+            while (friends.ServerBusy) yield return null;
+            Check(friends.State.Sent.Any(p => p.Code == (string)config["extraCode"]),
+                "valid reconnect restores server pending requests after authentication failure");
+            friends.Show("Requests"); friends.Buttons["Sent"].onClick.Invoke(); yield return null;
+            friends.Buttons["Cancel_" + (string)config["extraCode"]].onClick.Invoke(); while (friends.ServerBusy) yield return null;
+            Check(!friends.State.Sent.Any(p => p.Code == (string)config["extraCode"]), "cancel request button deletes server request by friend code");
+            friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], "invalid-test-token"));
+            while (friends.ServerBusy) yield return null;
+            Check(friends.State.Friends.Count == 0 && friends.UsesServer, "authentication failure never silently restores dummy friends");
+            yield return new WaitForEndOfFrame(); Capture("Server_AuthFailure.png");
         }
     }
 }

@@ -136,3 +136,9 @@ Unity **6000.3.23f1**에서 EditMode **27개**, 최종 전시관·회귀 **72개
 Unity **6000.3.23f1**에서 EditMode **31개**, 전시관·에디터 회귀 **74개**, Windows Development Player **127개** 통과. 외부 정의의 다른 ID와 2×1 점유를 배치하고 회수하며 이벤트를 받는 경로, 종류 ID의 이동·회전 유지와 같은 종류의 서로 다른 배치 ID, 빈 종류 ID 거부를 확인했다. 기존 길게 누르기·주변 메뉴·탭 입력 검사도 통과했다. Player 종료 코드 **0**, GPU 버퍼 종료 오류 패턴 **0개**, `git diff --check` 통과. 실제 도감 데이터와 모바일 실기기 검증은 수행하지 않았다.
 
 로그: `Logs/Integration/ItemBridgeEditMode.xml`, `item-bridge-editmode.log`, `item-bridge-build.log`, `ItemBridgePlayer/verification.txt`, `ItemBridgePlayer/player.log`. EditMode → 전시관·회귀 검사와 Windows Development 빌드 → Player 자동 검사 → 종료 로그 검사를 개별 프로세스로 수행했다.
+
+## NPC·건물 배치 송신 기반 (2026-10-11)
+
+NPC의 고정 PlacementCell과 건물 배치 정보를 불변 데이터로 캡처하고, 서버 보유 목록과 병합해 전체 교체 PUT를 보내는 wrapper를 구현했다. 홈 자동 저장은 연결하지 않았으며 더미 서버 ID와 7×7/20×20 격자 불일치는 거부한다.
+
+Unity 6000.3.23f1에서 실제 로컬 Spring 서버를 포함한 EditMode 101개, Windows Development Player 241개, ExhibitionChecks.Run, ReviewRegressionChecks.Run과 GPU 종료 로그 검사를 통과했다. 실제 보유 NPC·건물의 일괄 저장·조회·이동·회수와 관리하지 않는 배치 보존을 확인했다. 첫 Player 실행의 탭 스와이프 실패와 최종 재실행 결과, 검증의 한계는 [송신 보고서](exhibition-layout-transmission.md)에 기록했다. 최종 로그는 Logs/ServerContract/Run-20261011-182041/에 있다. 모바일 실기기는 검증하지 않았다.
