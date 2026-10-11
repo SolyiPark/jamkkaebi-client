@@ -56,6 +56,7 @@ namespace MobilePrototype.Friends
         public IReadOnlyDictionary<string, Button> Buttons => _buttons;
         public InputField CodeInput { get; private set; }
 
+        /// <summary>친구 UI의 필수 참조를 검증하고 모의 화면 또는 설정된 서버 연결을 초기화합니다.</summary>
         private void Awake()
         {
             _root = GetComponent<MirrorSceneRoot>();
@@ -77,47 +78,57 @@ namespace MobilePrototype.Friends
                 Environment.GetEnvironmentVariable("JAMKKAEBI_ACCESS_TOKEN"), Environment.GetEnvironmentVariable("JAMKKAEBI_REFRESH_TOKEN")));
         }
 
+        /// <summary>진행 중인 방문·소셜 요청을 취소하고 새 인증 클라이언트로 친구 상태를 조회합니다.</summary>
         public void ConnectServer(JamkkaebiApiClient client)
         {
+            if (client == null) throw new ArgumentNullException(nameof(client));
             CancelVisit();
             if (_socialRequest != null) StopCoroutine(_socialRequest);
-            _server = client ?? throw new ArgumentNullException(nameof(client));
+            _socialRequest = null; _serverBusy = false;
+            _server = client;
             State.ClearForServer(); _lookup = null; Page = "Friends"; Render();
-            _socialRequest = StartCoroutine(ReloadServer());
+            StartSocialRequest(ReloadServer());
         }
-        public void RefreshServer() { if (UsesServer && !_serverBusy) _socialRequest = StartCoroutine(ReloadServer()); }
-        private IEnumerator ReloadServer()
+        /// <summary>서버 모드에서 다른 소셜 요청이 없을 때 최신 친구 상태를 다시 조회합니다.</summary>
+        public void RefreshServer() { if (UsesServer && !_serverBusy) StartSocialRequest(ReloadServer()); }
+        /// <summary>소셜 요청의 최상위 코루틴을 시작하고 취소용 핸들을 보관합니다.</summary>
+        private void StartSocialRequest(IEnumerator request)
+        { _socialRequest = StartCoroutine(RunSocialRequest(request)); }
+        /// <summary>중첩 조회·알림까지 요청 소유권을 유지하고 최상위 요청 종료 시 핸들을 해제합니다.</summary>
+        private IEnumerator RunSocialRequest(IEnumerator request)
         {
             _serverBusy = true;
-            string[] paths = { "/api/friends", "/api/friend-requests?direction=RECEIVED", "/api/friend-requests?direction=SENT", "/api/friends/recommendations", "/api/blocks" };
-            var data = new JToken[paths.Length];
-            try
-            {
-                for (int i = 0; i < paths.Length; i++)
-                {
-                    ServerApiResult result = null;
-                    yield return _server.Send("GET", paths[i], null, value => result = value);
-                    if (!result.Success) { Render(); Notify(result.Code + ": " + result.Message); yield break; }
-                    data[i] = result.Data;
-                }
-                FriendsPreviewState mapped = null;
-                try { mapped = FriendsServerMapper.Create(data[0], data[1], data[2], data[3], data[4]); }
-                catch (Exception) { Render(); Notify("친구 응답 형식이 올바르지 않아요."); }
-                if (mapped != null) { State = mapped; Render(); }
-            }
+            try { yield return request; }
             finally { _serverBusy = false; _socialRequest = null; }
         }
+        /// <summary>친구·요청·추천·차단 응답을 모두 받은 뒤 화면 상태를 한 번에 교체합니다.</summary>
+        private IEnumerator ReloadServer()
+        {
+            string[] paths = { "/api/friends", "/api/friend-requests?direction=RECEIVED", "/api/friend-requests?direction=SENT", "/api/friends/recommendations", "/api/blocks" };
+            var data = new JToken[paths.Length];
+            for (int i = 0; i < paths.Length; i++)
+            {
+                ServerApiResult result = null;
+                yield return _server.Send("GET", paths[i], null, value => result = value);
+                if (!result.Success) { Render(); Notify(result.Code + ": " + result.Message); yield break; }
+                data[i] = result.Data;
+            }
+            FriendsPreviewState mapped = null;
+            try { mapped = FriendsServerMapper.Create(data[0], data[1], data[2], data[3], data[4]); }
+            catch (Exception) { Render(); Notify("친구 응답 형식이 올바르지 않아요."); }
+            if (mapped != null) { State = mapped; Render(); }
+        }
+        /// <summary>중복 변경을 차단하고 서버 상태 변경 요청을 최상위 소셜 작업으로 시작합니다.</summary>
         private void ChangeServer(string method, string path, JObject body = null)
         {
             if (_serverBusy) return;
-            _socialRequest = StartCoroutine(ChangeServerRoutine(method, path, body));
+            StartSocialRequest(ChangeServerRoutine(method, path, body));
         }
+        /// <summary>상태 변경 성공 후 목록을 다시 읽고 결과를 알립니다. 실패한 변경은 자동 재시도하지 않습니다.</summary>
         private IEnumerator ChangeServerRoutine(string method, string path, JObject body)
         {
-            _serverBusy = true;
             ServerApiResult result = null;
-            try { yield return _server.Send(method, path, body, value => result = value); }
-            finally { _serverBusy = false; }
+            yield return _server.Send(method, path, body, value => result = value);
             // 재화 요청은 네트워크 실패 시 자동 재시도하지 않습니다. 성공 후 서버 상태를 다시 읽습니다.
             if (result.Success)
             {
@@ -127,13 +138,14 @@ namespace MobilePrototype.Friends
                 Notify(result.Message + (result.Data?["jeongseongGained"] != null ? " (정성 +" + (int)result.Data["jeongseongGained"] + ")" : ""));
             }
             else { Render(); Notify(result.Code + ": " + result.Message); }
-            _socialRequest = null;
         }
+        /// <summary>현재 모드에 따라 친구 요청을 서버에 보내거나 모의 상태에 반영합니다.</summary>
         private void RequestFriend(FriendProfile profile)
         {
             if (UsesServer) { ChangeServer("POST", "/api/friend-requests", new JObject { ["friendCode"] = FriendsPreviewState.NormalizeCode(profile.Code) }); return; }
             bool sent = State.Request(profile); Render(); Notify(sent ? "친구 요청을 보냈어요." : "요청을 보낼 수 없어요.");
         }
+        /// <summary>받은 요청 수락·거절 또는 보낸 요청 취소를 현재 모드의 상태에 반영합니다.</summary>
         private void ActOnRequest(FriendProfile profile, string action)
         {
             if (UsesServer)
@@ -145,36 +157,35 @@ namespace MobilePrototype.Friends
             else State.Accept(profile);
             Render();
         }
+        /// <summary>친구를 차단하고 모의 모드에서는 친구 목록 화면으로 돌아갑니다.</summary>
         private void BlockFriend(FriendProfile profile)
         {
             if (UsesServer) { ChangeServer("POST", "/api/blocks", new JObject { ["friendCode"] = FriendsPreviewState.NormalizeCode(profile.Code) }); return; }
             State.Block(profile); Show("Friends");
         }
+        /// <summary>차단을 해제하되 이전 친구 관계를 자동으로 복원하지 않습니다.</summary>
         private void UnblockFriend(FriendProfile profile)
         {
             if (UsesServer) { ChangeServer("DELETE", "/api/blocks/" + JamkkaebiApiClient.CodePath(profile.Code)); return; }
             State.Blocked.Remove(profile); Render(); Notify("차단을 해제했어요.");
         }
+        /// <summary>친구 코드를 조회하고 입력이나 화면이 바뀌지 않았을 때만 검색 결과를 표시합니다.</summary>
         private IEnumerator LookupServer(string code)
         {
-            _serverBusy = true;
-            try
+            ServerApiResult result = null;
+            yield return _server.Send("GET", "/api/friends/lookup/" + JamkkaebiApiClient.CodePath(code), null, value => result = value);
+            if (Page != "Add" || FriendsPreviewState.NormalizeCode(_code) != FriendsPreviewState.NormalizeCode(code)) yield break;
+            _lookup = null;
+            if (result.Success)
             {
-                ServerApiResult result = null;
-                yield return _server.Send("GET", "/api/friends/lookup/" + JamkkaebiApiClient.CodePath(code), null, value => result = value);
-                if (Page != "Add" || FriendsPreviewState.NormalizeCode(_code) != FriendsPreviewState.NormalizeCode(code)) yield break;
-                _lookup = null;
-                if (result.Success)
-                {
-                    try { _lookup = FriendsServerMapper.Lookup(result.Data, State); _lookupRelation = (string)result.Data["relation"]; }
-                    catch (Exception) { Notify("친구 조회 응답 형식이 올바르지 않아요."); yield break; }
-                    Render();
-                }
-                else { Render(); Notify(result.Code + ": " + result.Message); }
+                try { _lookup = FriendsServerMapper.Lookup(result.Data, State); _lookupRelation = (string)result.Data["relation"]; }
+                catch (Exception) { Notify("친구 조회 응답 형식이 올바르지 않아요."); yield break; }
+                Render();
             }
-            finally { _serverBusy = false; _socialRequest = null; }
+            else { Render(); Notify(result.Code + ": " + result.Message); }
         }
 
+        /// <summary>알림 수명을 처리하고 모의 일일 초기화와 방문 NPC의 임시 이동을 갱신합니다.</summary>
         private void Update()
         {
             if (_toast && Time.unscaledTime > _toastUntil)
@@ -190,12 +201,14 @@ namespace MobilePrototype.Friends
             }
         }
 
+        /// <summary>요청한 내부 페이지를 표시하고 방문 페이지를 떠날 때 진행 중인 방문을 취소합니다.</summary>
         public void Show(string page)
         {
             if (page != "Visit") CancelVisit();
             Page = page; Render();
         }
 
+        /// <summary>방문 조회·보상 코루틴을 취소하고 응답 세대와 방문 화면 데이터를 초기화합니다.</summary>
         private void CancelVisit()
         {
             if (_visitRequest != null) StopCoroutine(_visitRequest);
@@ -203,8 +216,10 @@ namespace MobilePrototype.Friends
             _visitRequest = null; _rewardRequest = null; _claimingReward = false;
             VisitSession.Leave(); _visitViews.Clear();
         }
+        /// <summary>종료 시 진행 중인 방문과 소셜 요청을 취소합니다.</summary>
         private void OnDestroy() { CancelVisit(); if (_socialRequest != null) StopCoroutine(_socialRequest); }
 
+        /// <summary>현재 친구 목록의 프로필에 대한 새 방문 세대를 시작하고 스냅샷을 조회합니다.</summary>
         public void Visit(FriendProfile profile)
         {
             if (!State.Friends.Contains(profile)) return;
@@ -217,6 +232,7 @@ namespace MobilePrototype.Friends
             _visitRequest = StartCoroutine(LoadVisit(profile, revision));
         }
 
+        /// <summary>스냅샷을 수신해 유효한 요청 세대에만 적용하고 로딩 또는 오류 화면을 갱신합니다.</summary>
         private IEnumerator LoadVisit(FriendProfile profile, int revision)
         {
             IExhibitionBackend backend = UsesServer ? new ServerExhibitionBackend(_server) : new MockExhibitionBackend(_visitScenario);
@@ -233,6 +249,7 @@ namespace MobilePrototype.Friends
             _visitRequest = null;
         }
 
+        /// <summary>전시 로딩·중복 수령을 차단하고 방문 보상을 별도 명령으로 요청합니다.</summary>
         private void ClaimReward(FriendProfile profile)
         {
             if (_claimingReward || VisitSession.Loading || VisitSession.Scene == null || State.VisitClaimed) return;
@@ -240,6 +257,7 @@ namespace MobilePrototype.Friends
             _claimingReward = true; Render();
             _rewardRequest = StartCoroutine(LoadReward(profile));
         }
+        /// <summary>방문 보상 결과를 화면에 알리고 보상 요청의 진행 상태를 해제합니다.</summary>
         private IEnumerator LoadReward(FriendProfile profile)
         {
             IExhibitionBackend backend = UsesServer ? new ServerExhibitionBackend(_server) : new MockExhibitionBackend(_visitScenario, State);
@@ -251,6 +269,7 @@ namespace MobilePrototype.Friends
             _rewardRequest = null;
         }
 
+        /// <summary>기존 내부 UI를 제거하고 현재 페이지를 다시 구성하며 미러 입력과 레이어를 연결합니다.</summary>
         private void Render()
         {
             if (Scroll) Scroll.StopMovement();
@@ -279,6 +298,7 @@ namespace MobilePrototype.Friends
             Canvas.ForceUpdateCanvases(); Scroll.verticalNormalizedPosition = 1;
         }
 
+        /// <summary>친구 화면용 세로 스크롤을 만들고 가로 드래그는 공통 탭 전환에 맡깁니다.</summary>
         private RectTransform MakeScroll(Transform parent, float bottom, float top)
         {
             var viewport = UIFactory.Rect("Friends Scroll", parent, Vector2.zero, Vector2.one,
@@ -293,6 +313,7 @@ namespace MobilePrototype.Friends
             Scroll.viewport = viewport; Scroll.content = body; return body;
         }
 
+        /// <summary>친구 코드·목록 수·내부 탭과 서버 새로고침 조작을 구성합니다.</summary>
         private void BuildHeader()
         {
             Label("Title", _content, UsesServer ? "친구 · 서버" : "친구 · 모의", 44, Ink, 0, 44, 450, 62);
@@ -317,6 +338,7 @@ namespace MobilePrototype.Friends
             }
         }
 
+        /// <summary>일일 행동 현황과 친구 목록·차단 목록 진입 버튼을 표시합니다.</summary>
         private void BuildFriends()
         {
             string[] titles = { "방문 보상", "상자 선물", "받은 선물" };
@@ -344,6 +366,7 @@ namespace MobilePrototype.Friends
             Height(y + 170);
         }
 
+        /// <summary>친구 프로필 행에 방문·선물 조작과 서버 또는 모의 상태에 따른 사용 가능 여부를 표시합니다.</summary>
         private void FriendRow(FriendProfile profile, float y, Action click)
         {
             var profileButton = Button("Profile_" + profile.Code, _content, "", 0, y, 755, 112, click, false);
@@ -355,6 +378,7 @@ namespace MobilePrototype.Friends
             Box("Divider", _content, Line, 0, y + 116, Width, 1);
         }
 
+        /// <summary>받은·보낸 요청 목록과 수락·거절·취소 버튼을 구성합니다.</summary>
         private void BuildRequests()
         {
             Button("Received", _content, $"받은 요청 {State.Received.Count}/20", 0, 535, 275, 72, () => { _sentRequests = false; Render(); }, !_sentRequests);
@@ -380,6 +404,7 @@ namespace MobilePrototype.Friends
             Height(Math.Max(1150, y + 60));
         }
 
+        /// <summary>추천 프로필과 시대별 복원 현황을 표시하고 중복 요청을 차단합니다.</summary>
         private void BuildRecommendations()
         {
             Label("Intro", _content, $"최근 접속한 사람 중 매일 3명을 골라 드려요 · 남은 추천 {State.RemainingRecommendations}", 25, Ink, 0, 525, Width, 54);
@@ -399,6 +424,7 @@ namespace MobilePrototype.Friends
             Height(y + 50);
         }
 
+        /// <summary>코드 입력·조회·요청과 공유 준비 상태를 표시하는 추가 시트를 구성합니다.</summary>
         private void BuildAddSheet()
         {
             var overlay = UIFactory.Image("Sheet Shade", _canvas, new Color(0, 0, 0, .38f), Vector2.zero, Vector2.one).rectTransform;
@@ -451,14 +477,16 @@ namespace MobilePrototype.Friends
             body.sizeDelta = new Vector2(0, 1340);
         }
 
+        /// <summary>유효한 입력 코드만 조회하고 현재 모드의 검색 결과를 표시합니다.</summary>
         private void Lookup()
         {
             if (!FriendsPreviewState.IsValidCode(_code)) return;
-            if (UsesServer) { if (!_serverBusy) _socialRequest = StartCoroutine(LookupServer(_code)); return; }
+            if (UsesServer) { if (!_serverBusy) StartSocialRequest(LookupServer(_code)); return; }
             _lookup = State.Find(_code); Render();
             if (_lookup == null) Notify(FriendsPreviewState.NormalizeCode(_code) == FriendsPreviewState.NormalizeCode(State.MyCode) ? "내 코드는 추가할 수 없어요." : "조회할 수 있는 친구가 없어요.");
         }
 
+        /// <summary>방문 소유자·객체·선택 정보·오류와 보상·선물 조작을 스냅샷 상태에 맞게 표시합니다.</summary>
         private void BuildVisit()
         {
             var scene = VisitSession.Scene;
@@ -511,7 +539,9 @@ namespace MobilePrototype.Friends
             Height(1400);
         }
 
+        /// <summary>서버 각성 상태 식별자를 화면에 표시할 한국어 문구로 변환합니다.</summary>
         private static string StageLabel(string stage) => stage == "FULLY_AWAKENED" ? "완전각성" : stage == "AWAKENED_PLUS" ? "추가각성" : "각성";
+        /// <summary>방문 객체의 논리 셀을 UI 좌표로 옮기고 바닥 접점에 따라 표시 순서를 정합니다.</summary>
         private void PositionVisitObjects()
         {
             var scene = VisitSession.Scene;
@@ -525,6 +555,7 @@ namespace MobilePrototype.Friends
                 view.SetSiblingIndex(index++);
             }
         }
+        /// <summary>차단한 프로필과 해제 확인 조작을 표시합니다.</summary>
         private void BuildBlocked()
         {
             Button("BlockedBack", _content, "‹", 0, 36, 70, 82, () => Show("Friends"), false, Ink);
@@ -545,6 +576,7 @@ namespace MobilePrototype.Friends
             Height(Math.Max(1250, y + 90));
         }
 
+        /// <summary>선물 확인 창을 열고 현재 모드의 일일 선물 명령을 실행합니다.</summary>
         private void Gift(FriendProfile profile)
         {
             Confirm(profile.Name + "님에게 상자를 선물할까요?\n오늘은 한 명에게 보낼 수 있어요.", () =>
@@ -554,6 +586,7 @@ namespace MobilePrototype.Friends
             });
         }
 
+        /// <summary>확인·취소 모달을 만들고 확인한 경우에만 지정 동작을 실행합니다.</summary>
         private void Confirm(string message, Action action)
         {
             var shade = UIFactory.Image("Confirmation Shade", _canvas, new Color(0, 0, 0, .38f), Vector2.zero, Vector2.one);
@@ -565,19 +598,24 @@ namespace MobilePrototype.Friends
             MirrorSceneRoot.SetLayer(shade.transform, gameObject.layer);
         }
 
+        /// <summary>내 친구 코드를 실제 클립보드에 복사하고 완료를 알립니다.</summary>
         private void CopyCode() { GUIUtility.systemCopyBuffer = State.MyCode; Notify("친구 코드를 복사했어요."); }
+        /// <summary>현재 화면 위에 일정 시간 표시할 결과 메시지를 갱신합니다.</summary>
         private void Notify(string message)
         {
             _toast.text = message; _toast.gameObject.SetActive(true);
             _toast.transform.parent.GetComponent<Image>().color = Green;
             _toast.transform.parent.SetAsLastSibling(); _toastUntil = Time.unscaledTime + 4;
         }
+        /// <summary>내부 목록의 콘텐츠 높이를 설정해 세로 스크롤 범위를 조정합니다.</summary>
         private void Height(float height) => _content.sizeDelta = new Vector2(0, height);
+        /// <summary>프로필 이름의 첫 글자를 사용하는 임시 아바타를 표시합니다.</summary>
         private void Avatar(Transform parent, FriendProfile profile, float x, float y, float size)
         {
             var avatar = Box("Avatar", parent, new Color(.55f, .7f, .65f), x, y, size, size);
             Label("Initial", avatar.transform, profile.Name.Substring(0, 1), 34, Color.white, 0, 0, size, size, TextAnchor.MiddleCenter);
         }
+        /// <summary>세 시대의 복원 완료 수를 진행 표시로 구성합니다.</summary>
         private void Restoration(Transform parent, FriendProfile profile, float y)
         {
             string[] eras = { "삼국 복원", "고려 복원", "조선 복원" };
@@ -589,18 +627,22 @@ namespace MobilePrototype.Friends
                 for (int j = 0; j < 3; j++) Box("Progress", cell.transform, j < count ? Green : Pale, 20 + j * 36, 65, 28, 28);
             }
         }
+        /// <summary>상단 기준 위치와 크기로 UI 사각형을 생성합니다.</summary>
         private RectTransform Rect(string name, Transform parent, float x, float y, float width, float height)
         {
             return UIFactory.Rect(name, parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(x, -y - height), new Vector2(x + width, -y));
         }
+        /// <summary>장식용 이미지를 만들고 포인터 입력을 가로채지 않도록 설정합니다.</summary>
         private Image Box(string name, Transform parent, Color color, float x, float y, float width, float height)
         {
             var image = Rect(name, parent, x, y, width, height).gameObject.AddComponent<Image>(); image.color = color; image.raycastTarget = false; return image;
         }
+        /// <summary>이미지에 지정 색상의 테두리를 적용합니다.</summary>
         private void Border(Image image, Color? color = null)
         {
             var outline = image.gameObject.AddComponent<Outline>(); outline.effectColor = color ?? Line; outline.effectDistance = new Vector2(1.5f, -1.5f);
         }
+        /// <summary>지정 영역에 글꼴·색·정렬을 적용한 장식용 텍스트를 만듭니다.</summary>
         private Text Label(string name, Transform parent, string value, int size, Color color, float x, float y, float width, float height, TextAnchor alignment = TextAnchor.MiddleLeft)
         {
             var text = Rect(name, parent, x, y, width, height).gameObject.AddComponent<Text>();
@@ -611,6 +653,7 @@ namespace MobilePrototype.Friends
             if (name == "Title" || name == "Sheet Title" || name == "Name" || name == "Own Code" || name == "Initial") text.fontStyle = FontStyle.Bold;
             return text;
         }
+        /// <summary>버튼의 표시·색상·입력 영역을 구성하고 클릭 동작을 연결합니다.</summary>
         private Button Button(string id, Transform parent, string caption, float x, float y, float width, float height, Action click, bool filled = true, Color? textColor = null)
         {
             var image = Box(id, parent, filled ? Green : Paper, x, y, width, height); image.raycastTarget = true;

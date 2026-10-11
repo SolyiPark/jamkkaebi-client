@@ -1126,6 +1126,7 @@ namespace MobilePrototype
             Check(_errors.Count == 0, "no runtime errors during integration checks");
             yield return new WaitForSeconds(.3f);
         }
+        /// <summary>실제 서버 모드의 친구 UI·요청·취소·방문·격자 오류·인증 실패와 재접속을 검증합니다.</summary>
         private IEnumerator VerifyServerFriends(TabHost host)
         {
             string path = Environment.GetEnvironmentVariable("JAMKKAEBI_CONTRACT_CONFIG");
@@ -1159,6 +1160,21 @@ namespace MobilePrototype
             Check(friends.Buttons.ContainsKey("SendRequest") && friends.Buttons["SendRequest"].interactable, "server lookup populates add friend sheet");
             friends.Buttons["SendRequest"].onClick.Invoke(); while (friends.ServerBusy) yield return null;
             Check(friends.State.Sent.Any(p => p.Code == (string)config["extraCode"]), "friend request button posts server friendCode body");
+            friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], "invalid-reconnect-token"));
+            bool staleNotification = false;
+            while (friends.ServerBusy)
+            {
+                var feedback = friends.GetComponentsInChildren<Text>(true).FirstOrDefault(text => text.name == "Feedback");
+                staleNotification |= feedback && feedback.gameObject.activeSelf && feedback.text.Contains("요청");
+                yield return null;
+            }
+            yield return null;
+            Check(!staleNotification && friends.State.Friends.Count == 0,
+                "reconnect after nested mutation refresh cannot publish the old request notification");
+            friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["accessToken"]));
+            while (friends.ServerBusy) yield return null;
+            Check(friends.State.Sent.Any(p => p.Code == (string)config["extraCode"]),
+                "valid reconnect restores server pending requests after authentication failure");
             friends.Show("Requests"); friends.Buttons["Sent"].onClick.Invoke(); yield return null;
             friends.Buttons["Cancel_" + (string)config["extraCode"]].onClick.Invoke(); while (friends.ServerBusy) yield return null;
             Check(!friends.State.Sent.Any(p => p.Code == (string)config["extraCode"]), "cancel request button deletes server request by friend code");
