@@ -8,6 +8,13 @@ namespace MobilePrototype.Exhibition
     public static class ExhibitionLayoutPackage
     {
         /// <summary>전체 교체 PUT를 위해 관리하지 않는 서버 배치를 보존한다.</summary>
+        /// <param name="draft">All managed objects, including unplaced objects to remove from the server layout.</param>
+        /// <param name="serverExhibition">Current grid and owned spirit/building lists, including displayed positions to preserve for unmanaged objects.</param>
+        /// <returns>An items payload for full replacement, with only placed managed objects and displayed unmanaged objects.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="draft"/> is null.</exception>
+        /// <exception cref="FormatException">Required grid, ownership, or position fields are missing or invalid, or server IDs repeat.</exception>
+        /// <exception cref="InvalidOperationException">Grids differ or are nonpositive; managed identities are invalid, unsupported, duplicated, or unowned; placed objects are rotated or not 1×1; or final cells overlap or lie outside the grid.</exception>
+        /// <remarks>JSON access and conversion errors propagate, including overflow when integers exceed Int32 range.</remarks>
         public static JObject Build(ExhibitionLayoutDraft draft, JToken serverExhibition)
         {
             if (draft == null) throw new ArgumentNullException(nameof(draft));
