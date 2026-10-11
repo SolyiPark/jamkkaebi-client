@@ -10,7 +10,9 @@ namespace MobilePrototype.Friends
     {
         private readonly ExhibitionPreviewScenario _scenario;
         private readonly FriendsPreviewState _state;
+        /// <summary>모의 전시 시나리오와 보상 판정용 로컬 상태를 지정합니다.</summary>
         public MockExhibitionBackend(ExhibitionPreviewScenario scenario, FriendsPreviewState state = null) { _scenario = scenario; _state = state; }
+        /// <summary>전시 조회와 분리한 방문 보상 명령으로 수령 결과를 전달합니다.</summary>
         public IEnumerator ClaimVisitReward(string code, Action<int> completed, Action<string> failed)
         {
             yield return new WaitForSecondsRealtime(.3f);
@@ -18,6 +20,7 @@ namespace MobilePrototype.Friends
             if (profile == null) { failed("방문 보상을 받을 수 없어요."); yield break; }
             completed(_state.ClaimVisit(profile) ? 5 : 0);
         }
+        /// <summary>대상 친구의 전시 스냅샷을 조회하고 성공 또는 오류 콜백으로 전달합니다.</summary>
         public IEnumerator GetExhibition(string code, Action<ExhibitionSnapshot> completed, Action<string> failed)
         {
             yield return new WaitForSecondsRealtime(_scenario == ExhibitionPreviewScenario.Slow ? 1.8f : .3f);
@@ -26,6 +29,7 @@ namespace MobilePrototype.Friends
             if (_scenario == ExhibitionPreviewScenario.Malformed) { failed("전시 정보가 올바르지 않아요."); yield break; }
             completed(CreateSnapshot(code, _scenario));
         }
+        /// <summary>방문 예외 시나리오에 맞는 모의 스냅샷과 임시 배치 목록을 만듭니다.</summary>
         public static ExhibitionSnapshot CreateSnapshot(string code, ExhibitionPreviewScenario scenario)
         {
             var rows = new List<SnapshotPlacement>();

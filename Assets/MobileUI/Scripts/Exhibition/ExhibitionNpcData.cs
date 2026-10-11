@@ -6,6 +6,7 @@ namespace MobilePrototype.Exhibition
     public sealed class ExhibitionNpcData : ExhibitionObjectData
     {
         public override string Type => "SPIRIT";
+        /// <summary>보유 artifactId와 고정 앵커를 사용하는 불변 NPC 배치 정보를 생성합니다.</summary>
         public ExhibitionNpcData(string localId, int artifactId, bool placed, Vector2Int anchor)
             : base(localId, artifactId, placed, anchor, Vector2Int.one, 0) { }
     }

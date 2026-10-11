@@ -20,6 +20,7 @@ namespace MobilePrototype.Exhibition
         private static readonly Vector2Int[] Directions =
             { Vector2Int.right, Vector2Int.up, Vector2Int.left, Vector2Int.down };
 
+        /// <summary>이동에 사용할 하우징·표면과 저장 기준점을 지정하고 시작 셀을 예약합니다.</summary>
         public void Configure(HousingLayout layout, ExhibitionSurface surface, Vector2Int cell)
         {
             _layout = layout; _surface = surface; _from = _to = cell;
@@ -28,6 +29,7 @@ namespace MobilePrototype.Exhibition
             transform.position = _surface.CellWorldPosition(cell);
         }
 
+        /// <summary>인접한 빈 셀을 예약해 걷기 애니메이션을 진행하며 저장 기준점은 변경하지 않습니다.</summary>
         private void Update()
         {
             if (_layout == null) return;
@@ -59,6 +61,7 @@ namespace MobilePrototype.Exhibition
             }
         }
 
+        /// <summary>NPC 종료 시 하우징에 남은 이동 경로 예약을 해제합니다.</summary>
         private void OnDestroy() => _layout?.ClearTraversal();
     }
 }

@@ -9,8 +9,10 @@ namespace MobilePrototype.Friends
         public string Message { get; }
         public JToken Data { get; }
         public long Status { get; }
+        /// <summary>성공 여부·응답 코드·메시지·선택 데이터와 HTTP 상태를 보관합니다.</summary>
         public ServerApiResult(bool success, string code, string message, JToken data = null, long status = 0)
         { Success = success; Code = code; Message = message; Data = data; Status = status; }
+        /// <summary>HTTP 상태와 ApiResponse 필수 필드를 검증해 선택적인 data를 포함한 결과를 만듭니다.</summary>
         public static ServerApiResult Parse(string json, long status)
         {
             var envelope = JObject.Parse(json);

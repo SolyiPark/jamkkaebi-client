@@ -8,6 +8,7 @@ using UnityEngine;
 /// <summary>기존 친구 더미 씬만 최초 한 번 PDF 기반 프론트엔드로 이관합니다.</summary>
 public static class FriendsSetup
 {
+    /// <summary>저장된 친구 더미 씬을 한 번만 이관하고 카메라·글꼴·방문 격자를 연결합니다.</summary>
     public static void Apply()
     {
         if (!Application.isBatchMode) throw new InvalidOperationException("저장된 씬을 대상으로 batch mode에서 실행하세요.");

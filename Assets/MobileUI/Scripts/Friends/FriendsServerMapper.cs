@@ -9,6 +9,7 @@ namespace MobilePrototype.Friends
     /// <summary>JsonUnwrapped 요약과 중첩 player를 구분하여 서버 상태를 화면 모델로 변환합니다.</summary>
     public static class FriendsServerMapper
     {
+        /// <summary>서버 프로필과 시대별 복원 통계를 친구 화면의 프로필 데이터로 변환합니다.</summary>
         public static FriendProfile Profile(JToken player, string lastSeen = "", JToken eras = null)
         {
             string code = (string)player["friendCode"], name = (string)player["nickname"];
@@ -24,6 +25,7 @@ namespace MobilePrototype.Friends
                 (int?)player["collectionRate"] ?? 0, lastSeen, (string)player["giftState"] == "RECEIVER_FULL", restored,
                 (string)player["giftState"] ?? "AVAILABLE", (bool?)player["requested"] ?? false);
         }
+        /// <summary>서버의 친구·요청·추천·차단 응답을 공통 프로필 참조를 사용하는 화면 상태로 변환합니다.</summary>
         public static FriendsPreviewState Create(JToken friends, JToken received, JToken sent, JToken recommendations, JToken blocks)
         {
             var state = new FriendsPreviewState(DateTime.Today); state.ClearForServer();
@@ -57,6 +59,7 @@ namespace MobilePrototype.Friends
                 DateTime.Parse((string)friends["nextResetAt"], CultureInfo.InvariantCulture, DateTimeStyles.None));
             return state;
         }
+        /// <summary>서버 검색 결과를 프로필로 변환하고 기존 관계 목록의 동일 참조를 재사용합니다.</summary>
         public static FriendProfile Lookup(JToken data, FriendsPreviewState state)
         {
             var profile = Profile(data["player"], eras: data["restoredByEra"]);

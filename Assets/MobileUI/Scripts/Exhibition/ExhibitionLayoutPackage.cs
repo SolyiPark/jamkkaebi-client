@@ -47,9 +47,11 @@ namespace MobilePrototype.Exhibition
             return new JObject { ["items"] = items };
         }
 
+        /// <summary>서버 배치 PUT에 허용된 type·id·x·y 필드만 포함한 항목을 만듭니다.</summary>
         private static JObject Item(string type, int id, Vector2Int cell) =>
             new JObject { ["type"] = type, ["id"] = id, ["x"] = cell.x, ["y"] = cell.y };
 
+        /// <summary>서버 보유 목록을 검증하고 현재 표시 중인 배치를 보존 목록으로 수집합니다.</summary>
         private static void ReadOwned(JToken rows, string type, string idField,
             HashSet<string> owned, Dictionary<string, JObject> preserved)
         {

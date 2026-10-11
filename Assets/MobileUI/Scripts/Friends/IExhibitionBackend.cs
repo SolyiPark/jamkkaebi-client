@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace MobilePrototype.Friends
 {
-    /// <summary>전시 전체를 조회하는 경계. 현재 구현은 네트워크를 사용하지 않는 모의 공급자입니다.</summary>
+    /// <summary>모의·HTTP 공급자가 공유하는 전시 전체 조회와 별도 방문 보상 명령의 경계입니다.</summary>
     public interface IExhibitionBackend
     {
         IEnumerator GetExhibition(string friendCode, Action<ExhibitionSnapshot> completed, Action<string> failed);

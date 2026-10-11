@@ -10,6 +10,7 @@ namespace MobilePrototype.Tests
 {
     public sealed class ServerContractTests
     {
+        /// <summary>친구 코드가 서버의 허용 문자 집합과 일치하는지 검증합니다.</summary>
         [TestCase(" H2 RX-9KTA ", true)]
         [TestCase("H2RX0KTA", false)]
         [TestCase("H2RX1KTA", false)]
@@ -19,6 +20,7 @@ namespace MobilePrototype.Tests
         public void FriendCodeUsesServerAlphabet(string code, bool valid)
         { Assert.AreEqual(valid, FriendsPreviewState.IsValidCode(code)); }
 
+        /// <summary>API 오류와 선택적인 data 필드를 구분하고 잘못된 응답을 거부하는지 검증합니다.</summary>
         [Test]
         public void EnvelopeSeparatesErrorsFromOptionalData()
         {
@@ -29,6 +31,7 @@ namespace MobilePrototype.Tests
             Assert.Throws<FormatException>(() => ServerApiResult.Parse("{\"success\":true,\"code\":\"OK\"}", 500));
             Assert.Throws<FormatException>(() => ServerApiResult.Parse("{\"friends\":[]}", 200));
         }
+        /// <summary>미저장 전시의 생략 필드와 소유자 코드 정규화를 검증합니다.</summary>
         [Test]
         public void EmptySnapshotOmitsGridAndCaptureTimeAndCodeIsNormalized()
         {
@@ -38,6 +41,7 @@ namespace MobilePrototype.Tests
             Assert.IsFalse(snapshot.HasGrid); Assert.IsNull(snapshot.CapturedAt); Assert.IsFalse(snapshot.VisitRewardAvailable);
             Assert.AreEqual("DONE_TODAY", snapshot.GiftState);
         }
+        /// <summary>실제 만료 응답 후 갱신 소유 요청 취소가 대기 요청에 오류로 전달되는지 검증합니다.</summary>
         [UnityTest]
         public IEnumerator CancelledSharedRefreshCompletesWaitingRequestWithAnError()
         {
@@ -59,6 +63,7 @@ namespace MobilePrototype.Tests
             Assert.AreEqual("AUTH_REFRESH_INTERRUPTED", response.Code);
         }
 
+        /// <summary>로컬 Spring 서버의 인증·친구·요청·차단·보상·선물 계약을 Unity HTTP로 검증합니다.</summary>
         [UnityTest]
         public IEnumerator UnityHttpTalksToRealSpringServer()
         {
@@ -138,6 +143,7 @@ namespace MobilePrototype.Tests
             yield return anonymous.Send("GET", "/api/friends", null, value => response = value, false);
             Assert.IsFalse(response.Success); Assert.AreEqual(401, response.Status);
         }
+        /// <summary>서버 응답 배열에서 친구 코드가 일치하는 항목을 찾습니다.</summary>
         private static JToken Find(JArray rows, string code)
         { foreach (var row in rows) if ((string)row["friendCode"] == code) return row; throw new Exception("친구 없음"); }
     }

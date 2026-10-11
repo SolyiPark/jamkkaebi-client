@@ -15,6 +15,7 @@ namespace MobilePrototype.Friends
         public string GiftState { get; }
         public bool Requested { get; }
         public IReadOnlyList<int> RestoredByEra { get; }
+        /// <summary>프로필·친구 코드·복원 통계와 선물·요청 표시 상태를 보관합니다.</summary>
         public FriendProfile(string name, string code, int streak, int percent, string lastSeen = "오늘 접속", bool giftFull = false, int[] restored = null, string giftState = "AVAILABLE", bool requested = false)
         {
             Name = name; Code = code; Streak = streak; CollectionPercent = percent;

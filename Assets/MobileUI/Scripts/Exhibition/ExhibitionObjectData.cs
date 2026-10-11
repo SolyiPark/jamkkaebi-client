@@ -14,6 +14,7 @@ namespace MobilePrototype.Exhibition
         public int QuarterTurns { get; }
         public string Key => Type + ":" + ServerId;
 
+        /// <summary>로컬 식별자·서버 ID·배치 여부·논리 좌표와 크기·회전을 고정합니다.</summary>
         protected ExhibitionObjectData(string localId, int serverId, bool placed, Vector2Int cell,
             Vector2Int footprint, int quarterTurns)
         {

@@ -13,6 +13,7 @@ namespace MobilePrototype.Friends
         public ExhibitionSnapshot Snapshot { get; }
         public IReadOnlyList<VisitObject> Objects => _objects.AsReadOnly();
         public IReadOnlyList<string> Warnings => _warnings.AsReadOnly();
+        /// <summary>스냅샷 규격과 배치를 검증하고 원본과 분리된 방문 객체 상태를 생성합니다.</summary>
         public ExhibitionVisitScene(ExhibitionSnapshot snapshot)
         {
             if (snapshot == null || string.IsNullOrEmpty(snapshot.OwnerCode)) throw new ArgumentException("전시 정보가 올바르지 않아요.");
@@ -33,7 +34,9 @@ namespace MobilePrototype.Friends
                 _objects.Add(obj);
             }
         }
+        /// <summary>논리 셀이 방문 화면의 7×7 범위 안에 있는지 확인합니다.</summary>
         private static bool InBounds(Vector2Int cell) => cell.x >= 0 && cell.y >= 0 && cell.x < 7 && cell.y < 7;
+        /// <summary>건물과 다른 NPC를 피하는 임시 이동을 진행하며 저장된 배치 앵커는 유지합니다.</summary>
         public void Walk(int step)
         {
             var occupied = new HashSet<Vector2Int>();
@@ -53,6 +56,7 @@ namespace MobilePrototype.Friends
                 occupied.Add(obj.Cell); index++;
             }
         }
+        /// <summary>방문 객체의 현재 셀을 기존 전시관 격자의 로컬 중심 좌표로 변환합니다.</summary>
         public Vector2 LocalPosition(VisitObject obj, ExhibitionGrid grid) => grid.CellCenter(obj.Cell);
     }
 }

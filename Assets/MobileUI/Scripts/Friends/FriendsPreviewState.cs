@@ -25,8 +25,10 @@ namespace MobilePrototype.Friends
         public int RemainingRecommendations => ServerOwned ? _serverRemaining : 3 - Recommendations.Count(p => Sent.Contains(p));
         public DateTime Day { get; private set; }
         private readonly Dictionary<string, string> _blockDates = new Dictionary<string, string>();
+        /// <summary>프로필의 차단 날짜 안내를 반환하고 기록이 없으면 기본 안내를 사용합니다.</summary>
         public string BlockLabel(FriendProfile profile) => _blockDates.TryGetValue(profile.Code, out string label) ? label : profile.LastSeen;
 
+        /// <summary>프론트엔드 검토용 모의 친구·요청·추천·차단 상태를 지정 날짜로 초기화합니다.</summary>
         public FriendsPreviewState(DateTime now)
         {
             Day = now.Date;
@@ -50,12 +52,15 @@ namespace MobilePrototype.Friends
             Visited.Add(Friends[0].Code);
         }
 
+        /// <summary>친구 코드의 공백·하이픈을 제거하고 대문자로 통일합니다.</summary>
         public static string NormalizeCode(string value) => new string((value ?? "").Where(c => !char.IsWhiteSpace(c) && c != '-').ToArray()).ToUpperInvariant();
+        /// <summary>정규화한 코드가 서버가 허용하는 문자로 된 8자리 식별자인지 검사합니다.</summary>
         public static bool IsValidCode(string value)
         {
             string code = NormalizeCode(value);
             return code.Length == 8 && code.All(c => "23456789ABCDEFGHJKMNPQRSTUVWXYZ".Contains(c));
         }
+        /// <summary>모의 사용자 중 자기 자신·차단 사용자를 제외한 코드 일치 프로필을 찾습니다.</summary>
         public FriendProfile Find(string code)
         {
             if (!IsValidCode(code)) return null;
@@ -64,45 +69,53 @@ namespace MobilePrototype.Friends
             return Friends.Concat(Received).Concat(Sent).Concat(Recommendations)
                 .FirstOrDefault(p => NormalizeCode(p.Code) == normalized);
         }
+        /// <summary>모의 상태에서 자기 자신·차단·중복 친구 요청을 거부하고 새 요청을 추가합니다.</summary>
         public bool Request(FriendProfile profile)
         {
             if (profile == null || Sent.Count >= 10 || Friends.Contains(profile) || Sent.Contains(profile) ||
                 Blocked.Contains(profile) || NormalizeCode(profile.Code) == NormalizeCode(OwnCode)) return false;
             Sent.Add(profile); return true;
         }
+        /// <summary>모의 받은 요청을 친구로 옮기고 받은·보낸 요청 목록을 정리합니다.</summary>
         public bool Accept(FriendProfile profile)
         {
             if (Friends.Count >= 30 || !Received.Remove(profile)) return false;
             Friends.Add(profile); Sent.Remove(profile); return true;
         }
+        /// <summary>모의 상태의 하루 공통 방문 보상을 한 번만 수령 처리합니다.</summary>
         public bool ClaimVisit(FriendProfile profile)
         {
             if (!Friends.Contains(profile) || VisitClaimed) return false;
             VisitClaimed = true; Visited.Add(profile.Code); return true;
         }
+        /// <summary>모의 상태의 수신함 여유와 하루 공통 선물 제한을 확인한 뒤 수신자를 기록합니다.</summary>
         public bool SendGift(FriendProfile profile)
         {
             if (!Friends.Contains(profile) || profile.GiftFull || GiftRecipient != null) return false;
             GiftRecipient = profile.Code; return true;
         }
+        /// <summary>모의 친구·요청 관계를 제거하고 차단 목록과 날짜를 기록합니다.</summary>
         public void Block(FriendProfile profile)
         {
             Friends.Remove(profile); Received.Remove(profile); Sent.Remove(profile);
             if (!Blocked.Contains(profile)) Blocked.Add(profile);
             _blockDates[profile.Code] = DateTime.Now.ToString("yyyy.MM.dd") + " 차단";
         }
+        /// <summary>모의 모드에서 날짜가 넘어가면 일일 상태를 초기화합니다. 서버 상태는 기기 날짜로 변경하지 않습니다.</summary>
         public bool RefreshDay(DateTime now)
         {
             if (ServerOwned) return false;
             if (now.Date <= Day) return false;
             Day = now.Date; VisitClaimed = false; GiftRecipient = null; Visited.Clear(); return true;
         }
+        /// <summary>서버 친구 코드·일일 행동·한도·다음 초기화 시각을 화면 상태에 반영합니다.</summary>
         public void ApplyServerSummary(string code, bool visitClaimed, bool giftSent, bool giftAvailable, int limit, int remaining, DateTime nextReset)
         {
             ServerOwned = true; MyCode = code; VisitClaimed = visitClaimed;
             GiftRecipient = giftSent ? "SERVER_SENT" : null; ReceivedGifts = giftAvailable ? 1 : 0;
             FriendLimit = limit; _serverRemaining = remaining; NextResetAt = nextReset;
         }
+        /// <summary>더미 친구·요청·보상 상태를 제거해 서버 조회 실패가 모의 성공으로 보이지 않게 합니다.</summary>
         public void ClearForServer()
         {
             ServerOwned = true; MyCode = ""; Friends.Clear(); Received.Clear(); Sent.Clear(); Recommendations.Clear(); Blocked.Clear(); Visited.Clear();

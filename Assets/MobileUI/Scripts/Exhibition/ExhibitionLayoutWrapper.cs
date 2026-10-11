@@ -12,9 +12,11 @@ namespace MobilePrototype.Exhibition
         private JObject _lastPackage;
         public bool Busy { get; private set; }
         public JObject LastPackage => _lastPackage == null ? null : (JObject)_lastPackage.DeepClone();
+        /// <summary>보유 목록 조회와 배치 저장에 사용할 인증 API 클라이언트를 지정합니다.</summary>
         public ExhibitionLayoutWrapper(JamkkaebiApiClient client)
         { _client = client ?? throw new ArgumentNullException(nameof(client)); }
 
+        /// <summary>보유 목록을 조회해 관리 대상과 기존 배치를 병합한 뒤 하나의 PUT으로 저장합니다.</summary>
         public IEnumerator Save(ExhibitionLayoutDraft draft, Action<ServerApiResult> completed)
         {
             if (completed == null) throw new ArgumentNullException(nameof(completed));

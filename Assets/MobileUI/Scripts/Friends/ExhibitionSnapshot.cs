@@ -14,6 +14,7 @@ namespace MobilePrototype.Friends
         public IReadOnlyList<SnapshotPlacement> Placements { get; }
         public string GiftState { get; }
         public bool VisitRewardAvailable { get; }
+        /// <summary>소유자·배치 목록·격자·캡처 시각과 일일 행동 상태를 보관합니다.</summary>
         public ExhibitionSnapshot(string code, IEnumerable<SnapshotPlacement> placements, bool hasGrid = true,
             int width = 7, int height = 7, string capturedAt = "2026-10-08 15:00", string giftState = "AVAILABLE", bool visitRewardAvailable = true)
         {

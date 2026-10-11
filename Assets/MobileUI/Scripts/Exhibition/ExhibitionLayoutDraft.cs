@@ -10,6 +10,7 @@ namespace MobilePrototype.Exhibition
     {
         public Vector2Int GridSize { get; }
         public ReadOnlyCollection<ExhibitionObjectData> Objects { get; }
+        /// <summary>격자 규격과 관리 대상 전체를 복사해 송신 중 변경되지 않는 초안을 생성합니다.</summary>
         public ExhibitionLayoutDraft(Vector2Int gridSize, IEnumerable<ExhibitionObjectData> objects)
         {
             GridSize = gridSize;
