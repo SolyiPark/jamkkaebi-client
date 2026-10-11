@@ -10,6 +10,8 @@ namespace MobilePrototype.Exhibition
     {
         public Vector2Int GridSize { get; }
         public ReadOnlyCollection<ExhibitionObjectData> Objects { get; }
+        /// <summary>Copies the managed object sequence, including unplaced objects needed to represent recalls.</summary>
+        /// <exception cref="ArgumentNullException"><paramref name="objects"/> is null.</exception>
         public ExhibitionLayoutDraft(Vector2Int gridSize, IEnumerable<ExhibitionObjectData> objects)
         {
             GridSize = gridSize;

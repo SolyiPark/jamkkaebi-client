@@ -13,6 +13,8 @@ namespace MobilePrototype.Friends
         public Vector2Int Anchor { get; }
         public string Key => (IsBuilding ? "BUILDING:" : "SPIRIT:") + Id;
         public bool Placeholder { get; }
+        /// <summary>Stores a snapshot object's identity, logical grid anchor, and display metadata without validation.</summary>
+        /// <param name="placeholder">Whether the visit scene should use an unknown-object representation.</param>
         public SnapshotPlacement(bool building, int id, string name, Vector2Int anchor, string stage = "AWAKENED", int level = 1, bool placeholder = false)
         { IsBuilding = building; Id = id; Name = name; Anchor = anchor; Stage = stage; Level = level; Placeholder = placeholder; }
     }

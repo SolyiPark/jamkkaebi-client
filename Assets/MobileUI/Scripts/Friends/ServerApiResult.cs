@@ -9,8 +9,13 @@ namespace MobilePrototype.Friends
         public string Message { get; }
         public JToken Data { get; }
         public long Status { get; }
+        /// <summary>Stores an API outcome and its data reference; status zero represents a result without an HTTP status.</summary>
         public ServerApiResult(bool success, string code, string message, JToken data = null, long status = 0)
         { Success = success; Code = code; Message = message; Data = data; Status = status; }
+        /// <summary>Reads an API envelope, allowing omitted data and requiring successful envelopes to have a 2xx HTTP status.</summary>
+        /// <exception cref="System.FormatException">Success or code has the wrong type or is absent, or a successful envelope has a non-2xx status.</exception>
+        /// <exception cref="Newtonsoft.Json.JsonReaderException">The input cannot be parsed as a JSON object.</exception>
+        /// <remarks>Other JSON conversion errors propagate to the caller.</remarks>
         public static ServerApiResult Parse(string json, long status)
         {
             var envelope = JObject.Parse(json);

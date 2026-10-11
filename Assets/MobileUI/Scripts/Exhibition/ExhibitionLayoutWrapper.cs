@@ -12,9 +12,16 @@ namespace MobilePrototype.Exhibition
         private JObject _lastPackage;
         public bool Busy { get; private set; }
         public JObject LastPackage => _lastPackage == null ? null : (JObject)_lastPackage.DeepClone();
+        /// <summary>Uses the supplied API client for layout reads and saves.</summary>
+        /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
         public ExhibitionLayoutWrapper(JamkkaebiApiClient client)
         { _client = client ?? throw new ArgumentNullException(nameof(client)); }
 
+        /// <summary>Reads the server exhibition, validates a replacement package, and submits it only if validation succeeds.</summary>
+        /// <param name="completed">Receives the API result, SAVE_BUSY for an overlapping save, or LAYOUT_REJECTED for caught argument, format, or invalid-operation errors.</param>
+        /// <returns>A coroutine that keeps Busy set during the save and exposes the built payload through LastPackage, even if the PUT fails.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="completed"/> is null when the coroutine advances.</exception>
+        /// <remarks>Other build errors, including integer overflow, propagate; Busy is cleared when the save exits.</remarks>
         public IEnumerator Save(ExhibitionLayoutDraft draft, Action<ServerApiResult> completed)
         {
             if (completed == null) throw new ArgumentNullException(nameof(completed));

@@ -56,6 +56,7 @@ namespace MobilePrototype.Friends
         public IReadOnlyDictionary<string, Button> Buttons => _buttons;
         public InputField CodeInput { get; private set; }
 
+        /// <summary>Creates the friends UI when font, camera, and 7×7 grid references are valid; connects to the configured server when a URL is supplied.</summary>
         private void Awake()
         {
             _root = GetComponent<MirrorSceneRoot>();
@@ -77,6 +78,8 @@ namespace MobilePrototype.Friends
                 Environment.GetEnvironmentVariable("JAMKKAEBI_ACCESS_TOKEN"), Environment.GetEnvironmentVariable("JAMKKAEBI_REFRESH_TOKEN")));
         }
 
+        /// <summary>Cancels pending visit and social work, clears preview state, and starts loading friends from the supplied server client.</summary>
+        /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
         public void ConnectServer(JamkkaebiApiClient client)
         {
             CancelVisit();
@@ -85,7 +88,9 @@ namespace MobilePrototype.Friends
             State.ClearForServer(); _lookup = null; Page = "Friends"; Render();
             _socialRequest = StartCoroutine(ReloadServer());
         }
+        /// <summary>Starts reloading server state only when connected and no social request is busy.</summary>
         public void RefreshServer() { if (UsesServer && !_serverBusy) _socialRequest = StartCoroutine(ReloadServer()); }
+        /// <summary>Loads all five social payloads before replacing state; API or mapping failures display feedback and retain the prior state.</summary>
         private IEnumerator ReloadServer()
         {
             _serverBusy = true;
@@ -107,11 +112,13 @@ namespace MobilePrototype.Friends
             }
             finally { _serverBusy = false; _socialRequest = null; }
         }
+        /// <summary>Starts a social mutation unless another social request is busy.</summary>
         private void ChangeServer(string method, string path, JObject body = null)
         {
             if (_serverBusy) return;
             _socialRequest = StartCoroutine(ChangeServerRoutine(method, path, body));
         }
+        /// <summary>Sends a social mutation and reloads state after success, returning from a visit to the friends page; failures display feedback.</summary>
         private IEnumerator ChangeServerRoutine(string method, string path, JObject body)
         {
             _serverBusy = true;
@@ -129,11 +136,13 @@ namespace MobilePrototype.Friends
             else { Render(); Notify(result.Code + ": " + result.Message); }
             _socialRequest = null;
         }
+        /// <summary>Sends a friend request through the active server or updates local preview state and feedback.</summary>
         private void RequestFriend(FriendProfile profile)
         {
             if (UsesServer) { ChangeServer("POST", "/api/friend-requests", new JObject { ["friendCode"] = FriendsPreviewState.NormalizeCode(profile.Code) }); return; }
             bool sent = State.Request(profile); Render(); Notify(sent ? "친구 요청을 보냈어요." : "요청을 보낼 수 없어요.");
         }
+        /// <summary>Cancels, rejects, or accepts a request through the server or local preview state.</summary>
         private void ActOnRequest(FriendProfile profile, string action)
         {
             if (UsesServer)
@@ -145,16 +154,19 @@ namespace MobilePrototype.Friends
             else State.Accept(profile);
             Render();
         }
+        /// <summary>Blocks a profile through the server or local preview state; local blocking returns to the friends page.</summary>
         private void BlockFriend(FriendProfile profile)
         {
             if (UsesServer) { ChangeServer("POST", "/api/blocks", new JObject { ["friendCode"] = FriendsPreviewState.NormalizeCode(profile.Code) }); return; }
             State.Block(profile); Show("Friends");
         }
+        /// <summary>Removes a block through the server or preview state without restoring the local friendship.</summary>
         private void UnblockFriend(FriendProfile profile)
         {
             if (UsesServer) { ChangeServer("DELETE", "/api/blocks/" + JamkkaebiApiClient.CodePath(profile.Code)); return; }
             State.Blocked.Remove(profile); Render(); Notify("차단을 해제했어요.");
         }
+        /// <summary>Looks up a code and updates the result only while the add sheet still shows that code; API and mapping failures display feedback.</summary>
         private IEnumerator LookupServer(string code)
         {
             _serverBusy = true;
@@ -175,6 +187,7 @@ namespace MobilePrototype.Friends
             finally { _serverBusy = false; _socialRequest = null; }
         }
 
+        /// <summary>Expires feedback, resets local daily state when the date advances, and steps loaded visit NPCs at one-second unscaled intervals.</summary>
         private void Update()
         {
             if (_toast && Time.unscaledTime > _toastUntil)
@@ -190,12 +203,14 @@ namespace MobilePrototype.Friends
             }
         }
 
+        /// <summary>Renders the requested page, canceling and clearing the visit whenever the destination is not Visit.</summary>
         public void Show(string page)
         {
             if (page != "Visit") CancelVisit();
             Page = page; Render();
         }
 
+        /// <summary>Stops visit and reward coroutines and clears visit state, invalidating pending responses.</summary>
         private void CancelVisit()
         {
             if (_visitRequest != null) StopCoroutine(_visitRequest);
@@ -203,8 +218,10 @@ namespace MobilePrototype.Friends
             _visitRequest = null; _rewardRequest = null; _claimingReward = false;
             VisitSession.Leave(); _visitViews.Clear();
         }
+        /// <summary>Cancels visit, reward, and social coroutines when the presenter is destroyed.</summary>
         private void OnDestroy() { CancelVisit(); if (_socialRequest != null) StopCoroutine(_socialRequest); }
 
+        /// <summary>Starts or retries a current friend’s snapshot request, canceling prior visit and reward work; profiles outside the friends list are ignored.</summary>
         public void Visit(FriendProfile profile)
         {
             if (!State.Friends.Contains(profile)) return;
@@ -217,6 +234,7 @@ namespace MobilePrototype.Friends
             _visitRequest = StartCoroutine(LoadVisit(profile, revision));
         }
 
+        /// <summary>Loads a server or preview snapshot for the request revision, selecting the first object and restarting walking only when the response is accepted.</summary>
         private IEnumerator LoadVisit(FriendProfile profile, int revision)
         {
             IExhibitionBackend backend = UsesServer ? new ServerExhibitionBackend(_server) : new MockExhibitionBackend(_visitScenario);
@@ -233,6 +251,7 @@ namespace MobilePrototype.Friends
             _visitRequest = null;
         }
 
+        /// <summary>Starts a visit reward claim only for a loaded scene with no pending or already claimed reward, using the server when connected.</summary>
         private void ClaimReward(FriendProfile profile)
         {
             if (_claimingReward || VisitSession.Loading || VisitSession.Scene == null || State.VisitClaimed) return;
@@ -240,6 +259,7 @@ namespace MobilePrototype.Friends
             _claimingReward = true; Render();
             _rewardRequest = StartCoroutine(LoadReward(profile));
         }
+        /// <summary>Runs the backend reward claim and updates preview feedback on completion or failure.</summary>
         private IEnumerator LoadReward(FriendProfile profile)
         {
             IExhibitionBackend backend = UsesServer ? new ServerExhibitionBackend(_server) : new MockExhibitionBackend(_visitScenario, State);
@@ -251,6 +271,7 @@ namespace MobilePrototype.Friends
             _rewardRequest = null;
         }
 
+        /// <summary>Rebuilds the current page, replacing controls and feedback and resetting the active scroll view to the top.</summary>
         private void Render()
         {
             if (Scroll) Scroll.StopMovement();
@@ -279,6 +300,7 @@ namespace MobilePrototype.Friends
             Canvas.ForceUpdateCanvases(); Scroll.verticalNormalizedPosition = 1;
         }
 
+        /// <summary>Creates a clamped vertical scroll view with canvas-unit top and bottom insets, assigns Scroll, and returns its content transform.</summary>
         private RectTransform MakeScroll(Transform parent, float bottom, float top)
         {
             var viewport = UIFactory.Rect("Friends Scroll", parent, Vector2.zero, Vector2.one,
@@ -293,6 +315,7 @@ namespace MobilePrototype.Friends
             Scroll.viewport = viewport; Scroll.content = body; return body;
         }
 
+        /// <summary>Adds the friend count, own-code controls, server refresh when connected, and social page tabs.</summary>
         private void BuildHeader()
         {
             Label("Title", _content, UsesServer ? "친구 · 서버" : "친구 · 모의", 44, Ink, 0, 44, 450, 62);
@@ -317,6 +340,7 @@ namespace MobilePrototype.Friends
             }
         }
 
+        /// <summary>Adds daily reward status, friend visit and gift controls, and access to blocked profiles.</summary>
         private void BuildFriends()
         {
             string[] titles = { "방문 보상", "상자 선물", "받은 선물" };
@@ -344,6 +368,7 @@ namespace MobilePrototype.Friends
             Height(y + 170);
         }
 
+        /// <summary>Adds a clickable friend profile row and visited marker at the supplied vertical canvas offset.</summary>
         private void FriendRow(FriendProfile profile, float y, Action click)
         {
             var profileButton = Button("Profile_" + profile.Code, _content, "", 0, y, 755, 112, click, false);
@@ -355,6 +380,7 @@ namespace MobilePrototype.Friends
             Box("Divider", _content, Line, 0, y + 116, Width, 1);
         }
 
+        /// <summary>Adds the selected received or sent request list and its accept, reject, or cancel controls.</summary>
         private void BuildRequests()
         {
             Button("Received", _content, $"받은 요청 {State.Received.Count}/20", 0, 535, 275, 72, () => { _sentRequests = false; Render(); }, !_sentRequests);
@@ -380,6 +406,7 @@ namespace MobilePrototype.Friends
             Height(Math.Max(1150, y + 60));
         }
 
+        /// <summary>Adds recommendation cards and disables requests for profiles already requested, friended, or blocked.</summary>
         private void BuildRecommendations()
         {
             Label("Intro", _content, $"최근 접속한 사람 중 매일 3명을 골라 드려요 · 남은 추천 {State.RemainingRecommendations}", 25, Ink, 0, 525, Width, 54);
@@ -399,6 +426,7 @@ namespace MobilePrototype.Friends
             Height(y + 50);
         }
 
+        /// <summary>Adds the code search sheet, lookup result, and sharing controls; editing the code invalidates the previous lookup.</summary>
         private void BuildAddSheet()
         {
             var overlay = UIFactory.Image("Sheet Shade", _canvas, new Color(0, 0, 0, .38f), Vector2.zero, Vector2.one).rectTransform;
@@ -451,6 +479,7 @@ namespace MobilePrototype.Friends
             body.sizeDelta = new Vector2(0, 1340);
         }
 
+        /// <summary>Looks up a valid entered code through the server or local state; invalid codes and busy server requests are ignored.</summary>
         private void Lookup()
         {
             if (!FriendsPreviewState.IsValidCode(_code)) return;
@@ -459,6 +488,7 @@ namespace MobilePrototype.Friends
             if (_lookup == null) Notify(FriendsPreviewState.NormalizeCode(_code) == FriendsPreviewState.NormalizeCode(State.MyCode) ? "내 코드는 추가할 수 없어요." : "조회할 수 있는 친구가 없어요.");
         }
 
+        /// <summary>Adds the retained or loaded exhibition, loading and error feedback, object selection, and reward and gift controls gated by visit readiness.</summary>
         private void BuildVisit()
         {
             var scene = VisitSession.Scene;
@@ -511,7 +541,9 @@ namespace MobilePrototype.Friends
             Height(1400);
         }
 
+        /// <summary>Returns the localized awakening label, defaulting unrecognized stages to the base awakened label.</summary>
         private static string StageLabel(string stage) => stage == "FULLY_AWAKENED" ? "완전각성" : stage == "AWAKENED_PLUS" ? "추가각성" : "각성";
+        /// <summary>Projects current visit cells into the preview board and orders their views by grid depth and object key.</summary>
         private void PositionVisitObjects()
         {
             var scene = VisitSession.Scene;
@@ -525,6 +557,7 @@ namespace MobilePrototype.Friends
                 view.SetSiblingIndex(index++);
             }
         }
+        /// <summary>Adds blocked profiles with confirmation controls for unblocking and a return button.</summary>
         private void BuildBlocked()
         {
             Button("BlockedBack", _content, "‹", 0, 36, 70, 82, () => Show("Friends"), false, Ink);
@@ -545,6 +578,7 @@ namespace MobilePrototype.Friends
             Height(Math.Max(1250, y + 90));
         }
 
+        /// <summary>Asks for confirmation before sending a server gift or recording a local daily gift.</summary>
         private void Gift(FriendProfile profile)
         {
             Confirm(profile.Name + "님에게 상자를 선물할까요?\n오늘은 한 명에게 보낼 수 있어요.", () =>
@@ -554,6 +588,7 @@ namespace MobilePrototype.Friends
             });
         }
 
+        /// <summary>Adds a modal confirmation that invokes the supplied action on approval; dismissal removes the modal, while approval relies on the action to update the UI.</summary>
         private void Confirm(string message, Action action)
         {
             var shade = UIFactory.Image("Confirmation Shade", _canvas, new Color(0, 0, 0, .38f), Vector2.zero, Vector2.one);
@@ -565,19 +600,24 @@ namespace MobilePrototype.Friends
             MirrorSceneRoot.SetLayer(shade.transform, gameObject.layer);
         }
 
+        /// <summary>Copies the displayed own friend code to the system clipboard and shows feedback.</summary>
         private void CopyCode() { GUIUtility.systemCopyBuffer = State.MyCode; Notify("친구 코드를 복사했어요."); }
+        /// <summary>Displays a message above the page for four seconds of unscaled time, replacing previous feedback.</summary>
         private void Notify(string message)
         {
             _toast.text = message; _toast.gameObject.SetActive(true);
             _toast.transform.parent.GetComponent<Image>().color = Green;
             _toast.transform.parent.SetAsLastSibling(); _toastUntil = Time.unscaledTime + 4;
         }
+        /// <summary>Sets the page content height in canvas units.</summary>
         private void Height(float height) => _content.sizeDelta = new Vector2(0, height);
+        /// <summary>Adds a placeholder avatar using the first character of the profile name.</summary>
         private void Avatar(Transform parent, FriendProfile profile, float x, float y, float size)
         {
             var avatar = Box("Avatar", parent, new Color(.55f, .7f, .65f), x, y, size, size);
             Label("Initial", avatar.transform, profile.Name.Substring(0, 1), 34, Color.white, 0, 0, size, size, TextAnchor.MiddleCenter);
         }
+        /// <summary>Displays the three era restoration counts, with up to three filled markers per era.</summary>
         private void Restoration(Transform parent, FriendProfile profile, float y)
         {
             string[] eras = { "삼국 복원", "고려 복원", "조선 복원" };
@@ -589,18 +629,22 @@ namespace MobilePrototype.Friends
                 for (int j = 0; j < 3; j++) Box("Progress", cell.transform, j < count ? Green : Pale, 20 + j * 36, 65, 28, 28);
             }
         }
+        /// <summary>Creates a rectangle with canvas-unit offsets from the parent’s top-left corner; positive y extends downward.</summary>
         private RectTransform Rect(string name, Transform parent, float x, float y, float width, float height)
         {
             return UIFactory.Rect(name, parent, new Vector2(0, 1), new Vector2(0, 1), new Vector2(x, -y - height), new Vector2(x + width, -y));
         }
+        /// <summary>Creates a colored rectangle that does not intercept raycasts, using top-left canvas coordinates.</summary>
         private Image Box(string name, Transform parent, Color color, float x, float y, float width, float height)
         {
             var image = Rect(name, parent, x, y, width, height).gameObject.AddComponent<Image>(); image.color = color; image.raycastTarget = false; return image;
         }
+        /// <summary>Adds an outline using the supplied color or the shared divider color.</summary>
         private void Border(Image image, Color? color = null)
         {
             var outline = image.gameObject.AddComponent<Outline>(); outline.effectColor = color ?? Line; outline.effectDistance = new Vector2(1.5f, -1.5f);
         }
+        /// <summary>Creates noninteractive text in top-left canvas coordinates, wrapping horizontally and allowing vertical overflow.</summary>
         private Text Label(string name, Transform parent, string value, int size, Color color, float x, float y, float width, float height, TextAnchor alignment = TextAnchor.MiddleLeft)
         {
             var text = Rect(name, parent, x, y, width, height).gameObject.AddComponent<Text>();
@@ -611,6 +655,7 @@ namespace MobilePrototype.Friends
             if (name == "Title" || name == "Sheet Title" || name == "Name" || name == "Own Code" || name == "Initial") text.fontStyle = FontStyle.Bold;
             return text;
         }
+        /// <summary>Creates a clickable button in top-left canvas coordinates and registers it by ID, replacing any previous entry with that ID.</summary>
         private Button Button(string id, Transform parent, string caption, float x, float y, float width, float height, Action click, bool filled = true, Color? textColor = null)
         {
             var image = Box(id, parent, filled ? Green : Paper, x, y, width, height); image.raycastTarget = true;

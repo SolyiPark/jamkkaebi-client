@@ -6,6 +6,7 @@ namespace MobilePrototype.Exhibition
     public sealed class ExhibitionNpcData : ExhibitionObjectData
     {
         public override string Type => "SPIRIT";
+        /// <summary>Stores an NPC as a 1×1, unrotated object identified by its owned artifact ID and fixed placement anchor.</summary>
         public ExhibitionNpcData(string localId, int artifactId, bool placed, Vector2Int anchor)
             : base(localId, artifactId, placed, anchor, Vector2Int.one, 0) { }
     }

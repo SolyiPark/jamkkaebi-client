@@ -9,7 +9,11 @@ namespace MobilePrototype.Friends
     public sealed class ServerExhibitionBackend : IExhibitionBackend
     {
         private readonly JamkkaebiApiClient _client;
+        /// <summary>Uses the supplied client for exhibition queries and reward claims.</summary>
         public ServerExhibitionBackend(JamkkaebiApiClient client) { _client = client; }
+        /// <summary>Fetches a snapshot without claiming a reward; API failures and snapshot parsing exceptions invoke failed.</summary>
+        /// <returns>The request coroutine, which supplies the parsed snapshot to completed on success.</returns>
+        /// <exception cref="ArgumentException">The friend code is invalid.</exception>
         public IEnumerator GetExhibition(string friendCode, Action<ExhibitionSnapshot> completed, Action<string> failed)
         {
             return _client.Send("GET", "/api/friends/" + JamkkaebiApiClient.CodePath(friendCode) + "/exhibition", null, result =>
@@ -21,6 +25,9 @@ namespace MobilePrototype.Friends
                 completed(snapshot);
             });
         }
+        /// <summary>Posts a reward claim and reports the returned jeongseong amount, including zero, to completed.</summary>
+        /// <remarks>API failures and missing or mistyped reward fields invoke failed; JSON access and integer overflow errors can propagate.</remarks>
+        /// <exception cref="ArgumentException">The friend code is invalid.</exception>
         public IEnumerator ClaimVisitReward(string friendCode, Action<int> completed, Action<string> failed)
         {
             return _client.Send("POST", "/api/friends/" + JamkkaebiApiClient.CodePath(friendCode) + "/visit-reward", null, result =>
@@ -31,6 +38,9 @@ namespace MobilePrototype.Friends
                 completed((int)result.Data["jeongseongGained"]);
             });
         }
+        /// <summary>Maps server placements to placeholder snapshot objects with a normalized owner code; grid compatibility is checked by the visit scene.</summary>
+        /// <exception cref="FormatException">The owner code is invalid or the spirit/building arrays are missing.</exception>
+        /// <remarks>JSON access and conversion errors propagate. An absent grid is represented with HasGrid false and zero dimensions.</remarks>
         public static ExhibitionSnapshot ParseSnapshot(JToken data)
         {
             string code = (string)data?["owner"]?["friendCode"];
@@ -46,6 +56,7 @@ namespace MobilePrototype.Friends
                 hasGrid ? (int)data["grid"]["width"] : 0, hasGrid ? (int)data["grid"]["height"] : 0,
                 (string)data["capturedAt"], (string)data["giftState"], (bool)data["visitRewardAvailable"]);
         }
+        /// <summary>Reads logical cell coordinates from the required position object, propagating JSON access and conversion errors.</summary>
         private static Vector2Int Position(JToken row) => new Vector2Int((int)row["position"]["x"], (int)row["position"]["y"]);
     }
 }

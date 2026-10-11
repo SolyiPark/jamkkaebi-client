@@ -20,6 +20,8 @@ namespace MobilePrototype.Exhibition
         private static readonly Vector2Int[] Directions =
             { Vector2Int.right, Vector2Int.up, Vector2Int.left, Vector2Int.down };
 
+        /// <summary>Sets the starting cell and persistent placement anchor, attempts to reserve that cell, and positions the wanderer on the surface.</summary>
+        /// <param name="cell">Logical grid cell retained as the placement anchor even while the wanderer moves.</param>
         public void Configure(HousingLayout layout, ExhibitionSurface surface, Vector2Int cell)
         {
             _layout = layout; _surface = surface; _from = _to = cell;

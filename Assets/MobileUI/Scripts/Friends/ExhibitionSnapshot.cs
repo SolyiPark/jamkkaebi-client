@@ -14,6 +14,9 @@ namespace MobilePrototype.Friends
         public IReadOnlyList<SnapshotPlacement> Placements { get; }
         public string GiftState { get; }
         public bool VisitRewardAvailable { get; }
+        /// <summary>Copies the placement sequence into a read-only snapshot without validating its grid or placements.</summary>
+        /// <param name="hasGrid">Whether the snapshot supplies a grid; the visit scene permits a missing grid only when there are no placements.</param>
+        /// <exception cref="System.ArgumentNullException"><paramref name="placements"/> is null.</exception>
         public ExhibitionSnapshot(string code, IEnumerable<SnapshotPlacement> placements, bool hasGrid = true,
             int width = 7, int height = 7, string capturedAt = "2026-10-08 15:00", string giftState = "AVAILABLE", bool visitRewardAvailable = true)
         {

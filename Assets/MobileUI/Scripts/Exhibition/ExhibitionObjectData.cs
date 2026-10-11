@@ -14,6 +14,11 @@ namespace MobilePrototype.Exhibition
         public int QuarterTurns { get; }
         public string Key => Type + ":" + ServerId;
 
+        /// <summary>Stores local and server identities and placement values without validating ownership or server support.</summary>
+        /// <param name="placed">False keeps the object managed while requesting its removal from the saved layout.</param>
+        /// <param name="cell">Logical grid anchor.</param>
+        /// <param name="footprint">Unrotated width and height in grid cells.</param>
+        /// <param name="quarterTurns">Rotation in 90-degree steps.</param>
         protected ExhibitionObjectData(string localId, int serverId, bool placed, Vector2Int cell,
             Vector2Int footprint, int quarterTurns)
         {

@@ -15,6 +15,8 @@ namespace MobilePrototype.Friends
         public string GiftState { get; }
         public bool Requested { get; }
         public IReadOnlyList<int> RestoredByEra { get; }
+        /// <summary>Stores display data and exposes era counts through a read-only view, deriving preview counts from the collection percentage when omitted.</summary>
+        /// <param name="restored">Counts for Three Kingdoms, Goryeo, and Joseon; the supplied array is wrapped without copying.</param>
         public FriendProfile(string name, string code, int streak, int percent, string lastSeen = "오늘 접속", bool giftFull = false, int[] restored = null, string giftState = "AVAILABLE", bool requested = false)
         {
             Name = name; Code = code; Streak = streak; CollectionPercent = percent;

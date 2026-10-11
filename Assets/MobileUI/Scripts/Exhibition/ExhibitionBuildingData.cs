@@ -6,6 +6,7 @@ namespace MobilePrototype.Exhibition
     public sealed class ExhibitionBuildingData : ExhibitionObjectData
     {
         public override string Type => "BUILDING";
+        /// <summary>Stores a building using its owned building ID, logical cell, unrotated footprint in cells, and rotation in 90-degree steps.</summary>
         public ExhibitionBuildingData(string localId, int buildingId, bool placed, Vector2Int cell,
             Vector2Int footprint, int quarterTurns = 0)
             : base(localId, buildingId, placed, cell, footprint, quarterTurns) { }

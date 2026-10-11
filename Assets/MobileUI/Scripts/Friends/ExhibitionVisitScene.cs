@@ -13,6 +13,8 @@ namespace MobilePrototype.Friends
         public ExhibitionSnapshot Snapshot { get; }
         public IReadOnlyList<VisitObject> Objects => _objects.AsReadOnly();
         public IReadOnlyList<string> Warnings => _warnings.AsReadOnly();
+        /// <summary>Builds visit objects, skipping invalid or duplicate identities with warnings and retaining unknown objects as placeholders.</summary>
+        /// <exception cref="ArgumentException">The snapshot or owner is missing, placements lack a grid, or the supplied grid is not 7×7.</exception>
         public ExhibitionVisitScene(ExhibitionSnapshot snapshot)
         {
             if (snapshot == null || string.IsNullOrEmpty(snapshot.OwnerCode)) throw new ArgumentException("전시 정보가 올바르지 않아요.");
@@ -33,7 +35,10 @@ namespace MobilePrototype.Friends
                 _objects.Add(obj);
             }
         }
+        /// <summary>Returns whether both logical cell coordinates lie in the inclusive range zero through six.</summary>
         private static bool InBounds(Vector2Int cell) => cell.x >= 0 && cell.y >= 0 && cell.x < 7 && cell.y < 7;
+        /// <summary>Moves each NPC at most one adjacent cell, avoiding occupied cells and grid boundaries while preserving saved anchors.</summary>
+        /// <param name="step">Nonnegative step counter used to vary the preferred direction.</param>
         public void Walk(int step)
         {
             var occupied = new HashSet<Vector2Int>();
@@ -53,6 +58,7 @@ namespace MobilePrototype.Friends
                 occupied.Add(obj.Cell); index++;
             }
         }
+        /// <summary>Returns the visit cell center in platform-local coordinates using the supplied grid.</summary>
         public Vector2 LocalPosition(VisitObject obj, ExhibitionGrid grid) => grid.CellCenter(obj.Cell);
     }
 }

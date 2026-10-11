@@ -9,6 +9,9 @@ namespace MobilePrototype.Friends
     /// <summary>JsonUnwrapped 요약과 중첩 player를 구분하여 서버 상태를 화면 모델로 변환합니다.</summary>
     public static class FriendsServerMapper
     {
+        /// <summary>Maps a player summary to a normalized profile, defaulting missing streak and collection values to zero and ignoring unknown eras.</summary>
+        /// <exception cref="FormatException">The friend code is invalid or the nickname is empty.</exception>
+        /// <remarks>JSON access and conversion errors propagate.</remarks>
         public static FriendProfile Profile(JToken player, string lastSeen = "", JToken eras = null)
         {
             string code = (string)player["friendCode"], name = (string)player["nickname"];
@@ -24,6 +27,8 @@ namespace MobilePrototype.Friends
                 (int?)player["collectionRate"] ?? 0, lastSeen, (string)player["giftState"] == "RECEIVER_FULL", restored,
                 (string)player["giftState"] ?? "AVAILABLE", (bool?)player["requested"] ?? false);
         }
+        /// <summary>Builds server-owned state from five response payloads, reusing profiles by normalized code across friends, recommendations, and requests.</summary>
+        /// <remarks>Invalid profile, JSON conversion, and reset-date parsing errors propagate; no preview state is returned on failure.</remarks>
         public static FriendsPreviewState Create(JToken friends, JToken received, JToken sent, JToken recommendations, JToken blocks)
         {
             var state = new FriendsPreviewState(DateTime.Today); state.ClearForServer();
@@ -57,6 +62,7 @@ namespace MobilePrototype.Friends
                 DateTime.Parse((string)friends["nextResetAt"], CultureInfo.InvariantCulture, DateTimeStyles.None));
             return state;
         }
+        /// <summary>Parses a lookup result, returning an existing friend, sent-request, or received-request profile with the same code when available; parsing errors propagate.</summary>
         public static FriendProfile Lookup(JToken data, FriendsPreviewState state)
         {
             var profile = Profile(data["player"], eras: data["restoredByEra"]);

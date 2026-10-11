@@ -8,6 +8,8 @@ using UnityEngine;
 /// <summary>기존 친구 더미 씬만 최초 한 번 PDF 기반 프론트엔드로 이관합니다.</summary>
 public static class FriendsSetup
 {
+    /// <summary>Opens and migrates the saved Friends scene, replaces noncamera children with the presenter, and saves the scene.</summary>
+    /// <exception cref="InvalidOperationException">Unity is not in batch mode, the scene root or camera is missing, or a presenter is already attached.</exception>
     public static void Apply()
     {
         if (!Application.isBatchMode) throw new InvalidOperationException("저장된 씬을 대상으로 batch mode에서 실행하세요.");

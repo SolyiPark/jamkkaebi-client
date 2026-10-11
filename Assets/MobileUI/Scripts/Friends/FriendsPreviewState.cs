@@ -25,8 +25,10 @@ namespace MobilePrototype.Friends
         public int RemainingRecommendations => ServerOwned ? _serverRemaining : 3 - Recommendations.Count(p => Sent.Contains(p));
         public DateTime Day { get; private set; }
         private readonly Dictionary<string, string> _blockDates = new Dictionary<string, string>();
+        /// <summary>Returns the locally recorded block date label, falling back to the profile label.</summary>
         public string BlockLabel(FriendProfile profile) => _blockDates.TryGetValue(profile.Code, out string label) ? label : profile.LastSeen;
 
+        /// <summary>Populates sample friends, requests, recommendations, blocks, and a visited marker for the supplied calendar date.</summary>
         public FriendsPreviewState(DateTime now)
         {
             Day = now.Date;
@@ -50,12 +52,15 @@ namespace MobilePrototype.Friends
             Visited.Add(Friends[0].Code);
         }
 
+        /// <summary>Removes whitespace and hyphens and uppercases invariantly; null becomes an empty string.</summary>
         public static string NormalizeCode(string value) => new string((value ?? "").Where(c => !char.IsWhiteSpace(c) && c != '-').ToArray()).ToUpperInvariant();
+        /// <summary>Checks for exactly eight normalized characters from 23456789ABCDEFGHJKMNPQRSTUVWXYZ.</summary>
         public static bool IsValidCode(string value)
         {
             string code = NormalizeCode(value);
             return code.Length == 8 && code.All(c => "23456789ABCDEFGHJKMNPQRSTUVWXYZ".Contains(c));
         }
+        /// <summary>Returns the first matching local profile by normalized code, or null for an invalid, blocked, or unknown code.</summary>
         public FriendProfile Find(string code)
         {
             if (!IsValidCode(code)) return null;
@@ -64,45 +69,53 @@ namespace MobilePrototype.Friends
             return Friends.Concat(Received).Concat(Sent).Concat(Recommendations)
                 .FirstOrDefault(p => NormalizeCode(p.Code) == normalized);
         }
+        /// <summary>Adds a local request unless the profile is null, already a friend, sent or blocked, matches OwnCode, or ten requests are pending; returns whether it was added.</summary>
         public bool Request(FriendProfile profile)
         {
             if (profile == null || Sent.Count >= 10 || Friends.Contains(profile) || Sent.Contains(profile) ||
                 Blocked.Contains(profile) || NormalizeCode(profile.Code) == NormalizeCode(OwnCode)) return false;
             Sent.Add(profile); return true;
         }
+        /// <summary>Accepts a received local profile when fewer than 30 friends exist, removing any sent request; returns false without changes otherwise.</summary>
         public bool Accept(FriendProfile profile)
         {
             if (Friends.Count >= 30 || !Received.Remove(profile)) return false;
             Friends.Add(profile); Sent.Remove(profile); return true;
         }
+        /// <summary>Marks a current friend visited and claims the shared local daily reward; returns false for nonfriends or an already claimed reward.</summary>
         public bool ClaimVisit(FriendProfile profile)
         {
             if (!Friends.Contains(profile) || VisitClaimed) return false;
             VisitClaimed = true; Visited.Add(profile.Code); return true;
         }
+        /// <summary>Records one local daily gift recipient; returns false for nonfriends, full recipients, or a day with a recorded gift.</summary>
         public bool SendGift(FriendProfile profile)
         {
             if (!Friends.Contains(profile) || profile.GiftFull || GiftRecipient != null) return false;
             GiftRecipient = profile.Code; return true;
         }
+        /// <summary>Removes the profile from friends and request lists, adds it to blocks, and records the current local calendar date.</summary>
         public void Block(FriendProfile profile)
         {
             Friends.Remove(profile); Received.Remove(profile); Sent.Remove(profile);
             if (!Blocked.Contains(profile)) Blocked.Add(profile);
             _blockDates[profile.Code] = DateTime.Now.ToString("yyyy.MM.dd") + " 차단";
         }
+        /// <summary>Resets local visit and gift claims and visited codes only for a later calendar date; returns false for server-owned state or an unchanged day.</summary>
         public bool RefreshDay(DateTime now)
         {
             if (ServerOwned) return false;
             if (now.Date <= Day) return false;
             Day = now.Date; VisitClaimed = false; GiftRecipient = null; Visited.Clear(); return true;
         }
+        /// <summary>Applies server limits, reset time, and daily flags, marking the state server-owned so local date changes cannot reset it.</summary>
         public void ApplyServerSummary(string code, bool visitClaimed, bool giftSent, bool giftAvailable, int limit, int remaining, DateTime nextReset)
         {
             ServerOwned = true; MyCode = code; VisitClaimed = visitClaimed;
             GiftRecipient = giftSent ? "SERVER_SENT" : null; ReceivedGifts = giftAvailable ? 1 : 0;
             FriendLimit = limit; _serverRemaining = remaining; NextResetAt = nextReset;
         }
+        /// <summary>Marks state server-owned and clears profile lists, visited codes, the displayed own code, and daily reward flags.</summary>
         public void ClearForServer()
         {
             ServerOwned = true; MyCode = ""; Friends.Clear(); Received.Clear(); Sent.Clear(); Recommendations.Clear(); Blocked.Clear(); Visited.Clear();

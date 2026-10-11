@@ -10,7 +10,9 @@ namespace MobilePrototype.Friends
     {
         private readonly ExhibitionPreviewScenario _scenario;
         private readonly FriendsPreviewState _state;
+        /// <summary>Selects a snapshot scenario and optional local state used for reward claims.</summary>
         public MockExhibitionBackend(ExhibitionPreviewScenario scenario, FriendsPreviewState state = null) { _scenario = scenario; _state = state; }
+        /// <summary>Waits 0.3 real-time seconds, then reports five for the first local claim or zero for a repeated claim; missing state or friends invoke failed.</summary>
         public IEnumerator ClaimVisitReward(string code, Action<int> completed, Action<string> failed)
         {
             yield return new WaitForSecondsRealtime(.3f);
@@ -18,6 +20,7 @@ namespace MobilePrototype.Friends
             if (profile == null) { failed("방문 보상을 받을 수 없어요."); yield break; }
             completed(_state.ClaimVisit(profile) ? 5 : 0);
         }
+        /// <summary>Returns the selected synthetic snapshot after 0.3 real-time seconds, or 1.8 for Slow; Denied, Error, and Malformed invoke failed without claiming rewards.</summary>
         public IEnumerator GetExhibition(string code, Action<ExhibitionSnapshot> completed, Action<string> failed)
         {
             yield return new WaitForSecondsRealtime(_scenario == ExhibitionPreviewScenario.Slow ? 1.8f : .3f);
@@ -26,6 +29,7 @@ namespace MobilePrototype.Friends
             if (_scenario == ExhibitionPreviewScenario.Malformed) { failed("전시 정보가 올바르지 않아요."); yield break; }
             completed(CreateSnapshot(code, _scenario));
         }
+        /// <summary>Creates synthetic placements for the selected scenario, including empty, invalid, duplicate, unknown, or mismatched-grid data for preview handling.</summary>
         public static ExhibitionSnapshot CreateSnapshot(string code, ExhibitionPreviewScenario scenario)
         {
             var rows = new List<SnapshotPlacement>();
