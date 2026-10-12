@@ -23,12 +23,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         public int RemainingDestructiveToolUses { get; private set; }   // 남은 타일 파괴 시도 횟수(공격형, 안전형 도구)
         public int RemainingScoutToolUses { get; private set; }         // 남은 정찰 도구 사용 횟수
         public float RemainingSeconds { get; private set; }             // 현재 남은시간
+
+        public long Seed { get; }
         
         public event Action<TileRevealResult> TileRevealAttempted;
         
-        public MinigameSession(MinigamePhaseConfig config)
-            : this(MinigameGridGenerator.Generate(config), config)
+        public MinigameSession(MinigamePhaseConfig config, long seed)
+            : this(MinigameGridGenerator.Generate(config, seed), config)
         {
+            Seed = seed;
         }
 
         public MinigameSession(MinigameGrid grid, MinigamePhaseConfig config)

@@ -22,11 +22,16 @@ namespace Jamkkaebi.Tests.EditMode
             allowedThreatHits: 3 
         );
 
+        private const long TestSeed = 12345678;
+
         [Test]
         public void Constructor_WithBaseConfig_InitializesGridAndResourcesPerSpec()
         {
             // Arrange & Act
-            MinigameSession session = new MinigameSession(config);
+            MinigameSession session = new MinigameSession(config, TestSeed);
+            
+            // Assert - 테스트 시드 보관
+            Assert.AreEqual(TestSeed, session.Seed);
             
             // Assert - Grid 구조
             Assert.AreEqual(7, session.Grid.Width);
