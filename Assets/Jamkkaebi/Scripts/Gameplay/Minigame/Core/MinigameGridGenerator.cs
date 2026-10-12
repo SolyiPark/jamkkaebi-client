@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
+using Random = System.Random;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public static class MinigameGridGenerator
     {
-        private static bool TryPlacePolyomino(PolyominoShape shape, Tile[,] tiles, List<Vector2Int> emptyCells, out List<Vector2Int> placedCoordinates)
+        private static bool TryPlacePolyomino(PolyominoShape shape, Tile[,] tiles, List<Vector2Int> emptyCells, Random rng, out List<Vector2Int> placedCoordinates)
         {
             // 모양 가져오고 회전하기
             // 회전 방향은 그리드 범위 안에서 가능한 후보를 뽑고 그 안에서 무작위 선택
@@ -25,13 +25,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 }
             }
             
-            Vector2Int[] rotatedShape = rotatedShapeCandidates[Random.Range(0, rotatedShapeCandidates.Count)];
+            Vector2Int[] rotatedShape = rotatedShapeCandidates[rng.Next(0, rotatedShapeCandidates.Count)];
             
             // 오프셋 범위 계산하기
             Vector2Int polyBox = GetBoundingBox(rotatedShape);
             
-            Vector2Int offset = new Vector2Int(Random.Range(0, tiles.GetLength(0) - polyBox.x + 1),
-                Random.Range(0, tiles.GetLength(1) - polyBox.y + 1));
+            Vector2Int offset = new Vector2Int(rng.Next(0, tiles.GetLength(0) - polyBox.x + 1),
+                rng.Next(0, tiles.GetLength(1) - polyBox.y + 1));
             
             // 타일 하나씩, 배치 가능한지 검사하기
             List<Vector2Int> tryingCoordinates = new List<Vector2Int>();
@@ -57,7 +57,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             return true;
         }
 
-        private static bool TryPlaceSingleTile(TileContent content, Tile[,] tiles, List<Vector2Int> emptyCells, out Vector2Int placedCoordinate)
+        private static bool TryPlaceSingleTile(TileContent content, Tile[,] tiles, List<Vector2Int> emptyCells, Random rng, out Vector2Int placedCoordinate)
         {
             // 그리드가 꽉 찼다면 실패
             if (emptyCells.Count == 0)
@@ -67,7 +67,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
             
             // 빈 셀 목록에서 랜덤으로 골라 타일 놓기
-            Vector2Int tryingCoordinate = emptyCells[Random.Range(0, emptyCells.Count)];
+            Vector2Int tryingCoordinate = emptyCells[rng.Next(0, emptyCells.Count)];
             tiles[tryingCoordinate.x, tryingCoordinate.y] = new Tile(content);
             emptyCells.Remove(tryingCoordinate);
 
@@ -75,11 +75,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             return true;
         }
 
-        private static void PlaceTileType(TileContent content, int count, Tile[,] tiles, List<Vector2Int> emptyCells)
+        private static void PlaceTileType(TileContent content, int count, Tile[,] tiles, List<Vector2Int> emptyCells, Random rng)
         {
             for (int c = 0; c < count; c++)
             {
-                if (!TryPlaceSingleTile(content, tiles, emptyCells, out _))
+                if (!TryPlaceSingleTile(content, tiles, emptyCells, rng, out _))
                 {
                     throw new InvalidOperationException($"{c}번째 {content} 타일을 배치하는 데 실패하였습니다. 그리드가 모두 찼습니다.");
                 }
@@ -155,10 +155,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             return new Vector2Int(maxX + 1, maxY + 1);
         }
         
-        public static MinigameGrid Generate(MinigamePhaseConfig config)
+        public static MinigameGrid Generate(MinigamePhaseConfig config, long seed)
         {
             // 0. configuration 유효성 검사(이 수치대로 그리드 배치가 실제로 가능한지)
             ValidateConfig(config);
+
+            // 시드로 RNG 생성
+            Random rng = new Random(unchecked((int)(seed ^ (seed >> 32))));
             
             // 1. 타일, 빈 셀 리스트 준비
             const int MaxAttempts = 1000;
@@ -180,7 +183,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 bool placed = false;
 
                 for (int attempt = 0; attempt < MaxAttempts; attempt++) {
-                    if (TryPlacePolyomino(config.Shapes[i], tiles, emptyCells, out var polyCoordinates))
+                    if (TryPlacePolyomino(config.Shapes[i], tiles, emptyCells, rng, out var polyCoordinates))
                     {
                         groups[i] = new PolyominoGroup(config.Shapes[i], polyCoordinates);
                         placed = true;
@@ -195,8 +198,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
             
             // 3. 위협, 도움 타일 배치
-            PlaceTileType(TileContent.Threat, config.ThreatTileCount, tiles, emptyCells);
-            PlaceTileType(TileContent.Helper, config.HelperTileCount, tiles, emptyCells);
+            PlaceTileType(TileContent.Threat, config.ThreatTileCount, tiles, emptyCells, rng);
+            PlaceTileType(TileContent.Helper, config.HelperTileCount, tiles, emptyCells, rng);
             
             // 4. 남은 셀을 일반 타일로 채우기
             for (int i = 0; i < emptyCells.Count; i++)
@@ -216,7 +219,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 
             for (int i = 0; i < config.ReinforcedTileCount; i++)
             {
-                Vector2Int coordinate = cells[Random.Range(0, cells.Count)];
+                Vector2Int coordinate = cells[rng.Next(0, cells.Count)];
                 tiles[coordinate.x, coordinate.y].Reinforce();
                 cells.Remove(coordinate);
             }

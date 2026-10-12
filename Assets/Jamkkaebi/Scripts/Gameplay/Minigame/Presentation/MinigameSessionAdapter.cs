@@ -16,6 +16,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] [Range(0.5f, 1f)] private float _tileFillRatio = 0.9f;
         [SerializeField] private Camera _inputCamera;
         [SerializeField] private bool _usePointerEvents;
+        [SerializeField] private bool _useFixedSeed;
+        [SerializeField] private long _fixedSeed;
         
         private MinigameSession _session;
         private Dictionary<Vector2Int, TileView> _tileViews;
@@ -44,6 +46,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         public void BeginSession()
         {
+            long seed = ResolveSeed(_useFixedSeed, _fixedSeed);
+            BeginSession(seed);
+        }
+
+        // 서버 연동 후 호출
+        public void BeginSession(long seed)
+        {
             // 1. 이전 세션 정리
             if (_session != null)
             {
@@ -64,7 +73,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             
             // 2. 새 세션 생성
             MinigamePhaseConfig config = _relicData.GetPhaseConfig(_phaseIndex);
-            _session = new MinigameSession(config);
+            _session = new MinigameSession(config, seed);
+            Debug.Log($"[Minigame] seed: {_session.Seed}");
             _tileViews = new Dictionary<Vector2Int, TileView>();
 
             foreach (Vector2Int coord in _session.Grid.AllCoordinates())
@@ -192,6 +202,16 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _hasHandledEnd = true;
             Debug.Log($"세션 종료: {_session.State} (남은 시간: {_session.RemainingSeconds:F1}s, 손상도: {_session.DamageGauge:P0})");
             // TODO: 세션 종료 결과 화면 처리
+        }
+
+        private long ResolveSeed(bool isUsingFixedSeed, long fixedSeed)
+        {
+            if (isUsingFixedSeed)
+            {
+                return fixedSeed;
+            }
+
+            return DateTime.UtcNow.Ticks;
         }
     }
 }
