@@ -11,6 +11,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         private SpriteRenderer _renderer;
         private float _lastAspect;
         private float _lastOrthographicSize;
+        private Vector3 _lastCameraPosition;
 
         private void Awake()
         {
@@ -25,7 +26,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
             if (!_camera.orthographic)
             {
-                Debug.LogError($"{nameof(BackgroundView)}: camera가 직교 카메라가 아닙니다.");
+                Debug.LogError($"{nameof(BackgroundView)}: camera가 직교 카메라가 아닙니다.", this);
                 enabled = false;
             }
         }
@@ -43,7 +44,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private void LateUpdate()
         {
-            if (!Mathf.Approximately(_lastAspect, _camera.aspect) || !Mathf.Approximately(_lastOrthographicSize, _camera.orthographicSize))
+            if (!Mathf.Approximately(_lastAspect, _camera.aspect) 
+                || !Mathf.Approximately(_lastOrthographicSize, _camera.orthographicSize) 
+                || _lastCameraPosition != _camera.transform.position)
             {
                 FitToCamera();
             }
@@ -71,13 +74,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             transform.localScale = new Vector3(scale, scale, 1f);
             
             Vector3 position = transform.position;
-            position.x = _camera.transform.position.x;
-            position.y = _camera.transform.position.y;
+            Vector3 offset = _renderer.sprite.bounds.center * scale;
+            position.x = _camera.transform.position.x - offset.x;
+            position.y = _camera.transform.position.y - offset.y;
             transform.position = position;
             
             // 6. 필드 값 갱신
             _lastAspect = _camera.aspect;
             _lastOrthographicSize = _camera.orthographicSize;
+            _lastCameraPosition = _camera.transform.position;
         }
     }
 }
