@@ -16,14 +16,21 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] [Range(0.5f, 1f)] private float _tileFillRatio = 0.9f;
         [SerializeField] private Camera _inputCamera;
         [SerializeField] private bool _usePointerEvents;
+        
+        [Header("고정 시드 사용")]
         [SerializeField] private bool _useFixedSeed;
         [SerializeField] private long _fixedSeed;
         
+        [Header("봉인 매개체 스킨")]
+        [SerializeField] private SealMediumCatalog _sealMediumCatalog;
+        [SerializeField] private BackgroundView _backgroundView;
+        [SerializeField] private SealMedium _sealMedium;     // TODO: 서버 PurificationStartResponse.sealMedium 연동 후 제거
+
         private MinigameSession _session;
         private Dictionary<Vector2Int, TileView> _tileViews;
         private ToolMode _selectedTool = ToolMode.SafeDestroy;
         private bool _hasHandledEnd;
-
+        
         public event Action<ToolMode> ToolSelectionChanged;
         public event Action<string> FeedbackChanged;
         public MinigameSession Session => _session;
@@ -40,6 +47,16 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 Debug.LogError($"{nameof(MinigameSessionAdapter)}: _relicData가 연결되지 않았습니다.", this);
                 return;
             }
+            if (_sealMediumCatalog == null)
+            {
+                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _sealMediumCatalog가 연결되지 않았습니다.", this);
+                return;
+            }
+            if (_backgroundView == null)
+            {
+                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _backgroundView가 연결되지 않았습니다.", this);
+                return;
+            }
             
             BeginSession();
         }
@@ -53,6 +70,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         // 서버 연동 후 호출
         public void BeginSession(long seed)
         {
+            SealMediumData skin = _sealMediumCatalog.GetSealMediumData(_sealMedium);
+            
             // 1. 이전 세션 정리
             if (_session != null)
             {
@@ -76,7 +95,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _session = new MinigameSession(config, seed);
             Debug.Log($"[Minigame] seed: {_session.Seed}");
             _tileViews = new Dictionary<Vector2Int, TileView>();
-
+            _backgroundView.Apply(skin);
+            
             foreach (Vector2Int coord in _session.Grid.AllCoordinates())
             {
                 Tile tile = _session.Grid.GetTile(coord.x, coord.y);
@@ -88,7 +108,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 instance.transform.localScale = new Vector3(_tileSize * _tileFillRatio, _tileSize * _tileFillRatio, 1f);
                 
                 TileView view = instance.GetComponent<TileView>();
-                view.Initialize(coord);
+                view.Initialize(coord, skin);
                 view.UsesPointerEvents = _usePointerEvents;
                 view.ShowCovered(tile.IsReinforced);
                 view.Clicked += HandleTileClicked;

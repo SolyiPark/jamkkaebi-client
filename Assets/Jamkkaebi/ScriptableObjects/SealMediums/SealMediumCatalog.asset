@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa23168480e44052925b907d5f412a7b, type: 3}
+  m_Name: SealMediumCatalog
+  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.SealMediumCatalog
+  _sealMediums:
+  - {fileID: 11400000, guid: e64e264774b2a41ed9eac1198b8dec29, type: 2}
+  - {fileID: 11400000, guid: abf04445f2cbc427c99d2abb730fbb15, type: 2}
+  - {fileID: 11400000, guid: ed3e8ab9937da4d87a90c9a15b7d57e5, type: 2}
+  - {fileID: 11400000, guid: ddde2853150ca46e8960bce8e6f90018, type: 2}
