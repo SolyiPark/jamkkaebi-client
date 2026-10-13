@@ -7,8 +7,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 {
     public class TileView : MonoBehaviour, IPointerClickHandler
     {
-        [SerializeField] private Color _coveredColor = Color.gray;
-        [SerializeField] private Color _reinforcedColor = new Color(0.3f, 0.3f, 0.3f); // 진한 회색
+        //[SerializeField] private Color _coveredColor = Color.gray;
+        //[SerializeField] private Color _reinforcedColor = new Color(0.3f, 0.3f, 0.3f); // 진한 회색
         [SerializeField] private Color _emptyColor = Color.white;
         [SerializeField] private Color _targetColor = Color.yellow;
         [SerializeField] private Color _helperColor = Color.green;
@@ -19,15 +19,22 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public event Action<Vector2Int> Clicked;
         
         private SpriteRenderer _renderer;
+        private SealMediumData _sealMediumData;
 
         private void Awake()
         {
             _renderer = GetComponent<SpriteRenderer>();
         }
 
-        public void Initialize(Vector2Int coordinate)
+        public void Initialize(Vector2Int coordinate, SealMediumData sealMediumData)
         {
+            if (sealMediumData == null)
+            {
+                throw new ArgumentNullException(nameof(sealMediumData));
+            }
+            
             Coordinate = coordinate;
+            _sealMediumData = sealMediumData;
         }
 
         private void OnMouseDown()
@@ -43,7 +50,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         public void ShowCovered(bool isReinforced)
         {
-            _renderer.color = isReinforced ? _reinforcedColor : _coveredColor;
+            _renderer.color = isReinforced ? _sealMediumData.ReinforcedTileColor : _sealMediumData.TileColor;
         }
 
         public void ShowRevealed(TileContent content)
