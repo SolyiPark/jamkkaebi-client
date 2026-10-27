@@ -162,7 +162,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// rng는 호출자가 만든 것을 받으며, 이미 소비된 상태에서 이어서 사용한다.
         /// 이 안에서 rng를 소비하는 순서가 보드를 결정하므로, 순서를 바꾸면 같은 시드의 보드가 달라진다.
         /// </remarks>
-        /// <param name="config">그리드 크기, 모양, 타일 개수 등이 담긴 설정./param>
+        /// <param name="config">그리드 크기, 모양, 특수 타일 개수 등이 담긴 설정.</param>
         /// <param name="rng">그리드 생성에 쓸 난수 생성기.</param>
         /// <returns>새로 생성된 그리드.</returns>
         /// <exception cref="InvalidOperationException">설정대로 타일을 배치할 수 없을 때.</exception>
@@ -244,13 +244,37 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <remarks>
         /// 같은 설정과 같은 시드는 항상 같은 그리드를 만든다.
         /// </remarks>
-        /// <param name="config">그리드 크기, 모양, 타일 개수 등이 담긴 설정.</param>
+        /// <param name="config">그리드 크기, 모양, 특수 타일 개수 등이 담긴 설정.</param>
         /// <param name="seed">난수 생성 시드. 같은 값이면 같은 그리드가 나온다.</param>
         /// <returns>새로 생성된 그리드.</returns>
         /// <exception cref="InvalidOperationException">설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
         public static MinigameGrid Generate(MinigamePhaseConfig config, long seed)
         {
             return GenerateCore(config, CreateRng(seed));
+        }
+
+        /// <summary>
+        /// 규칙에 맞게 고른 폴리오미노 세트로 미니게임 그리드를 생성한다.
+        /// </summary>
+        /// <remarks>
+        /// 같은 config, rule, shapeCount, seed는 같은 그리드를 만든다.
+        /// Pick과 GenerateCore가 같은 rng를 공유하며, Pick이 먼저 난수를 소비하므로 같은 시드라도 기존 Generate(config, seed)와 보드가 다르다.
+        /// config.Shapes의 값은 사용되지 않는다(rule이 대신 정한다).
+        /// </remarks>
+        /// <param name="config">그리드 크기, 특수 타일 개수 등이 담긴 설정.</param>
+        /// <param name="rule">고를 모양의 타일 합 범위, 모양 풀이 담긴 규칙.</param>
+        /// <param name="shapeCount">고를 모양의 개수. 1 이상이어야 한다. 서버에서 받는다.</param>
+        /// <param name="seed">rng 생성 시드. 서버에서 받는다.</param>
+        /// <returns>새로 생성된 그리드.</returns>
+        /// <exception cref="ArgumentException">shapeCount가 0 이하일 때, rule의 모양 풀이 연결되지 않았을 때.</exception>
+        /// <exception cref="InvalidOperationException">폴리오미노 세트 후보가 없을 때, 폴리오미노 세트를 그리드에 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
+        public static MinigameGrid Generate(MinigamePhaseConfig config, PolyominoSetRule rule, int shapeCount,
+            long seed)
+        {
+            Random rng = CreateRng(seed);
+            IReadOnlyList<PolyominoShape> shapes = PolyominoSetPicker.Pick(rule, shapeCount, rng);
+            MinigamePhaseConfig configWithShapes = config.WithShapes(shapes);
+            return GenerateCore(configWithShapes, rng);
         }
 
         // System.Random은 int 시드만 받으므로, long 시드의 상위 32비트와 하위 32비트를 XOR해서 int로 접는다.
