@@ -1,6 +1,6 @@
 {
   "name": "MobileUI.EditMode",
-  "references": ["MobileUI.Runtime", "Jamkkaebi.Runtime", "Unity.ugui", "Unity.Newtonsoft.Json", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+  "references": ["MobileUI.Runtime", "MobileUI.TestSupport", "Jamkkaebi.Runtime", "Unity.ugui", "Unity.Newtonsoft.Json", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
   "includePlatforms": ["Editor"],
   "overrideReferences": true,
   "precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],

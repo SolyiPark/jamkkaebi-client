@@ -8,7 +8,8 @@
 - `Assets/MobileUI/Configuration/CollectionCatalog.asset`: 도감의 고정 정의 자산. `CollectionPresenter`와 공유 진행 기록은 **같은 자산 인스턴스**를 사용해야 한다.
 - `Assets/MobileUI/Configuration/CollectionAppearance.asset`: 도감 공통 배경·카드·아이콘·장식의 선택적 스프라이트를 담는 `CollectionAppearance` 자산. 도감 씬 `CollectionPresenter`의 `_appearance`에 연결한다.
 - `Assets/Jamkkaebi/Scripts/Gameplay/Collection/`: 고정 정의와 수집 규칙. UI, 작업대 어댑터, 전시관 배치 타입에 의존하지 않는다.
-- `Assets/MobileUI/Scripts/Collection/CollectionPresenter.cs`: 도감 표시, 화면 이동, 신규 확인과 변경 이벤트 구독.
+- `Assets/MobileUI/Scripts/Collection/CollectionPresenter.cs`: 화면 이동, 신규 확인과 변경 이벤트 구독. 표시 데이터 복사본을 View에 전달하며 UI 배치는 소유하지 않는다.
+- `CollectionView` / `CollectionDefaultView`: 교체 가능한 표시 계약과 기존 디자인 구현. 그림·좌표·색상·UI 생성은 기본 View에 있다. Presenter의 선택적 `_view`에 다른 씬 View 인스턴스를 연결할 수 있다. 교체 방법과 아직 프리팹화하지 않은 범위는 [표시 계층 분리 기록](collection-view-separation.md)을 참고한다.
 - `Assets/MobileUI/Scripts/Collection/CollectionCatalogData.cs`: 확정 시트의 시대·유물 명칭과 순서를 바탕으로 고정 카탈로그를 생성한다. 설명·복원 이야기와 실제 아트는 임시 콘텐츠다.
 - `Assets/MobileUI/Scripts/Collection/CollectionDemoData.cs`: 화면 검토를 위한 초기 수집 기록만 주입한다. 고정 카탈로그 정의와 더미 사용자 기록을 분리한다.
 

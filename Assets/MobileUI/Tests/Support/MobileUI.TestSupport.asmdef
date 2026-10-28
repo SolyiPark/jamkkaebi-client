@@ -1,0 +1,6 @@
+{
+  "name": "MobileUI.TestSupport",
+  "references": ["MobileUI.Runtime", "Unity.ugui"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}
