@@ -234,6 +234,21 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         [Test]
+        public void Generate_SameSeedWithBonus_CreatesSameGrid()
+        {
+            // Arrange: 보너스 배치와 형상 밖 강화가 모두 난수를 소비하는 설정
+            long seed = 12345678;
+            MinigameBoardConfig bonusConfig = WithBonus(3, 2);
+
+            // Act
+            MinigameGrid a = MinigameGridGenerator.Generate(bonusConfig, seed);
+            MinigameGrid b = MinigameGridGenerator.Generate(bonusConfig, seed);
+
+            // Assert: 칸 종류(보너스 위치 포함)와 강화 상태가 모두 같다
+            Assert.IsTrue(AreSameGrid(a, b));
+        }
+
+        [Test]
         public void Generate_ReinforceEveryPlainCell_AlsoReinforcesBonusTiles()
         {
             // Arrange: 일반 칸 40칸을 모두 강화하면, 그중 보너스 3칸도 강화되어야 한다(겹침 허용)
