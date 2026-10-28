@@ -13,13 +13,16 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         public int ShapeCellTotal { get; }
         public int ThreatTileCount { get; }
         public int HelperTileCount { get; }
-        public int ReinforcedTileCount { get; }
+        /// <summary>목표 형상 칸 중에서 강화할 칸 수.</summary>
+        public int ReinforcedOnShapeCount { get; }
+        /// <summary>형상 밖 일반 칸(목표·위협·도움이 아닌 칸) 중에서 강화할 칸 수.</summary>
+        public int ReinforcedOnFieldCount { get; }
         public int DestructiveToolLimit { get; }
         public int ScoutToolLimit { get; }
         public int AllowedThreatHits { get; }
 
         public MinigameBoardConfig(int width, int height, int shapeCount, int shapeCellTotal, int threatTileCount,
-            int helperTileCount, int reinforcedTileCount, int destructiveToolLimit, int scoutToolLimit, int allowedThreatHits)
+            int helperTileCount, int reinforcedOnShapeCount, int reinforcedOnFieldCount, int destructiveToolLimit, int scoutToolLimit, int allowedThreatHits)
         {
             Width = width;
             Height = height;
@@ -27,7 +30,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             ShapeCellTotal = shapeCellTotal;
             ThreatTileCount = threatTileCount;
             HelperTileCount = helperTileCount;
-            ReinforcedTileCount = reinforcedTileCount;
+            ReinforcedOnShapeCount = reinforcedOnShapeCount;
+            ReinforcedOnFieldCount = reinforcedOnFieldCount;
             DestructiveToolLimit = destructiveToolLimit;
             ScoutToolLimit = scoutToolLimit;
             AllowedThreatHits = allowedThreatHits;

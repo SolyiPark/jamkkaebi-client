@@ -21,7 +21,8 @@ MonoBehaviour:
       _shapeCellTotal: 7
       _threatTileCount: 2
       _helperTileCount: 1
-      _reinforcedTileCount: 2
+      _reinforcedOnShapeCount: 1
+      _reinforcedOnFieldCount: 1
       _destructiveToolLimit: 12
       _scoutToolLimit: 3
   - _difficulty: 1
@@ -32,7 +33,8 @@ MonoBehaviour:
       _shapeCellTotal: 10
       _threatTileCount: 4
       _helperTileCount: 1
-      _reinforcedTileCount: 2
+      _reinforcedOnShapeCount: 1
+      _reinforcedOnFieldCount: 1
       _destructiveToolLimit: 16
       _scoutToolLimit: 3
   - _difficulty: 2
@@ -43,7 +45,8 @@ MonoBehaviour:
       _shapeCellTotal: 12
       _threatTileCount: 6
       _helperTileCount: 1
-      _reinforcedTileCount: 3
+      _reinforcedOnShapeCount: 2
+      _reinforcedOnFieldCount: 1
       _destructiveToolLimit: 19
       _scoutToolLimit: 3
   - _difficulty: 3
@@ -54,6 +57,7 @@ MonoBehaviour:
       _shapeCellTotal: 14
       _threatTileCount: 8
       _helperTileCount: 2
-      _reinforcedTileCount: 4
+      _reinforcedOnShapeCount: 2
+      _reinforcedOnFieldCount: 2
       _destructiveToolLimit: 20
       _scoutToolLimit: 3

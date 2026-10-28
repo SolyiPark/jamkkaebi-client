@@ -10,7 +10,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Data
     /// </summary>
     /// <remarks>
     /// 값은 서버 DifficultyParams 기본값을 옮겨 둔 임시값이다. 서버 연동 후에는 서버 응답의 보드 파라미터를 쓴다.
-    /// 서버의 형상 안/밖 강화 타일 수는 클라이언트가 아직 구분하지 않으므로 합쳐서 넣는다.
     /// </remarks>
     [CreateAssetMenu(fileName = "MinigameDifficultyTable", menuName = "Jamkkaebi/Minigame Difficulty Table")]
     public class MinigameDifficultyTable : ScriptableObject

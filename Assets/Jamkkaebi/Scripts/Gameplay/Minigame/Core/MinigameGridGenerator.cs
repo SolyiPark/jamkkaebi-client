@@ -86,16 +86,33 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
         }
 
+        // 후보 칸 중에서 서로 다른 칸 count개를 골라 강화한다. 고른 칸은 후보에서 빠진다.
+        private static void ReinforceRandomCells(Tile[,] tiles, List<Vector2Int> candidates, int count, Random rng)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                int index = rng.Next(0, candidates.Count);
+                Vector2Int coordinate = candidates[index];
+                tiles[coordinate.x, coordinate.y].Reinforce();
+                candidates.RemoveAt(index);
+            }
+        }
+
         private static void ValidateConfig(MinigameBoardConfig config, IReadOnlyList<PolyominoShape> shapes)
         {
-            // 1. ReinforcedTileCount <= Width * Height
-            if (config.ReinforcedTileCount > config.Width * config.Height)
+            // 0. 강화 타일 수는 0 이상이어야 한다. 음수면 상한 검사를 통과하고 배치 반복도 돌지 않아 잘못된 설정이 조용히 통과한다.
+            if (config.ReinforcedOnShapeCount < 0)
             {
-                throw new InvalidOperationException(
-                    $"{config.Width} * {config.Height} 그리드에는 {config.ReinforcedTileCount}개의 강화타일을 배치할 수 없습니다.");
+                throw new ArgumentException(
+                    $"형상 안 강화 타일 수는 0 이상이어야 합니다. (입력값: {config.ReinforcedOnShapeCount})", nameof(config));
+            }
+            if (config.ReinforcedOnFieldCount < 0)
+            {
+                throw new ArgumentException(
+                    $"형상 밖 강화 타일 수는 0 이상이어야 합니다. (입력값: {config.ReinforcedOnFieldCount})", nameof(config));
             }
             
-            // 2. 폴리오미노 전체 칸 수 + ThreatTileCount + HelperTileCount <= Width * Height
+            // 1. 폴리오미노 전체 칸 수 + ThreatTileCount + HelperTileCount <= Width * Height
             int polyTileCount = 0;
             for (int i = 0; i < shapes.Count; i++)
             {
@@ -107,6 +124,21 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             {
                 throw new InvalidOperationException(
                     $"{config.Width} * {config.Height} 그리드에 {tileCount}개의 타일을 배치할 수 없습니다.");
+            }
+            
+            // 2. 형상 안 강화 칸 수 <= 목표 형상 칸 수
+            if (config.ReinforcedOnShapeCount > polyTileCount)
+            {
+                throw new InvalidOperationException(
+                    $"형상 안 강화 타일 {config.ReinforcedOnShapeCount}칸이 목표 형상 칸 수 {polyTileCount}를 넘습니다.");
+            }
+            
+            // 2-1. 형상 밖 강화 칸 수 <= 일반 칸 수(목표·위협·도움을 놓고 남는 칸)
+            int plainCellCount = config.Width * config.Height - tileCount;
+            if (config.ReinforcedOnFieldCount > plainCellCount)
+            {
+                throw new InvalidOperationException(
+                    $"형상 밖 강화 타일 {config.ReinforcedOnFieldCount}칸을 놓을 일반 칸이 {plainCellCount}칸뿐입니다.");
             }
             
             // 3. 각 shape이 4방향 회전 중 최소 하나라도 그리드에 들어맞는지
@@ -210,28 +242,25 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             PlaceTileType(TileContent.Threat, config.ThreatTileCount, tiles, emptyCells, rng);
             PlaceTileType(TileContent.Helper, config.HelperTileCount, tiles, emptyCells, rng);
             
+            // 남은 빈 셀이 곧 일반 칸이다. 형상 밖 강화 후보로 쓰기 위해 복사해 둔다.
+            List<Vector2Int> plainCells = new List<Vector2Int>(emptyCells);
+            
             // 4. 남은 셀을 일반 타일로 채우기
             for (int i = 0; i < emptyCells.Count; i++)
             {
                 tiles[emptyCells[i].x, emptyCells[i].y] = new Tile(TileContent.Empty);
             }
             
-            // 5. 전체 그리드에서 타일 강화하기 (타깃/위협/도움 타일도 강화 대상에 포함됨)
-            List<Vector2Int> cells = new List<Vector2Int>();
-            for (int x = 0; x < config.Width; x++)
+            // 5. 강화 타일 배치. 형상 안을 먼저, 형상 밖 일반 칸을 나중에 고른다(순서를 바꾸면 같은 시드의 보드가 달라진다).
+            //    위협·도움 타일은 강화하지 않는다.
+            List<Vector2Int> shapeCells = new List<Vector2Int>();
+            foreach (PolyominoGroup group in groups)
             {
-                for (int y = 0; y < config.Height; y++)
-                {
-                    cells.Add(new Vector2Int(x, y));
-                }
+                shapeCells.AddRange(group.Coordinates);
             }
-
-            for (int i = 0; i < config.ReinforcedTileCount; i++)
-            {
-                Vector2Int coordinate = cells[rng.Next(0, cells.Count)];
-                tiles[coordinate.x, coordinate.y].Reinforce();
-                cells.Remove(coordinate);
-            }
+            
+            ReinforceRandomCells(tiles, shapeCells, config.ReinforcedOnShapeCount, rng);
+            ReinforceRandomCells(tiles, plainCells, config.ReinforcedOnFieldCount, rng);
             
             // 6. 최종 그리드 만들기
             MinigameGrid result = new MinigameGrid(tiles, groups);
@@ -250,7 +279,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <param name="config">그리드 크기, 형상 수와 칸 합, 특수 타일 개수 등이 담긴 설정.</param>
         /// <param name="seed">난수 생성 시드. 같은 값이면 같은 그리드가 나온다.</param>
         /// <returns>새로 생성된 그리드.</returns>
-        /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때.</exception>
+        /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때, 강화 타일 수가 음수일 때.</exception>
         /// <exception cref="InvalidOperationException">형상 수와 칸 합에 맞는 모양 세트가 없을 때, 설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
         public static MinigameGrid Generate(MinigameBoardConfig config, long seed)
         {
