@@ -13,6 +13,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private Color _targetColor = Color.yellow;
         [SerializeField] private Color _helperColor = Color.green;
         [SerializeField] private Color _threatColor = Color.red;
+        [SerializeField] private Color _bonusColor = new Color(0.3f, 0.7f, 1f);    // 임시 색. 정성 보너스 아트가 나오면 교체
 
         public Vector2Int Coordinate { get; private set; }
         public bool UsesPointerEvents { get; set; }
@@ -61,6 +62,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 TileContent.Target => _targetColor,
                 TileContent.Helper => _helperColor,
                 TileContent.Threat => _threatColor,
+                TileContent.Bonus => _bonusColor,
                 _ => throw new ArgumentOutOfRangeException(nameof(content), content, null)
             };
         }

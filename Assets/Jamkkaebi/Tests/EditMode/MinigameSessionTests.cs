@@ -16,6 +16,7 @@ namespace Jamkkaebi.Tests.EditMode
             shapeCellTotal: 9,
             threatTileCount: 5,
             helperTileCount: 2,
+            bonusTileCount: 0,
             reinforcedOnShapeCount: 2,
             reinforcedOnFieldCount: 1,
             destructiveToolLimit: 19,
@@ -481,7 +482,7 @@ namespace Jamkkaebi.Tests.EditMode
             return new MinigameBoardConfig(
                 width: config.Width, height: config.Height,
                 shapeCount: config.ShapeCount, shapeCellTotal: config.ShapeCellTotal,
-                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
+                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount, bonusTileCount: config.BonusTileCount,
                 reinforcedOnShapeCount: config.ReinforcedOnShapeCount, reinforcedOnFieldCount: config.ReinforcedOnFieldCount,
                 destructiveToolLimit: limit, scoutToolLimit: config.ScoutToolLimit,
                 allowedThreatHits: config.AllowedThreatHits
@@ -493,7 +494,7 @@ namespace Jamkkaebi.Tests.EditMode
             return new MinigameBoardConfig(
                 width: config.Width, height: config.Height,
                 shapeCount: config.ShapeCount, shapeCellTotal: config.ShapeCellTotal,
-                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
+                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount, bonusTileCount: config.BonusTileCount,
                 reinforcedOnShapeCount: config.ReinforcedOnShapeCount, reinforcedOnFieldCount: config.ReinforcedOnFieldCount,
                 destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: limit,
                 allowedThreatHits: config.AllowedThreatHits
@@ -505,7 +506,7 @@ namespace Jamkkaebi.Tests.EditMode
             return new MinigameBoardConfig(
                 width: config.Width, height: config.Height,
                 shapeCount: config.ShapeCount, shapeCellTotal: config.ShapeCellTotal,
-                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
+                threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount, bonusTileCount: config.BonusTileCount,
                 reinforcedOnShapeCount: config.ReinforcedOnShapeCount, reinforcedOnFieldCount: config.ReinforcedOnFieldCount,
                 destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: config.ScoutToolLimit,
                 allowedThreatHits: limit
