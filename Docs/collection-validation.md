@@ -1,5 +1,7 @@
 # 도감 화면 검증 기록
 
+2026-10-28 오류 수정: `f0efbc8`에서 도감 초기화 중 `Era Emblem`의 `CanvasRenderer` 누락 예외를 재현한 뒤, `CollectionArtwork`에 필수 컴포넌트를 선언했다. 수정 후 Editor Play Mode에서 도감 진입·시대 상세·유물 상세·뒤로 가기를 확인했고 해당 예외는 0건이었다. 별개의 Editor 검색 인덱싱 예외 1건은 남아 있다. 재현·수정·검증 범위와 증거는 [도감 오류 및 수정 보고서](collection-error-reproduction.md)에 있다. 아래 Player 통과 결과는 2026-10-09 당시 기록이며 이번에 Player 빌드를 새로 검증하지 않았다.
+
 검증일: 2026-10-09. Unity **6000.3.23f1**, Windows x64 Development Player, 기본 D3D12 렌더링. 아래 결과는 확정 시트의 유물·시대와 전체 이미지 교체 슬롯을 반영한 후 실제 실행한 최종 결과다.
 
 ## 구현 범위
