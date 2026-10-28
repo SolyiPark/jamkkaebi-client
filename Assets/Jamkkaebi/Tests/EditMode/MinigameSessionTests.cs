@@ -12,7 +12,8 @@ namespace Jamkkaebi.Tests.EditMode
         MinigameBoardConfig config = new MinigameBoardConfig(
             width: 7,
             height: 8,
-            shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
+            shapeCount: 3,
+            shapeCellTotal: 9,
             threatTileCount: 5,
             helperTileCount: 2,
             reinforcedTileCount: 3,
@@ -477,7 +478,8 @@ namespace Jamkkaebi.Tests.EditMode
         private MinigameBoardConfig WithDestructiveToolLimit(int limit)
         {
             return new MinigameBoardConfig(
-                width: config.Width, height: config.Height, shapes: config.Shapes,
+                width: config.Width, height: config.Height,
+                shapeCount: config.ShapeCount, shapeCellTotal: config.ShapeCellTotal,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
                 reinforcedTileCount: config.ReinforcedTileCount,
                 destructiveToolLimit: limit, scoutToolLimit: config.ScoutToolLimit,
@@ -488,7 +490,8 @@ namespace Jamkkaebi.Tests.EditMode
         private MinigameBoardConfig WithScoutToolLimit(int limit)
         {
             return new MinigameBoardConfig(
-                width: config.Width, height: config.Height, shapes: config.Shapes,
+                width: config.Width, height: config.Height,
+                shapeCount: config.ShapeCount, shapeCellTotal: config.ShapeCellTotal,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
                 reinforcedTileCount: config.ReinforcedTileCount,
                 destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: limit,
@@ -499,7 +502,8 @@ namespace Jamkkaebi.Tests.EditMode
         private MinigameBoardConfig WithAllowedThreatHits(int limit)
         {
             return new MinigameBoardConfig(
-                width: config.Width, height: config.Height, shapes: config.Shapes,
+                width: config.Width, height: config.Height,
+                shapeCount: config.ShapeCount, shapeCellTotal: config.ShapeCellTotal,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
                 reinforcedTileCount: config.ReinforcedTileCount,
                 destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: config.ScoutToolLimit,

@@ -15,7 +15,8 @@ MonoBehaviour:
   _phases:
   - _width: 7
     _height: 8
-    _shapes: 000000000200000005000000
+    _shapeCount: 3
+    _shapeCellTotal: 12
     _threatTileCount: 5
     _helperTileCount: 2
     _reinforcedTileCount: 3

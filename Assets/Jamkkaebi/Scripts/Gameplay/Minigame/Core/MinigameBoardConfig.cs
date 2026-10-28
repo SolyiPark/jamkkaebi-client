@@ -1,13 +1,16 @@
-using System;
-using System.Collections.Generic;
-
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
+    /// <summary>
+    /// 미니게임 한 판의 보드와 자원 설정. 서버 보드 파라미터와 클라이언트 고정 규칙을 합친 값이다.
+    /// </summary>
     public readonly struct MinigameBoardConfig
     {
         public int Width { get; }
         public int Height { get; }
-        public IReadOnlyList<PolyominoShape> Shapes { get; }
+        /// <summary>찾아야 할 목표 형상(폴리오미노)의 개수.</summary>
+        public int ShapeCount { get; }
+        /// <summary>목표 형상들이 차지하는 칸 수의 합.</summary>
+        public int ShapeCellTotal { get; }
         public int ThreatTileCount { get; }
         public int HelperTileCount { get; }
         public int ReinforcedTileCount { get; }
@@ -15,34 +18,19 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         public int ScoutToolLimit { get; }
         public int AllowedThreatHits { get; }
 
-        public MinigameBoardConfig(int width, int height, IReadOnlyList<PolyominoShape> shapes, int threatTileCount,
+        public MinigameBoardConfig(int width, int height, int shapeCount, int shapeCellTotal, int threatTileCount,
             int helperTileCount, int reinforcedTileCount, int destructiveToolLimit, int scoutToolLimit, int allowedThreatHits)
         {
             Width = width;
             Height = height;
-            Shapes = shapes;
+            ShapeCount = shapeCount;
+            ShapeCellTotal = shapeCellTotal;
             ThreatTileCount = threatTileCount;
             HelperTileCount = helperTileCount;
             ReinforcedTileCount = reinforcedTileCount;
             DestructiveToolLimit = destructiveToolLimit;
             ScoutToolLimit = scoutToolLimit;
             AllowedThreatHits = allowedThreatHits;
-        }
-
-        /// <summary>
-        /// 이 설정에서 모양만 지정한 리스트로 바꾼 새 복사본을 돌려준다.
-        /// </summary>
-        /// <param name="shapes">새 설정에 들어갈 모양 리스트</param>
-        /// <returns>새 설정. 모양 외의 값은 이 인스턴스에서 그대로 복사된다.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="shapes"/>가 null일 때.</exception>
-        public MinigameBoardConfig WithShapes(IReadOnlyList<PolyominoShape> shapes)
-        {
-            if (shapes == null)
-            {
-                throw new ArgumentNullException(nameof(shapes));
-            }
-            
-            return new MinigameBoardConfig(Width, Height, shapes, ThreatTileCount, HelperTileCount, ReinforcedTileCount, DestructiveToolLimit, ScoutToolLimit, AllowedThreatHits);
         }
     }
 }

@@ -11,7 +11,8 @@ namespace Jamkkaebi.Tests.EditMode
         MinigameBoardConfig _config = new MinigameBoardConfig(
             width: 7,
             height: 8,
-            shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
+            shapeCount: 3,
+            shapeCellTotal: 9,
             threatTileCount: 5,
             helperTileCount: 2,
             reinforcedTileCount: 3,
@@ -23,7 +24,8 @@ namespace Jamkkaebi.Tests.EditMode
         MinigameBoardConfig _oneShapeConfig = new MinigameBoardConfig(
             width: 7,
             height: 3,
-            shapes: new List<PolyominoShape> { PolyominoShape.Line5 },
+            shapeCount: 1,
+            shapeCellTotal: 5,      // 풀에서 5칸짜리는 Line5뿐이다
             threatTileCount: 5,
             helperTileCount: 2,
             reinforcedTileCount: 3,
@@ -32,20 +34,6 @@ namespace Jamkkaebi.Tests.EditMode
             allowedThreatHits: 3 
         );
         
-        MinigameBoardConfig _ruleBasedConfig = new MinigameBoardConfig(
-            width: 7,
-            height: 8,
-            shapes: new List<PolyominoShape>(),
-            threatTileCount: 5,
-            helperTileCount: 2,
-            reinforcedTileCount: 3,
-            destructiveToolLimit: 19,
-            scoutToolLimit: 3,
-            allowedThreatHits: 3 
-        );
-
-        private const int ShapeCount = 2;
-
         [Test]
         public void Generate_SameSeed_CreatesSameGrid()
         {
@@ -89,33 +77,17 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         [Test]
-        public void GenerateWithRule_SameSeed_ReturnsSameGrid()
+        public void Generate_AnySeed_PicksDistinctShapesMatchingConfig()
         {
             // Arrange
             long seed = 12345678;
-            PolyominoSetRule rule = CreateRule();
-            
-            // Act
-            MinigameGrid a = MinigameGridGenerator.Generate(_ruleBasedConfig, rule, ShapeCount, seed);
-            MinigameGrid b = MinigameGridGenerator.Generate(_ruleBasedConfig, rule, ShapeCount, seed);
-            
-            // Assert
-            Assert.IsTrue(AreSameGrid(a, b));
-        }
-
-        [Test]
-        public void GenerateWithRule_AnySeed_FollowsRule()
-        {
-            // Arrange
-            long seed = 12345678;
-            PolyominoSetRule rule = CreateRule();
             
             for (int i = 0; i < 50; i++) {
                 // Act
-                MinigameGrid grid = MinigameGridGenerator.Generate(_ruleBasedConfig, rule, ShapeCount, seed + i);
+                MinigameGrid grid = MinigameGridGenerator.Generate(_config, seed + i);
 
                 // Assert
-                Assert.AreEqual(ShapeCount, grid.PolyominoGroups.Count, $"seed: {seed + i}");
+                Assert.AreEqual(_config.ShapeCount, grid.PolyominoGroups.Count, $"seed: {seed + i}");
 
                 List<PolyominoShape> shapes = new List<PolyominoShape>();
                 int tileSum = 0;
@@ -126,43 +98,21 @@ namespace Jamkkaebi.Tests.EditMode
                 }
                 
                 CollectionAssert.AllItemsAreUnique(shapes, $"seed: {seed + i}");
-                CollectionAssert.IsSubsetOf(shapes, rule.ShapePool, $"seed: {seed + i}");
-                Assert.That(tileSum, Is.InRange(rule.MinTileSum, rule.MaxTileSum), $"seed: {seed + i}");
+                CollectionAssert.IsSubsetOf(shapes, MinigameRules.ShapePool, $"seed: {seed + i}");
+                Assert.AreEqual(_config.ShapeCellTotal, tileSum, $"seed: {seed + i}");
             }
         }
 
         [Test]
-        public void GenerateWithRule_ConfigHasShapes_IgnoresThem()
+        public void Generate_RequiredTileExceedsGridTileCount_ThrowsInvalidOperationException()
         {
             // Arrange
             long seed = 12345678;
-            PolyominoSetRule rule = new PolyominoSetRule(4, 4,
-                new List<PolyominoShape> { PolyominoShape.Dot, PolyominoShape.LShape3 });
-            
-            // Act
-            MinigameGrid grid = MinigameGridGenerator.Generate(_oneShapeConfig, rule, ShapeCount, seed);
-
-            List<PolyominoShape> shapes = new List<PolyominoShape>();
-            foreach (PolyominoGroup group in grid.PolyominoGroups)
-            {
-                shapes.Add(group.Shape);
-            }
-            
-            // Assert
-            CollectionAssert.AreEqual(new List<PolyominoShape> { PolyominoShape.Dot, PolyominoShape.LShape3 }, shapes);
-        }
-
-        [Test]
-        public void GenerateWithRule_RequiredTileExceedsGridTileCount_ThrowsInvalidOperationException()
-        {
-            // Arrange
-            long seed = 12345678;
-            PolyominoSetRule rule = CreateRule();
             MinigameBoardConfig smallGridConfig =
-                new MinigameBoardConfig(3, 3, new List<PolyominoShape>(), 5, 2, 3, 19, 3, 3);
+                new MinigameBoardConfig(3, 3, 2, 7, 5, 2, 3, 19, 3, 3);
             
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(smallGridConfig, rule, ShapeCount, seed));
+            Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(smallGridConfig, seed));
         }
 
         private bool AreSameGrid(MinigameGrid a, MinigameGrid b)
@@ -189,16 +139,6 @@ namespace Jamkkaebi.Tests.EditMode
             }
             
             return true;
-        }
-        
-        private static PolyominoSetRule CreateRule()
-        {
-            return new PolyominoSetRule(5, 8,
-                new List<PolyominoShape>
-                {
-                    PolyominoShape.Dot, PolyominoShape.Line2, PolyominoShape.LShape3, PolyominoShape.LShape4,
-                    PolyominoShape.Stairs4, PolyominoShape.Square4, PolyominoShape.Line5
-                });
         }
     }
 }

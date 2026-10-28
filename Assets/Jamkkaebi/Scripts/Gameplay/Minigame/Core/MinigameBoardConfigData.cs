@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
@@ -9,7 +8,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
     {
         [SerializeField] private int _width;
         [SerializeField] private int _height;
-        [SerializeField] private List<PolyominoShape> _shapes;
+        [SerializeField] private int _shapeCount;
+        [SerializeField] private int _shapeCellTotal;
         [SerializeField] private int _threatTileCount;
         [SerializeField] private int _helperTileCount;
         [SerializeField] private int _reinforcedTileCount;
@@ -19,7 +19,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 
         public MinigameBoardConfig ToConfig()
         {
-            MinigameBoardConfig config = new MinigameBoardConfig(_width, _height, _shapes, _threatTileCount, _helperTileCount, _reinforcedTileCount, _destructiveToolLimit, _scoutToolLimit, _allowedThreatHits);
+            MinigameBoardConfig config = new MinigameBoardConfig(_width, _height, _shapeCount, _shapeCellTotal, _threatTileCount, _helperTileCount, _reinforcedTileCount, _destructiveToolLimit, _scoutToolLimit, _allowedThreatHits);
             return config;
         }
     }
