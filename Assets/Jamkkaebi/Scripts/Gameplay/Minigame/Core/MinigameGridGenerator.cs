@@ -156,7 +156,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         }
         
         /// <summary>
-        /// 호출자가 준 난수 생성기로 성정에 맞는 그리드를 생성한다.
+        /// 호출자가 준 난수 생성기로 설정에 맞는 그리드를 생성한다.
         /// </summary>
         /// <remarks>
         /// rng는 호출자가 만든 것을 받으며, 이미 소비된 상태에서 이어서 사용한다.

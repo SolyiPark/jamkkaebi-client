@@ -41,7 +41,7 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         [Test]
-        public void Constructor_BoundaryValues_DoestNotThrow()
+        public void Constructor_BoundaryValues_DoesNotThrow()
         {
             // Arrange
             List<PolyominoShape> pool = new List<PolyominoShape>
