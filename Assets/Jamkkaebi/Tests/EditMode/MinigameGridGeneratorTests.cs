@@ -115,6 +115,23 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(smallGridConfig, seed));
         }
 
+        [TestCase(0, 9)]
+        [TestCase(-1, 9)]
+        [TestCase(3, 0)]
+        [TestCase(3, -1)]
+        public void Generate_NonPositiveShapeCountOrCellTotal_ThrowsArgumentException(int shapeCount, int shapeCellTotal)
+        {
+            // Arrange: _config에서 형상 수 또는 칸 합 하나만 바꿔 다른 값이 예외 원인이 되지 않게 한다
+            long seed = 12345678;
+            MinigameBoardConfig invalidConfig = new MinigameBoardConfig(
+                _config.Width, _config.Height, shapeCount, shapeCellTotal,
+                _config.ThreatTileCount, _config.HelperTileCount, _config.ReinforcedTileCount,
+                _config.DestructiveToolLimit, _config.ScoutToolLimit, _config.AllowedThreatHits);
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() => MinigameGridGenerator.Generate(invalidConfig, seed));
+        }
+
         [Test]
         public void Generate_NoShapeSetMatchesCountAndTotal_ThrowsInvalidOperationException()
         {
