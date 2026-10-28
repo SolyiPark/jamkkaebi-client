@@ -22,7 +22,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         private int _threatHitsRevealed;                                // 지금까지 열린 위협 타일 개수
         public int RemainingDestructiveToolUses { get; private set; }   // 남은 타일 파괴 시도 횟수(공격형, 안전형 도구)
         public int RemainingScoutToolUses { get; private set; }         // 남은 정찰 도구 사용 횟수
-        public float RemainingSeconds { get; private set; }             // 현재 남은시간
 
         public long Seed { get; }
         
@@ -42,18 +41,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             _threatHitsRevealed = 0;
             RemainingDestructiveToolUses = config.DestructiveToolLimit;
             RemainingScoutToolUses = config.ScoutToolLimit;
-            RemainingSeconds = config.TimeLimit;
-        }
-
-        public void AdvanceTime(float deltaTime)
-        {
-            if (State != SessionState.InProgress)
-            {
-                return;
-            }
-            
-            RemainingSeconds = Mathf.Max(0f, RemainingSeconds - deltaTime);
-            EvaluateEndCondition();
         }
 
         public void EvaluateEndCondition()
@@ -70,7 +57,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             {
                 State = SessionState.Succeeded;
             }
-            else if (RemainingSeconds <= 0 || DamageGauge >= 1.0f || RemainingDestructiveToolUses <= 0)
+            else if (DamageGauge >= 1.0f || RemainingDestructiveToolUses <= 0)
             {
                 State = SessionState.Failed;
             }

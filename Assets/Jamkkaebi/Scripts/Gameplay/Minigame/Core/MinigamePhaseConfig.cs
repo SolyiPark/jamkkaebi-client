@@ -11,13 +11,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         public int ThreatTileCount { get; }
         public int HelperTileCount { get; }
         public int ReinforcedTileCount { get; }
-        public float TimeLimit { get; }
         public int DestructiveToolLimit { get; }
         public int ScoutToolLimit { get; }
         public int AllowedThreatHits { get; }
 
         public MinigamePhaseConfig(int width, int height, IReadOnlyList<PolyominoShape> shapes, int threatTileCount,
-            int helperTileCount, int reinforcedTileCount, float timeLimit, int destructiveToolLimit, int scoutToolLimit, int allowedThreatHits)
+            int helperTileCount, int reinforcedTileCount, int destructiveToolLimit, int scoutToolLimit, int allowedThreatHits)
         {
             Width = width;
             Height = height;
@@ -25,7 +24,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             ThreatTileCount = threatTileCount;
             HelperTileCount = helperTileCount;
             ReinforcedTileCount = reinforcedTileCount;
-            TimeLimit = timeLimit;
             DestructiveToolLimit = destructiveToolLimit;
             ScoutToolLimit = scoutToolLimit;
             AllowedThreatHits = allowedThreatHits;
@@ -44,7 +42,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 throw new ArgumentNullException(nameof(shapes));
             }
             
-            return new MinigamePhaseConfig(Width, Height, shapes, ThreatTileCount, HelperTileCount, ReinforcedTileCount, TimeLimit, DestructiveToolLimit, ScoutToolLimit, AllowedThreatHits);
+            return new MinigamePhaseConfig(Width, Height, shapes, ThreatTileCount, HelperTileCount, ReinforcedTileCount, DestructiveToolLimit, ScoutToolLimit, AllowedThreatHits);
         }
     }
 }

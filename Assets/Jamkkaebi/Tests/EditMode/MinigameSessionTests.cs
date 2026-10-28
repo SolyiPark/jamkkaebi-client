@@ -16,7 +16,6 @@ namespace Jamkkaebi.Tests.EditMode
             threatTileCount: 5,
             helperTileCount: 2,
             reinforcedTileCount: 3,
-            timeLimit: 60f,
             destructiveToolLimit: 19,
             scoutToolLimit: 3,
             allowedThreatHits: 3 
@@ -42,7 +41,6 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(SessionState.InProgress, session.State);
             Assert.AreEqual(19, session.RemainingDestructiveToolUses);
             Assert.AreEqual(3, session.RemainingScoutToolUses);
-            Assert.AreEqual(60f, session.RemainingSeconds);
             Assert.AreEqual(0f, session.DamageGauge);
 
             // Assert - 특수 타일 배치
@@ -157,12 +155,14 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseDestructiveTool_SessionAlreadyFailed_ReturnsSessionNotInProgress()
         {
             // Arrange
-            MinigamePhaseConfig shortTimeConfig = WithTimeLimit(1f);
-            
-            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
-            MinigameSession session = new MinigameSession(grid, shortTimeConfig);
-            
-            session.AdvanceTime(2f);
+            MinigamePhaseConfig oneHitConfig = WithAllowedThreatHits(1);
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+                { { new Vector2Int(1, 0), TileContent.Threat } };
+            MinigameGrid grid = BuildGrid(2, 2, layout);
+            MinigameSession session = new MinigameSession(grid, oneHitConfig);
+
+            // 허용 위협 횟수가 1이므로 위협 타일 하나를 열면 손상도가 100%가 되어 실패한다
+            session.UseDestructiveTool(new Vector2Int(1, 0), DestructiveToolType.Safe);
             Assert.AreEqual(SessionState.Failed, session.State);
             
             // Act
@@ -360,12 +360,14 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseScoutTool_SessionAlreadyFailed_ReturnsSessionNotInProgress()
         {
             // Arrange
-            MinigamePhaseConfig shortTimeConfig = WithTimeLimit(1f);
-            
-            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
-            MinigameSession session = new MinigameSession(grid, shortTimeConfig);
-            
-            session.AdvanceTime(2f);
+            MinigamePhaseConfig oneHitConfig = WithAllowedThreatHits(1);
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+                { { new Vector2Int(1, 0), TileContent.Threat } };
+            MinigameGrid grid = BuildGrid(2, 2, layout);
+            MinigameSession session = new MinigameSession(grid, oneHitConfig);
+
+            // 허용 위협 횟수가 1이므로 위협 타일 하나를 열면 손상도가 100%가 되어 실패한다
+            session.UseDestructiveTool(new Vector2Int(1, 0), DestructiveToolType.Safe);
             Assert.AreEqual(SessionState.Failed, session.State);
             
             // Act
@@ -379,22 +381,6 @@ namespace Jamkkaebi.Tests.EditMode
         // ==========================
         //      게임 종료 조건 테스트
         // ==========================
-
-        [Test]
-        public void AdvanceTime_TimeExpires_SetsStateToFailed()
-        {
-            // Arrange
-            MinigamePhaseConfig shortTimeConfig = WithTimeLimit(1f);
-            MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
-            MinigameSession session = new MinigameSession(grid, shortTimeConfig);
-            
-            // Act
-            session.AdvanceTime(2f);
-            
-            // Assert
-            Assert.AreEqual(0f, session.RemainingSeconds, 0.0001f);
-            Assert.AreEqual(SessionState.Failed, session.State);
-        }
 
         [Test]
         public void UseDestructiveTool_RevealedAllPolyominoes_SetStateToSucceeded()
@@ -498,7 +484,7 @@ namespace Jamkkaebi.Tests.EditMode
             return new MinigamePhaseConfig(
                 width: config.Width, height: config.Height, shapes: config.Shapes,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
-                reinforcedTileCount: config.ReinforcedTileCount, timeLimit: config.TimeLimit,
+                reinforcedTileCount: config.ReinforcedTileCount,
                 destructiveToolLimit: limit, scoutToolLimit: config.ScoutToolLimit,
                 allowedThreatHits: config.AllowedThreatHits
             );
@@ -509,20 +495,20 @@ namespace Jamkkaebi.Tests.EditMode
             return new MinigamePhaseConfig(
                 width: config.Width, height: config.Height, shapes: config.Shapes,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
-                reinforcedTileCount: config.ReinforcedTileCount, timeLimit: config.TimeLimit,
+                reinforcedTileCount: config.ReinforcedTileCount,
                 destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: limit,
                 allowedThreatHits: config.AllowedThreatHits
             );
         }
         
-        private MinigamePhaseConfig WithTimeLimit(float limit)
+        private MinigamePhaseConfig WithAllowedThreatHits(int limit)
         {
             return new MinigamePhaseConfig(
                 width: config.Width, height: config.Height, shapes: config.Shapes,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
-                reinforcedTileCount: config.ReinforcedTileCount, timeLimit: limit,
+                reinforcedTileCount: config.ReinforcedTileCount,
                 destructiveToolLimit: config.DestructiveToolLimit, scoutToolLimit: config.ScoutToolLimit,
-                allowedThreatHits: config.AllowedThreatHits
+                allowedThreatHits: limit
             );
         }
     }
