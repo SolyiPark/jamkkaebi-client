@@ -6,6 +6,10 @@ namespace MobilePrototype.Collection
     /// <summary>
     /// 카탈로그 그림이 비어 있을 때 유물, 정령, 건물과 잠금 상태를 임시 벡터 기호로 표시합니다.
     /// </summary>
+    // 이 클래스는 '그림 모양'을 만들고 CanvasRenderer는 그 UI를 화면에 출력하는 데 필요한 부품입니다.
+    // 기본 Image와 달리 직접 만든 Graphic은 이 부품을 스스로 요구해야 합니다.
+    // AddComponent<CollectionArtwork>() 시 자동으로 함께 붙여, 생성하는 쪽이 매번 챙기지 않아도 되게 합니다.
+    // 이미 저장돼 있던 잘못된 인스턴스를 일괄 수리하는 기능은 아니며, 현재 도감은 런타임에 새로 생성합니다.
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class CollectionArtwork : MaskableGraphic
     {

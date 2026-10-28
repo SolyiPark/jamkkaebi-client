@@ -1084,12 +1084,13 @@ namespace MobilePrototype
             yield return new WaitForSeconds(.3f);
             adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
             presenter = host.GetRoot(1).GetComponent<WorkshopPresenter>();
-            Check(!host.IsBusy && adapter.Session != previousSession && adapter.Session.RemainingDestructiveToolUses == 30, "return restart creates fresh minigame session");
+            // 재시작은 현재 난이도의 초기 횟수로 돌아가야 합니다. 과거 고정값 30을 기대하면 Normal=19인 정상 세션도 실패합니다.
+            Check(!host.IsBusy && adapter.Session != previousSession && adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses, "return restart creates fresh minigame session");
             host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
             Click(host, CoveredEmpty(adapter).transform.position);
             Click(host, presenter.restartButton.transform.position);
             yield return null;
-            Check(adapter.Session.RemainingDestructiveToolUses == 30 && adapter.TileViews.Count == 56, "new excavation resets session without duplicate tiles");
+            Check(adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses && adapter.TileViews.Count == 56, "new excavation resets session without duplicate tiles");
             foreach (var size in new[] { new Vector2Int(480, 1040), new Vector2Int(768, 1024) })
             {
                 Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
