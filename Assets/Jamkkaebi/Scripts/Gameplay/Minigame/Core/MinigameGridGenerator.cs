@@ -86,7 +86,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
         }
 
-        private static void ValidateConfig(MinigamePhaseConfig config)
+        private static void ValidateConfig(MinigameBoardConfig config, IReadOnlyList<PolyominoShape> shapes)
         {
             // 1. ReinforcedTileCount <= Width * Height
             if (config.ReinforcedTileCount > config.Width * config.Height)
@@ -97,9 +97,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             
             // 2. 폴리오미노 전체 칸 수 + ThreatTileCount + HelperTileCount <= Width * Height
             int polyTileCount = 0;
-            for (int i = 0; i < config.Shapes.Count; i++)
+            for (int i = 0; i < shapes.Count; i++)
             {
-                polyTileCount += PolyominoShapes.Definitions[config.Shapes[i]].Count;
+                polyTileCount += PolyominoShapes.Definitions[shapes[i]].Count;
             }
 
             int tileCount = polyTileCount + config.ThreatTileCount + config.HelperTileCount;
@@ -110,9 +110,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
             
             // 3. 각 shape이 4방향 회전 중 최소 하나라도 그리드에 들어맞는지
-            for (int i = 0; i < config.Shapes.Count; i++)
+            for (int i = 0; i < shapes.Count; i++)
             {
-                IReadOnlyList<Vector2Int> polyShape = PolyominoShapes.Definitions[config.Shapes[i]];
+                IReadOnlyList<Vector2Int> polyShape = PolyominoShapes.Definitions[shapes[i]];
                 bool fitsInGrid = false;
                 
                 for (int n = 0; n < 4; n++)
@@ -129,7 +129,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 if (!fitsInGrid)
                 {
                     throw new InvalidOperationException(
-                        $"{config.Width} * {config.Height} 그리드에 {config.Shapes[i]} 폴리오미노를 배치할 수 없습니다.");
+                        $"{config.Width} * {config.Height} 그리드에 {shapes[i]} 폴리오미노를 배치할 수 없습니다.");
                 }
             }
         }
@@ -156,20 +156,21 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         }
         
         /// <summary>
-        /// 호출자가 준 난수 생성기로 설정에 맞는 그리드를 생성한다.
+        /// 호출자가 준 난수 생성기와 모양 목록으로 설정에 맞는 그리드를 생성한다.
         /// </summary>
         /// <remarks>
         /// rng는 호출자가 만든 것을 받으며, 이미 소비된 상태에서 이어서 사용한다.
         /// 이 안에서 rng를 소비하는 순서가 보드를 결정하므로, 순서를 바꾸면 같은 시드의 보드가 달라진다.
         /// </remarks>
-        /// <param name="config">그리드 크기, 모양, 특수 타일 개수 등이 담긴 설정.</param>
+        /// <param name="config">그리드 크기, 특수 타일 개수 등이 담긴 설정.</param>
+        /// <param name="shapes">배치할 목표 모양 목록.</param>
         /// <param name="rng">그리드 생성에 쓸 난수 생성기.</param>
         /// <returns>새로 생성된 그리드.</returns>
         /// <exception cref="InvalidOperationException">설정대로 타일을 배치할 수 없을 때.</exception>
-        private static MinigameGrid GenerateCore(MinigamePhaseConfig config, Random rng)
+        private static MinigameGrid GenerateCore(MinigameBoardConfig config, IReadOnlyList<PolyominoShape> shapes, Random rng)
         {
             // 0. configuration 유효성 검사(이 수치대로 그리드 배치가 실제로 가능한지)
-            ValidateConfig(config);
+            ValidateConfig(config, shapes);
             
             // 1. 타일, 빈 셀 리스트 준비
             const int MaxAttempts = 1000;
@@ -185,15 +186,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
             
             // 2. 폴리오미노 배치
-            PolyominoGroup[] groups = new PolyominoGroup[config.Shapes.Count];
+            PolyominoGroup[] groups = new PolyominoGroup[shapes.Count];
 
-            for (int i = 0; i < config.Shapes.Count; i++) {
+            for (int i = 0; i < shapes.Count; i++) {
                 bool placed = false;
 
                 for (int attempt = 0; attempt < MaxAttempts; attempt++) {
-                    if (TryPlacePolyomino(config.Shapes[i], tiles, emptyCells, rng, out var polyCoordinates))
+                    if (TryPlacePolyomino(shapes[i], tiles, emptyCells, rng, out var polyCoordinates))
                     {
-                        groups[i] = new PolyominoGroup(config.Shapes[i], polyCoordinates);
+                        groups[i] = new PolyominoGroup(shapes[i], polyCoordinates);
                         placed = true;
                         break;
                     }
@@ -201,7 +202,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 
                 if (!placed)
                 {
-                    throw new InvalidOperationException($"폴리오미노 배치 실패: {i}번째 {config.Shapes[i]} 모양을 {MaxAttempts}번 시도했지만 배치할 자리를 찾지 못했습니다.");
+                    throw new InvalidOperationException($"폴리오미노 배치 실패: {i}번째 {shapes[i]} 모양을 {MaxAttempts}번 시도했지만 배치할 자리를 찾지 못했습니다.");
                 }
             }
             
@@ -239,42 +240,24 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         }
 
         /// <summary>
-        /// 시드로 난수를 만들어 설정에 맞는 미니게임 그리드를 생성한다.
+        /// 시드로 난수를 만들어, 형상 수와 칸 합에 맞는 목표 모양을 고르고 미니게임 그리드를 생성한다.
         /// </summary>
         /// <remarks>
         /// 같은 설정과 같은 시드는 항상 같은 그리드를 만든다.
+        /// 모양은 <see cref="MinigameRules.ShapePool"/>에서 서로 다른 것으로 고르며, 칸 합은 정확히 <see cref="MinigameBoardConfig.ShapeCellTotal"/>이 된다.
+        /// 모양 선택이 배치보다 먼저 난수를 소비하므로, 순서를 바꾸면 같은 시드의 보드가 달라진다.
         /// </remarks>
-        /// <param name="config">그리드 크기, 모양, 특수 타일 개수 등이 담긴 설정.</param>
+        /// <param name="config">그리드 크기, 형상 수와 칸 합, 특수 타일 개수 등이 담긴 설정.</param>
         /// <param name="seed">난수 생성 시드. 같은 값이면 같은 그리드가 나온다.</param>
         /// <returns>새로 생성된 그리드.</returns>
-        /// <exception cref="InvalidOperationException">설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
-        public static MinigameGrid Generate(MinigamePhaseConfig config, long seed)
-        {
-            return GenerateCore(config, CreateRng(seed));
-        }
-
-        /// <summary>
-        /// 규칙에 맞게 고른 폴리오미노 세트로 미니게임 그리드를 생성한다.
-        /// </summary>
-        /// <remarks>
-        /// 같은 config, rule, shapeCount, seed는 같은 그리드를 만든다.
-        /// Pick과 GenerateCore가 같은 rng를 공유하며, Pick이 먼저 난수를 소비하므로 같은 시드라도 기존 Generate(config, seed)와 보드가 다르다.
-        /// config.Shapes의 값은 사용되지 않는다(rule이 대신 정한다).
-        /// </remarks>
-        /// <param name="config">그리드 크기, 특수 타일 개수 등이 담긴 설정.</param>
-        /// <param name="rule">고를 모양의 타일 합 범위, 모양 풀이 담긴 규칙.</param>
-        /// <param name="shapeCount">고를 모양의 개수. 1 이상이어야 한다. 서버에서 받는다.</param>
-        /// <param name="seed">rng 생성 시드. 서버에서 받는다.</param>
-        /// <returns>새로 생성된 그리드.</returns>
-        /// <exception cref="ArgumentException">shapeCount가 0 이하일 때, rule의 모양 풀이 연결되지 않았을 때.</exception>
-        /// <exception cref="InvalidOperationException">폴리오미노 세트 후보가 없을 때, 폴리오미노 세트를 그리드에 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
-        public static MinigameGrid Generate(MinigamePhaseConfig config, PolyominoSetRule rule, int shapeCount,
-            long seed)
+        /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때.</exception>
+        /// <exception cref="InvalidOperationException">형상 수와 칸 합에 맞는 모양 세트가 없을 때, 설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
+        public static MinigameGrid Generate(MinigameBoardConfig config, long seed)
         {
             Random rng = CreateRng(seed);
-            IReadOnlyList<PolyominoShape> shapes = PolyominoSetPicker.Pick(rule, shapeCount, rng);
-            MinigamePhaseConfig configWithShapes = config.WithShapes(shapes);
-            return GenerateCore(configWithShapes, rng);
+            PolyominoSetRule rule = new PolyominoSetRule(config.ShapeCellTotal, config.ShapeCellTotal, MinigameRules.ShapePool);
+            IReadOnlyList<PolyominoShape> shapes = PolyominoSetPicker.Pick(rule, config.ShapeCount, rng);
+            return GenerateCore(config, shapes, rng);
         }
 
         // System.Random은 int 시드만 받으므로, long 시드의 상위 32비트와 하위 32비트를 XOR해서 int로 접는다.
