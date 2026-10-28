@@ -134,21 +134,16 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsTrue(grid.GetTile(2, 1).IsRevealed);
         }
 
-        [Test]
-        public void UseDestructiveTool_WithNoUsesRemaining_ReturnsNoUsesRemaining()
+        [TestCase(0)]
+        [TestCase(-1)]
+        public void Constructor_WithNonPositiveDestructiveToolLimit_ThrowsArgumentException(int limit)
         {
             // Arrange
-            MinigamePhaseConfig zeroUsesConfig = WithDestructiveToolLimit(0);
-
+            MinigamePhaseConfig invalidConfig = WithDestructiveToolLimit(limit);
             MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
-            MinigameSession session = new MinigameSession(grid, zeroUsesConfig);
-            
-            // Act
-            DestroyResult result = session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
-            
-            // Assert
-            Assert.AreEqual(DestroyResult.NoUsesRemaining, result);
-            Assert.IsFalse(grid.GetTile(0, 0).IsRevealed);
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() => new MinigameSession(grid, invalidConfig));
         }
 
         [Test]
