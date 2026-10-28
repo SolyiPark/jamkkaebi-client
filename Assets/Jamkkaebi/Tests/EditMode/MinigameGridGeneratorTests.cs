@@ -209,6 +209,107 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<ArgumentException>(() => MinigameGridGenerator.Generate(negativeConfig, seed));
         }
 
+        // ==============================
+        //      정성 보너스 타일 배치
+        // ==============================
+
+        [Test]
+        public void Generate_AnySeed_PlacesBonusTilesWithoutReplacingOtherTiles()
+        {
+            // Arrange
+            long seed = 12345678;
+            MinigameBoardConfig bonusConfig = WithBonus(3, _config.ReinforcedOnFieldCount);
+
+            for (int i = 0; i < 50; i++)
+            {
+                // Act
+                MinigameGrid grid = MinigameGridGenerator.Generate(bonusConfig, seed + i);
+
+                // Assert: 보너스 수가 맞고, 목표·위협·도움 칸 수는 그대로다
+                Assert.AreEqual(3, CountContent(grid, TileContent.Bonus), $"seed: {seed + i}");
+                Assert.AreEqual(bonusConfig.ShapeCellTotal, CountContent(grid, TileContent.Target), $"seed: {seed + i}");
+                Assert.AreEqual(bonusConfig.ThreatTileCount, CountContent(grid, TileContent.Threat), $"seed: {seed + i}");
+                Assert.AreEqual(bonusConfig.HelperTileCount, CountContent(grid, TileContent.Helper), $"seed: {seed + i}");
+            }
+        }
+
+        [Test]
+        public void Generate_ReinforceEveryPlainCell_AlsoReinforcesBonusTiles()
+        {
+            // Arrange: 일반 칸 40칸을 모두 강화하면, 그중 보너스 3칸도 강화되어야 한다(겹침 허용)
+            long seed = 12345678;
+            MinigameBoardConfig overlapConfig = WithBonus(3, 40);
+
+            // Act
+            MinigameGrid grid = MinigameGridGenerator.Generate(overlapConfig, seed);
+
+            // Assert
+            Assert.AreEqual(3, CountReinforced(grid, TileContent.Bonus));
+            Assert.AreEqual(37, CountReinforced(grid, TileContent.Empty));
+        }
+
+        [Test]
+        public void Generate_BonusFillsEveryPlainCell_DoesNotThrow()
+        {
+            // Arrange: 경계값. 일반 칸 40칸을 모두 보너스로 채운다
+            long seed = 12345678;
+            MinigameBoardConfig fullConfig = WithBonus(40, 0);
+
+            // Act
+            MinigameGrid grid = MinigameGridGenerator.Generate(fullConfig, seed);
+
+            // Assert
+            Assert.AreEqual(40, CountContent(grid, TileContent.Bonus));
+            Assert.AreEqual(0, CountContent(grid, TileContent.Empty));
+        }
+
+        [Test]
+        public void Generate_BonusExceedsPlainCells_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            long seed = 12345678;
+            MinigameBoardConfig overConfig = WithBonus(41, 0);
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(overConfig, seed));
+        }
+
+        [Test]
+        public void Generate_NegativeBonusCount_ThrowsArgumentException()
+        {
+            // Arrange
+            long seed = 12345678;
+            MinigameBoardConfig negativeConfig = WithBonus(-1, 0);
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() => MinigameGridGenerator.Generate(negativeConfig, seed));
+        }
+
+        private MinigameBoardConfig WithBonus(int bonus, int onField)
+        {
+            return new MinigameBoardConfig(
+                _config.Width, _config.Height, _config.ShapeCount, _config.ShapeCellTotal,
+                _config.ThreatTileCount, _config.HelperTileCount, bonus, _config.ReinforcedOnShapeCount, onField,
+                _config.DestructiveToolLimit, _config.ScoutToolLimit, _config.AllowedThreatHits);
+        }
+
+        private static int CountContent(MinigameGrid grid, TileContent content)
+        {
+            int count = 0;
+            for (int x = 0; x < grid.Width; x++)
+            {
+                for (int y = 0; y < grid.Height; y++)
+                {
+                    if (grid.GetTile(x, y).Content == content)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
         private MinigameBoardConfig WithReinforced(int onShape, int onField)
         {
             return new MinigameBoardConfig(

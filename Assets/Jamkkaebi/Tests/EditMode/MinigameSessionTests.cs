@@ -414,6 +414,87 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(DestroyResult.Success, result);
         }
         
+        // ==============================
+        //      정성 보너스 타일 집계
+        // ==============================
+
+        [Test]
+        public void UseDestructiveTool_BonusTileRevealed_IncreasesRevealedBonusTileCount()
+        {
+            // Arrange
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+                { { new Vector2Int(0, 0), TileContent.Bonus } };
+            MinigameGrid grid = BuildGrid(2, 2, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+
+            // Act
+            session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+
+            // Assert: 보너스만 세고 손상도는 오르지 않는다
+            Assert.AreEqual(1, session.RevealedBonusTileCount);
+            Assert.AreEqual(0f, session.DamageGauge, 0.0001f);
+        }
+
+        [Test]
+        public void UseDestructiveTool_ReinforcedBonusTile_CountsOnlyWhenRevealed()
+        {
+            // Arrange
+            Dictionary<Vector2Int, (TileContent, bool)> layout = new Dictionary<Vector2Int, (TileContent, bool)>
+                { { new Vector2Int(0, 0), (TileContent.Bonus, true) } };
+            MinigameGrid grid = BuildGrid(2, 2, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+
+            // Act 1: 첫 타격은 강화만 벗긴다
+            session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+
+            // Assert 1
+            Assert.AreEqual(0, session.RevealedBonusTileCount);
+
+            // Act 2: 두 번째 타격에서 열린다
+            session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+
+            // Assert 2
+            Assert.AreEqual(1, session.RevealedBonusTileCount);
+        }
+
+        [Test]
+        public void UseDestructiveTool_BonusRevealedByHelperChain_CountsBonus()
+        {
+            // Arrange: 도움 타일이 가로줄(y = 1)을 열도록 세로 방향 미개봉 타일을 줄여 둔다
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                { new Vector2Int(1, 1), TileContent.Helper },
+                { new Vector2Int(0, 1), TileContent.Bonus }
+            };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            grid.GetTile(1, 0).Reveal();
+
+            // Act
+            session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Safe);
+
+            // Assert
+            Assert.IsTrue(grid.GetTile(0, 1).IsRevealed);
+            Assert.AreEqual(1, session.RevealedBonusTileCount);
+        }
+
+        [Test]
+        public void UseDestructiveTool_AlreadyRevealedBonusInArea_DoesNotCountAgain()
+        {
+            // Arrange: 3*3이라 더미 목표(2, 2)는 공격 범위에 들어가지 않는다
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+                { { new Vector2Int(0, 0), TileContent.Bonus } };
+            MinigameGrid grid = BuildGrid(3, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+            session.UseDestructiveTool(new Vector2Int(0, 0), DestructiveToolType.Safe);
+
+            // Act: 이미 열린 보너스(0, 0)를 포함하는 공격 파괴
+            session.UseDestructiveTool(new Vector2Int(1, 0), DestructiveToolType.Attack);
+
+            // Assert
+            Assert.AreEqual(1, session.RevealedBonusTileCount);
+        }
+
         // ==============
         //      헬퍼들
         // ==============
