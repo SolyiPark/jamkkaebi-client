@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 
 public static class IntegratedSetup
 {
-    public const string Workshop = "Assets/MobileUI/Scenes/Workshop.unity";
+    public const string Workshop = "Assets/Jamkkaebi/Scenes/Workshop.unity";
     private static readonly Color Paper = new Color(.985f, .985f, .975f);
     private static readonly Color Ink = new Color(.10f, .17f, .17f);
 
@@ -40,10 +40,10 @@ public static class IntegratedSetup
         foreach (var listener in root.GetComponentsInChildren<AudioListener>(true)) Object.DestroyImmediate(listener);
         camera.GetUniversalAdditionalCameraData().renderPostProcessing = false;
 
-        Directory.CreateDirectory("Assets/MobileUI/Prefabs");
-        Directory.CreateDirectory("Assets/MobileUI/Materials");
+        Directory.CreateDirectory("Assets/Jamkkaebi/Prefabs");
+        Directory.CreateDirectory("Assets/Jamkkaebi/Materials");
         AssetDatabase.Refresh();
-        const string materialPath = "Assets/MobileUI/Materials/SpriteUnlit.mat";
+        const string materialPath = "Assets/Jamkkaebi/Materials/SpriteUnlit.mat";
         var material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
         if (!material)
         {
@@ -52,9 +52,9 @@ public static class IntegratedSetup
         }
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Jamkkaebi/Prefabs/TileView.prefab");
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-        instance.GetComponent<SpriteRenderer>().sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/MobileUI/Art/Square.png");
+        instance.GetComponent<SpriteRenderer>().sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Jamkkaebi/Art/Square.png");
         instance.GetComponent<SpriteRenderer>().sharedMaterial = material;
-        var connectedPrefab = PrefabUtility.SaveAsPrefabAsset(instance, "Assets/MobileUI/Prefabs/WorkshopTile.prefab");
+        var connectedPrefab = PrefabUtility.SaveAsPrefabAsset(instance, "Assets/Jamkkaebi/Prefabs/WorkshopTile.prefab");
         Object.DestroyImmediate(instance);
         var serialized = new SerializedObject(adapter);
         serialized.FindProperty("_tilePrefab").objectReferenceValue = connectedPrefab;
@@ -62,7 +62,7 @@ public static class IntegratedSetup
         serialized.FindProperty("_usePointerEvents").boolValue = true;
         serialized.ApplyModifiedPropertiesWithoutUndo();
 
-        var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/MobileUI/Fonts/NotoSansCJKkr-Regular.otf");
+        var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Jamkkaebi/Fonts/NotoSansCJKkr-Regular.otf");
         var ui = new GameObject("Workshop UI", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster)).GetComponent<Canvas>();
         ui.transform.SetParent(root.transform, false);
         ui.renderMode = RenderMode.ScreenSpaceCamera;
@@ -96,7 +96,7 @@ public static class IntegratedSetup
         // Preserve the UI asset GUIDs, while converting its sprite material to URP.
         foreach (string path in new[] { "Home", "Collection", "Friends" })
         {
-            var content = EditorSceneManager.OpenScene($"Assets/MobileUI/Scenes/{path}.unity");
+            var content = EditorSceneManager.OpenScene($"Assets/Jamkkaebi/Scenes/{path}.unity");
             foreach (var renderer in Object.FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None)) renderer.sharedMaterial = material;
             foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None)) cam.GetUniversalAdditionalCameraData().renderPostProcessing = false;
             EditorSceneManager.SaveScene(content);

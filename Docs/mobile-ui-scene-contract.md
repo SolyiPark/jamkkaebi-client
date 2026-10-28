@@ -2,10 +2,10 @@
 
 프로젝트 루트는 이 저장소입니다. Unity 6000.3.23f1, URP, uGUI, Both 입력 설정을 기준으로 합니다.
 
-- 시작 씬: `Assets/MobileUI/Scenes/UIPrototype.unity`.
-- 탭 설정: `Assets/MobileUI/Configuration/MainTabs.asset`.
-- 홈·작업대·도감·친구: `Assets/MobileUI/Scenes` 안의 각 씬.
-- 기존 게임 코드: `Jamkkaebi.Scripts.*`, UI 연결 코드: `MobilePrototype`.
+- 시작 씬: `Assets/Jamkkaebi/Scenes/UIPrototype.unity`.
+- 탭 설정: `Assets/Jamkkaebi/Configuration/MainTabs.asset`.
+- 홈·작업대·도감·친구: `Assets/Jamkkaebi/Scenes` 안의 각 씬.
+- 기존 게임 코드: `Jamkkaebi.Scripts.*`, UI 연결 코드: `Jamkkaebi.Scripts.UI`.
 
 콘텐츠는 최상위 `MirrorSceneRoot` 아래에 두고 전용 orthographic Camera를 연결합니다. UI Canvas는 Screen Space - Camera를 사용하고 같은 카메라를 지정합니다. EventSystem과 AudioListener는 공통 셸에만 둡니다. 화면 전체를 가리는 추가 UI 셸이나 전역 부트스트랩을 콘텐츠에 만들지 않습니다.
 

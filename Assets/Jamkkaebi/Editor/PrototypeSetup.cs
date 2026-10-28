@@ -7,8 +7,8 @@ using UnityEngine;
 
 public static class PrototypeSetup
 {
-    public const string Shell = "Assets/MobileUI/Scenes/UIPrototype.unity";
-    public const string CatalogPath = "Assets/MobileUI/Configuration/MainTabs.asset";
+    public const string Shell = "Assets/Jamkkaebi/Scenes/UIPrototype.unity";
+    public const string CatalogPath = "Assets/Jamkkaebi/Configuration/MainTabs.asset";
 
     [MenuItem("Prototype/Sync Build Scenes From Catalog")]
     public static void SyncBuildScenes()

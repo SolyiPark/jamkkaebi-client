@@ -4,7 +4,7 @@
 
 ## 재현 방법과 실제 결과
 
-1. `Assets/MobileUI/Scenes/UIPrototype.unity`를 연다.
+1. `Assets/Jamkkaebi/Scenes/UIPrototype.unity`를 연다.
 2. Editor Play Mode로 실행한다.
 3. 공통 셸이 도감 콘텐츠를 Additive 로드하면서 `CollectionPresenter.Awake`가 시대 목록을 생성한다.
 4. `RenderCurrent`의 `Canvas.ForceUpdateCanvases`에서 다음 예외가 발생한다.
@@ -36,7 +36,7 @@ MissingComponentException: There is no 'CanvasRenderer' attached to the "Era Emb
 
 ## 수정 사항과 설계 이유
 
-`Assets/MobileUI/Scripts/Collection/CollectionArtwork.cs`의 클래스에 필수 컴포넌트를 선언했다.
+`Assets/Jamkkaebi/Scripts/UI/Collection/CollectionArtwork.cs`의 클래스에 필수 컴포넌트를 선언했다.
 
 ```csharp
 [RequireComponent(typeof(CanvasRenderer))]

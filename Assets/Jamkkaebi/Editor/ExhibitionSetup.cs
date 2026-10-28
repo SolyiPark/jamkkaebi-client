@@ -9,8 +9,8 @@ using UnityEngine.Rendering.Universal;
 
 public static class ExhibitionSetup
 {
-    private const string ArtPath = "Assets/MobileUI/Art/Exhibition";
-    private const string GridPath = "Assets/MobileUI/Configuration/ExhibitionGrid.asset";
+    private const string ArtPath = "Assets/Jamkkaebi/Art/Exhibition";
+    private const string GridPath = "Assets/Jamkkaebi/Configuration/ExhibitionGrid.asset";
 
     /// <summary>
     /// 전시관 및 기존 회귀 검사를 수행한 뒤 Windows 개발 빌드를 생성합니다.
@@ -85,7 +85,7 @@ public static class ExhibitionSetup
         view.ApplyModifiedPropertiesWithoutUndo();
         var world = new GameObject("Artwork space (4320 x 7680, center pivot, 1000 PPU)").transform;
         world.SetParent(root.transform, false);
-        var material = AssetDatabase.LoadAssetAtPath<Material>("Assets/MobileUI/Materials/SpriteUnlit.mat");
+        var material = AssetDatabase.LoadAssetAtPath<Material>("Assets/Jamkkaebi/Materials/SpriteUnlit.mat");
         float[] parallax = { .015f, .055f, .025f, .11f, .18f, .27f, .32f, .36f, .01f, 0 };
         int[] orders = { 0, 10, 20, 30, 100, 2000, 2010, 2020, 2100, 2110 };
         for (int i = 1; i <= 10; i++)
@@ -110,7 +110,7 @@ public static class ExhibitionSetup
         }
         MirrorSceneRoot.SetLayer(root.transform, 8);
         camera.cullingMask = 1 << 8;
-        EditorSceneManager.SaveScene(scene, "Assets/MobileUI/Scenes/Home.unity");
+        EditorSceneManager.SaveScene(scene, "Assets/Jamkkaebi/Scenes/Home.unity");
         EditorSceneManager.OpenScene(PrototypeSetup.Shell);
         AssetDatabase.SaveAssets();
         Debug.Log("EXHIBITION_PREPARED");

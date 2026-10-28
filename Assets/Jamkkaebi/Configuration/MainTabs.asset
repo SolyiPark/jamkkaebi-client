@@ -15,7 +15,7 @@ MonoBehaviour:
   tabs:
   - id: Home
     title: "\uD648"
-    scenePath: Assets/MobileUI/Scenes/Home.unity
+    scenePath: Assets/Jamkkaebi/Scenes/Home.unity
     showProfile: 1
     icon: {fileID: 0}
     background: {fileID: 0}
@@ -27,7 +27,7 @@ MonoBehaviour:
     backgroundPolicy: 0
   - id: Workshop
     title: "\uC791\uC5C5\uB300"
-    scenePath: Assets/MobileUI/Scenes/Workshop.unity
+    scenePath: Assets/Jamkkaebi/Scenes/Workshop.unity
     showProfile: 0
     icon: {fileID: 0}
     background: {fileID: 0}
@@ -39,7 +39,7 @@ MonoBehaviour:
     backgroundPolicy: 1
   - id: Collection
     title: "\uB3C4\uAC10"
-    scenePath: Assets/MobileUI/Scenes/Collection.unity
+    scenePath: Assets/Jamkkaebi/Scenes/Collection.unity
     showProfile: 1
     icon: {fileID: 0}
     background: {fileID: 0}
@@ -51,7 +51,7 @@ MonoBehaviour:
     backgroundPolicy: 0
   - id: Friends
     title: "\uCE5C\uAD6C"
-    scenePath: Assets/MobileUI/Scenes/Friends.unity
+    scenePath: Assets/Jamkkaebi/Scenes/Friends.unity
     showProfile: 0
     icon: {fileID: 0}
     background: {fileID: 0}

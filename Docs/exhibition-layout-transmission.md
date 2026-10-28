@@ -57,12 +57,12 @@ yield return wrapper.Save(draft, result => HandleSaveResult(result));
 
 | 기능 | 파일 |
 | --- | --- |
-| 공통·NPC·건물 데이터 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionObjectData.cs`, `ExhibitionNpcData.cs`, `ExhibitionBuildingData.cs` |
-| 홈 데이터 캡처·불변 draft | `Assets/MobileUI/Scripts/Exhibition/ExhibitionLayoutCapture.cs`, `ExhibitionLayoutDraft.cs` |
-| 서버 보유 목록 검증·전체 교체 패키지 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionLayoutPackage.cs` |
-| 배치 통합 송신 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionLayoutWrapper.cs` |
-| NPC 고정 배치 좌표 | `Assets/MobileUI/Scripts/Exhibition/DokkaebiWanderer.cs` |
-| 단위·실제 HTTP 검증 | `Assets/MobileUI/Tests/EditMode/ExhibitionLayoutTransmissionTests.cs` |
+| 공통·NPC·건물 데이터 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionObjectData.cs`, `ExhibitionNpcData.cs`, `ExhibitionBuildingData.cs` |
+| 홈 데이터 캡처·불변 draft | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionLayoutCapture.cs`, `ExhibitionLayoutDraft.cs` |
+| 서버 보유 목록 검증·전체 교체 패키지 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionLayoutPackage.cs` |
+| 배치 통합 송신 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionLayoutWrapper.cs` |
+| NPC 고정 배치 좌표 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/DokkaebiWanderer.cs` |
+| 단위·실제 HTTP 검증 | `Assets/Jamkkaebi/Tests/UI/EditMode/ExhibitionLayoutTransmissionTests.cs` |
 | 로컬 서버 보유 객체 준비 | `Tools/UnityContractHarnessTest.java` |
 
 ## 이번 검증

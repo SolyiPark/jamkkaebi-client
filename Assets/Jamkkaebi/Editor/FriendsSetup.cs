@@ -12,7 +12,7 @@ public static class FriendsSetup
     public static void Apply()
     {
         if (!Application.isBatchMode) throw new InvalidOperationException("저장된 씬을 대상으로 batch mode에서 실행하세요.");
-        var scene = EditorSceneManager.OpenScene("Assets/MobileUI/Scenes/Friends.unity");
+        var scene = EditorSceneManager.OpenScene("Assets/Jamkkaebi/Scenes/Friends.unity");
         var root = UnityEngine.Object.FindFirstObjectByType<MirrorSceneRoot>();
         if (!root || !root.sceneCamera || root.GetComponent<FriendsPresenter>())
             throw new InvalidOperationException("기존 친구 더미 씬만 이관할 수 있습니다.");
@@ -22,8 +22,8 @@ public static class FriendsSetup
         root.name = "Friends Root"; root.sceneCamera.name = "Friends Camera";
         root.uiRaycasters = Array.Empty<UnityEngine.UI.GraphicRaycaster>();
         var presenter = new SerializedObject(root.gameObject.AddComponent<FriendsPresenter>());
-        presenter.FindProperty("_font").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Font>("Assets/MobileUI/Fonts/NotoSansCJKkr-Regular.otf");
-        presenter.FindProperty("_visitGrid").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Jamkkaebi.Scripts.UI.Exhibition.ExhibitionGrid>("Assets/MobileUI/Configuration/ExhibitionGrid.asset");
+        presenter.FindProperty("_font").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Font>("Assets/Jamkkaebi/Fonts/NotoSansCJKkr-Regular.otf");
+        presenter.FindProperty("_visitGrid").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Jamkkaebi.Scripts.UI.Exhibition.ExhibitionGrid>("Assets/Jamkkaebi/Configuration/ExhibitionGrid.asset");
         presenter.ApplyModifiedPropertiesWithoutUndo();
         MirrorSceneRoot.SetLayer(root.transform, 11); root.sceneCamera.cullingMask = 1 << 11;
         EditorSceneManager.SaveScene(scene);

@@ -11,7 +11,7 @@ public static class ExhibitionChecks
     /// </summary>
     public static void Run()
     {
-        var grid = AssetDatabase.LoadAssetAtPath<ExhibitionGrid>("Assets/MobileUI/Configuration/ExhibitionGrid.asset");
+        var grid = AssetDatabase.LoadAssetAtPath<ExhibitionGrid>("Assets/Jamkkaebi/Configuration/ExhibitionGrid.asset");
         Check(grid && grid.IsValid && grid.Size == new Vector2Int(7, 7), "7 by 7 grid asset");
         for (int x = 0; x < 7; x++)
         for (int y = 0; y < 7; y++)
@@ -25,10 +25,10 @@ public static class ExhibitionChecks
         Check(grid.ContainsFootprint(new Vector2Int(5, 5), new Vector2Int(2, 2)), "multi-cell footprint inside");
         Check(!grid.ContainsFootprint(new Vector2Int(6, 6), new Vector2Int(2, 2)), "multi-cell footprint outside");
         Check(ExhibitionDepth.OrderFor(-1) > ExhibitionDepth.OrderFor(0), "front ground anchor covers rear");
-        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/MobileUI/Art/Exhibition/Artwork05.png");
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Jamkkaebi/Art/Exhibition/Artwork05.png");
         Check(sprite && Mathf.Abs(sprite.bounds.size.x - 4.32f) < .02f && Mathf.Abs(sprite.bounds.size.y - 7.68f) < .02f,
             "texture downscaling preserves original artwork space: " + (sprite ? sprite.bounds.size.ToString() : "missing"));
-        EditorSceneManager.OpenScene("Assets/MobileUI/Scenes/Home.unity");
+        EditorSceneManager.OpenScene("Assets/Jamkkaebi/Scenes/Home.unity");
         var surface = UnityEngine.Object.FindFirstObjectByType<ExhibitionSurface>();
         Check(surface && surface.Grid && surface.Grid.Size == new Vector2Int(7, 7), "home surface references persistent grid asset");
         var housing = UnityEngine.Object.FindFirstObjectByType<ExhibitionHousing>();

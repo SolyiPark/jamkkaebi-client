@@ -19,7 +19,7 @@ PDF의 종이색 배경, 초록색 버튼, 사각 아바타, 구분선과 여백
 
 ## 실행과 검토
 
-Unity 6000.3.23f1에서 `Assets/MobileUI/Scenes/UIPrototype.unity`를 열고 Play한 뒤 하단 **친구** 탭을 선택한다. `Friends.unity`는 Additive 콘텐츠 씬이므로 공통 셸을 통해 실행한다. 이미 씬 연결을 저장했으므로 초기 이관 도구를 재실행할 필요가 없다.
+Unity 6000.3.23f1에서 `Assets/Jamkkaebi/Scenes/UIPrototype.unity`를 열고 Play한 뒤 하단 **친구** 탭을 선택한다. `Friends.unity`는 Additive 콘텐츠 씬이므로 공통 셸을 통해 실행한다. 이미 씬 연결을 저장했으므로 초기 이관 도구를 재실행할 필요가 없다.
 
 1. 친구 12명, 받은 요청 3개, 보낸 요청 2개가 표시되는지 확인한다.
 2. 요청함에서 받은 요청을 수락하면 친구 수가 늘고 요청 수가 줄어든다.
@@ -35,11 +35,11 @@ Unity 6000.3.23f1에서 `Assets/MobileUI/Scenes/UIPrototype.unity`를 열고 Pla
 
 ## 코드 구조와 후속 연결
 
-- `Assets/MobileUI/Scripts/Friends/FriendsPresenter.cs`: 화면 생성, 입력과 로컬 상태 표시.
-- `Assets/MobileUI/Scripts/Friends/FriendsPreviewState.cs`: 샘플 친구·요청·추천·차단, 일일 방문·선물 상태.
-- `Assets/MobileUI/Scripts/Friends/FriendProfile.cs`: 화면 검토에 필요한 프로필과 복원 통계.
-- `Assets/MobileUI/Scenes/Friends.unity`: 기존 씬 GUID, 카메라와 루트를 보존하고 프론트엔드 컴포넌트를 연결.
-- `Assets/MobileUI/Editor/FriendsSetup.cs`: 저장된 기존 더미 씬만 변경하는 일회성 batch 이관 도구. 일반 실행과 빌드에서는 사용하지 않는다.
+- `Assets/Jamkkaebi/Scripts/UI/Friends/FriendsPresenter.cs`: 화면 생성, 입력과 로컬 상태 표시.
+- `Assets/Jamkkaebi/Scripts/UI/Friends/FriendsPreviewState.cs`: 샘플 친구·요청·추천·차단, 일일 방문·선물 상태.
+- `Assets/Jamkkaebi/Scripts/UI/Friends/FriendProfile.cs`: 화면 검토에 필요한 프로필과 복원 통계.
+- `Assets/Jamkkaebi/Scenes/Friends.unity`: 기존 씬 GUID, 카메라와 루트를 보존하고 프론트엔드 컴포넌트를 연결.
+- `Assets/Jamkkaebi/Editor/FriendsSetup.cs`: 저장된 기존 더미 씬만 변경하는 일회성 batch 이관 도구. 일반 실행과 빌드에서는 사용하지 않는다.
 
 런타임 Canvas는 `MirrorSceneRoot` 아래에서 전용 카메라를 사용한다. 생성 오브젝트는 친구 씬과 레이어 11을 따른다. EventSystem과 AudioListener를 추가하지 않는다. 세로·가로 제스처 처리는 기존 `CollectionScrollRect`를 재사용하며, 도감 데이터에는 의존하지 않는다. 공통 `MirrorInput`, 탭 순서와 빌드 씬 목록을 변경하지 않았다.
 

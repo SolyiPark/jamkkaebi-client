@@ -13,9 +13,9 @@ using UnityEngine.Rendering.Universal;
 /// </summary>
 public static class CollectionSetup
 {
-    private const string ScenePath = "Assets/MobileUI/Scenes/Collection.unity";
-    private const string CatalogPath = "Assets/MobileUI/Configuration/CollectionCatalog.asset";
-    private const string AppearancePath = "Assets/MobileUI/Configuration/CollectionAppearance.asset";
+    private const string ScenePath = "Assets/Jamkkaebi/Scenes/Collection.unity";
+    private const string CatalogPath = "Assets/Jamkkaebi/Configuration/CollectionCatalog.asset";
+    private const string AppearancePath = "Assets/Jamkkaebi/Configuration/CollectionAppearance.asset";
 
     /// <summary>
     /// batch mode에서 기존 도감 더미를 최초 한 번 이관하고 카메라·카탈로그·이미지 참조와 탭 설정을 저장합니다.
@@ -55,7 +55,7 @@ public static class CollectionSetup
         presenter.FindProperty("_catalog").objectReferenceValue =
             AssetDatabase.LoadAssetAtPath<Jamkkaebi.Scripts.Gameplay.Collection.CollectionCatalog>(CatalogPath);
         presenter.FindProperty("_font").objectReferenceValue =
-            AssetDatabase.LoadAssetAtPath<Font>("Assets/MobileUI/Fonts/NotoSansCJKkr-Regular.otf");
+            AssetDatabase.LoadAssetAtPath<Font>("Assets/Jamkkaebi/Fonts/NotoSansCJKkr-Regular.otf");
         presenter.FindProperty("_appearance").objectReferenceValue = EnsureAppearanceAsset();
         presenter.ApplyModifiedPropertiesWithoutUndo();
         MirrorSceneRoot.SetLayer(root.transform, 10);

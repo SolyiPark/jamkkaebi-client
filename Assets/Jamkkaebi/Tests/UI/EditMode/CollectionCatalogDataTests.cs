@@ -47,7 +47,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void SceneCatalogAssetMatchesConfirmedDefinitions()
         {
             CollectionCatalog saved = AssetDatabase.LoadAssetAtPath<CollectionCatalog>(
-                "Assets/MobileUI/Configuration/CollectionCatalog.asset");
+                "Assets/Jamkkaebi/Configuration/CollectionCatalog.asset");
             Assert.That(saved, Is.Not.Null);
             Assert.That(saved.Eras.Count, Is.EqualTo(_catalog.Eras.Count));
             Assert.That(saved.Relics.Count, Is.EqualTo(_catalog.Relics.Count));

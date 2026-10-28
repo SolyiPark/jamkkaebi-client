@@ -8,7 +8,7 @@ public sealed class ExhibitionTextureImporter : AssetPostprocessor
     /// </summary>
     private void OnPreprocessTexture()
     {
-        if (!assetPath.StartsWith("Assets/MobileUI/Art/Exhibition/")) return;
+        if (!assetPath.StartsWith("Assets/Jamkkaebi/Art/Exhibition/")) return;
         var importer = (TextureImporter)assetImporter;
         if (!importer.importSettingsMissing) return;
         // The project's sprite preset otherwise triangulates every tiny grain in artwork 9.

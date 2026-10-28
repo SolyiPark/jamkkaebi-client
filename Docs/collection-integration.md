@@ -4,14 +4,14 @@
 
 ## 현재 구조
 
-- `Assets/MobileUI/Scenes/Collection.unity`: 기존 도감 탭 씬. `MirrorSceneRoot` 아래에서 시대 목록 → 시대 상세 → 유물 상세를 전환한다.
-- `Assets/MobileUI/Configuration/CollectionCatalog.asset`: 도감의 고정 정의 자산. `CollectionPresenter`와 공유 진행 기록은 **같은 자산 인스턴스**를 사용해야 한다.
-- `Assets/MobileUI/Configuration/CollectionAppearance.asset`: 도감 공통 배경·카드·아이콘·장식의 선택적 스프라이트를 담는 `CollectionAppearance` 자산. 도감 씬 `CollectionPresenter`의 `_appearance`에 연결한다.
+- `Assets/Jamkkaebi/Scenes/Collection.unity`: 기존 도감 탭 씬. `MirrorSceneRoot` 아래에서 시대 목록 → 시대 상세 → 유물 상세를 전환한다.
+- `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`: 도감의 고정 정의 자산. `CollectionPresenter`와 공유 진행 기록은 **같은 자산 인스턴스**를 사용해야 한다.
+- `Assets/Jamkkaebi/Configuration/CollectionAppearance.asset`: 도감 공통 배경·카드·아이콘·장식의 선택적 스프라이트를 담는 `CollectionAppearance` 자산. 도감 씬 `CollectionPresenter`의 `_appearance`에 연결한다.
 - `Assets/Jamkkaebi/Scripts/Gameplay/Collection/`: 고정 정의와 수집 규칙. UI, 작업대 어댑터, 전시관 배치 타입에 의존하지 않는다.
-- `Assets/MobileUI/Scripts/Collection/CollectionPresenter.cs`: 화면 이동, 신규 확인과 변경 이벤트 구독. 표시 데이터 복사본을 View에 전달하며 UI 배치는 소유하지 않는다.
+- `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionPresenter.cs`: 화면 이동, 신규 확인과 변경 이벤트 구독. 표시 데이터 복사본을 View에 전달하며 UI 배치는 소유하지 않는다.
 - `CollectionView` / `CollectionDefaultView`: 교체 가능한 표시 계약과 기존 디자인 구현. 그림·좌표·색상·UI 생성은 기본 View에 있다. Presenter의 선택적 `_view`에 다른 씬 View 인스턴스를 연결할 수 있다. 교체 방법과 아직 프리팹화하지 않은 범위는 [표시 계층 분리 기록](collection-view-separation.md)을 참고한다.
-- `Assets/MobileUI/Scripts/Collection/CollectionCatalogData.cs`: 확정 시트의 시대·유물 명칭과 순서를 바탕으로 고정 카탈로그를 생성한다. 설명·복원 이야기와 실제 아트는 임시 콘텐츠다.
-- `Assets/MobileUI/Scripts/Collection/CollectionDemoData.cs`: 화면 검토를 위한 초기 수집 기록만 주입한다. 고정 카탈로그 정의와 더미 사용자 기록을 분리한다.
+- `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionCatalogData.cs`: 확정 시트의 시대·유물 명칭과 순서를 바탕으로 고정 카탈로그를 생성한다. 설명·복원 이야기와 실제 아트는 임시 콘텐츠다.
+- `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionDemoData.cs`: 화면 검토를 위한 초기 수집 기록만 주입한다. 고정 카탈로그 정의와 더미 사용자 기록을 분리한다.
 
 현재 `CollectionPresenter.Awake()`는 `CollectionDemoData.CreateProgress(_catalog)`를 호출한다. 시작 상태는 유물 5/9종 복원 완료, 고려 건물 1개 해금이다. 삼국 금관·고려 3종·조선 옥새가 복원된 상태다. 금관·고려청자·옥새는 신규 상태이며 석불·나전칠기는 확인한 상태다. 재실행하면 이 샘플 상태로 초기화된다. 기록은 플레이 세션 메모리에만 존재한다.
 
@@ -101,7 +101,7 @@ Unity 자산과 스크립트의 `.meta`를 함께 유지하고, 자산 이동·�
 
 ## 확정 목록을 저장 자산에 반영하는 방법
 
-Unity 메뉴 **`Prototype > Collection > Sync Catalog From Confirmed Data`** 또는 batch mode의 **`CollectionSetup.SyncCatalog`**로 `CollectionCatalogData.CreateCatalog()`의 정의를 `Assets/MobileUI/Configuration/CollectionCatalog.asset`에 반영한다. 이 명령은 도감 씬을 이관하거나 재구성하지 않는다. `CollectionSetup.Apply()`는 초기 씬 이관 전용이므로 목록 갱신에 재실행하지 않는다.
+Unity 메뉴 **`Prototype > Collection > Sync Catalog From Confirmed Data`** 또는 batch mode의 **`CollectionSetup.SyncCatalog`**로 `CollectionCatalogData.CreateCatalog()`의 정의를 `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`에 반영한다. 이 명령은 도감 씬을 이관하거나 재구성하지 않는다. `CollectionSetup.Apply()`는 초기 씬 이관 전용이므로 목록 갱신에 재실행하지 않는다.
 
 기존 카탈로그가 있으면 같은 자산을 갱신해 `.meta` GUID와 씬의 카탈로그 참조를 유지한다. 같은 시대 ID는 기존 `OverviewIllustration`, `ContextIllustration`, `BuildingIllustration`, `LockedBuildingIllustration`, `BackgroundIllustration` 참조를 보존한다. 같은 유물 ID는 기존 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` 참조를 보존한다. 공통 `CollectionAppearance.asset`은 카탈로그 동기화 대상이 아니다. 시대·유물 순서와 이름, 정령 이름 미정 표시, 임시 설명·복원 이야기 등 나머지 정의는 `CollectionCatalogData`의 값으로 교체한다. 삭제된 유물 ID의 아트를 새 ID로 옮기지는 않는다.
 
@@ -151,7 +151,7 @@ $collectionSyncLog = Join-Path $collectionLogFolder 'catalog-sync.log'
 
 ```csharp
 using Jamkkaebi.Scripts.Gameplay.Collection;
-using MobilePrototype.Collection;
+using Jamkkaebi.Scripts.UI.Collection;
 
 // 공통 셸이 도감 씬 준비 후 구성한다.
 CollectionCatalog catalog = presenter.Catalog;
@@ -175,7 +175,7 @@ bool registered = sharedProgress.RegisterRestorationCompleted(kindId);
 
 ## 검증 대상
 
-규칙 회귀 검사는 `Assets/Jamkkaebi/Tests/EditMode/CollectionProgressTests.cs`가 담당한다. `Assets/MobileUI/Tests/EditMode/CollectionArtworkSyncTests.cs`는 임시 자산의 서로 다른 시대·유물 그림 10개를 저장·동기화·재로드하여 ID별 그림 GUID·localFileID와 카탈로그 GUID 보존을 검사한다. UI 입력 회귀 검사는 `CollectionScrollRectTests.cs`와 통합 검증기가 담당한다. 화면·입력·씬 변경은 프로젝트의 `Tools/VerifyIntegration.ps1`로 전체 통합 검증한다. 실행 결과와 로그 경로는 실제 실행 후 별도 검증 기록에 기재한다.
+규칙 회귀 검사는 `Assets/Jamkkaebi/Tests/EditMode/CollectionProgressTests.cs`가 담당한다. `Assets/Jamkkaebi/Tests/UI/EditMode/CollectionArtworkSyncTests.cs`는 임시 자산의 서로 다른 시대·유물 그림 10개를 저장·동기화·재로드하여 ID별 그림 GUID·localFileID와 카탈로그 GUID 보존을 검사한다. UI 입력 회귀 검사는 `CollectionScrollRectTests.cs`와 통합 검증기가 담당한다. 화면·입력·씬 변경은 프로젝트의 `Tools/VerifyIntegration.ps1`로 전체 통합 검증한다. 실행 결과와 로그 경로는 실제 실행 후 별도 검증 기록에 기재한다.
 
 확정 시트 목록을 반영한 2026-10-09 실행 결과는 [collection-validation.md](collection-validation.md)에 기록했다. 초기 구현 결과와 후속 데이터 반영 결과를 구분한다. `CollectionScrollRect`는 뷰포트 높이 변경 전의 논리적 스크롤 위치를 유지하므로 프로필 표시가 다른 탭에 다녀와도 읽던 위치를 보존한다. 콘텐츠 교체와 명시적 페이지 위치 설정은 새 위치를 사용한다.
 
