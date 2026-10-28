@@ -459,6 +459,29 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         [Test]
+        public void UseDestructiveTool_DirectThreatAndDifferentChainThreat_CountsOnlyDirectThreat()
+        {
+            // Arrange: 5*3 그리드. 공격 범위 안의 위협(1, 0)은 직접 타격으로, 범위 밖의 위협(3, 1)은 도움 타일 가로줄 연쇄로 열린다.
+            // 도움 타일이 열릴 때 가로줄 미개봉 4칸 > 세로줄 2칸이라 가로줄이 선택되고, 더미 목표(4, 2)는 그 줄 밖에 있다.
+            Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
+            {
+                { new Vector2Int(1, 1), TileContent.Helper },
+                { new Vector2Int(1, 0), TileContent.Threat },
+                { new Vector2Int(3, 1), TileContent.Threat }
+            };
+            MinigameGrid grid = BuildGrid(5, 3, layout);
+            MinigameSession session = new MinigameSession(grid, config);
+
+            // Act
+            session.UseDestructiveTool(new Vector2Int(1, 1), DestructiveToolType.Attack);
+
+            // Assert: 두 위협 모두 열리지만 손상도는 직접 타격 한 번분만 오른다
+            Assert.IsTrue(grid.GetTile(1, 0).IsRevealed);
+            Assert.IsTrue(grid.GetTile(3, 1).IsRevealed);
+            Assert.AreEqual(1f / 3f, session.DamageGauge, 0.0001f);
+        }
+
+        [Test]
         public void UseDestructiveTool_ReinforcedThreatStrippedDirectlyThenRevealedByChain_DoesNotIncreaseDamageGauge()
         {
             // Arrange: 공격의 직접 타격은 위협(0, 1)의 강화만 벗기고, 같은 시행의 도움 타일 연쇄가 그 위협을 연다
