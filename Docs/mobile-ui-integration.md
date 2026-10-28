@@ -9,7 +9,7 @@
 
 ## 통합 변경
 
-UI의 자산과 .meta는 `Assets/MobileUI`로 옮겼으며 원래 GUID를 유지했습니다. 씬 경로 문자열과 에디터 메뉴는 새 위치로 갱신했습니다. 단일 프로젝트의 Packages와 ProjectSettings는 기존 게임을 기준으로 유지하고 시작 씬·세로형 미리보기 설정만 연결했습니다.
+UI의 자산과 .meta는 `Assets/Jamkkaebi`로 옮겼으며 원래 GUID를 유지했습니다. 씬 경로 문자열과 에디터 메뉴는 새 위치로 갱신했습니다. 단일 프로젝트의 Packages와 ProjectSettings는 기존 게임을 기준으로 유지하고 시작 씬·세로형 미리보기 설정만 연결했습니다.
 
 작업대는 기존 미니게임 씬의 어댑터·그리드·유물 데이터를 사용합니다. 원래 타일 프리팹의 변형인 `WorkshopTile.prefab`에 시제품의 사각형 스프라이트와 URP Unlit 재질을 지정했습니다. 기존 원본 씬과 프리팹은 보존됩니다. 통합 씬에는 별도의 EventSystem/AudioListener를 두지 않습니다.
 
@@ -32,7 +32,7 @@ UI의 자산과 .meta는 `Assets/MobileUI`로 옮겼으며 원래 GUID를 유지
 
 ## 도감 화면 후속 구현 (2026-10-09)
 
-기존 도감 탭의 더미 버튼·사각형을 시대 목록·시대 상세·유물 상세로 교체했다. 고정 정의는 `Assets/MobileUI/Configuration/CollectionCatalog.asset`, 수집 규칙은 `Jamkkaebi.Runtime`의 `Gameplay/Collection/`, 표시와 제스처는 `MobileUI.Runtime`의 `Collection/`에 둔다. 수집 인정 시점은 3페이즈 전체의 복원 완료이며, 현재 작업대는 변경하지 않고 샘플 완료 기록을 주입한다. 실제 연결 API와 미구현 범위는 `collection-integration.md`에 기록한다.
+기존 도감 탭의 더미 버튼·사각형을 시대 목록·시대 상세·유물 상세로 교체했다. 고정 정의는 `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`, 수집 규칙은 `Jamkkaebi.Runtime`의 `Gameplay/Collection/`, 표시와 제스처는 `Jamkkaebi.UI`의 `Collection/`에 둔다. 수집 인정 시점은 3페이즈 전체의 복원 완료이며, 현재 작업대는 변경하지 않고 샘플 완료 기록을 주입한다. 실제 연결 API와 미구현 범위는 `collection-integration.md`에 기록한다.
 
 `CollectionSetup.Apply`는 이번 도감 씬을 변경한 일회성 batch 이관이다. 이미 이관된 씬에서는 실행을 거절하며 일반 실행·빌드·콘텐츠 교체에 사용하지 않는다. 현재 도감은 씬에 연결된 카탈로그와 글꼴로 런타임 UI를 생성한다. 실제 스프라이트는 카탈로그의 유물·정령 이미지 참조에 연결한다.
 

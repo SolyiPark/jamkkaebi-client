@@ -1,0 +1,6 @@
+{
+  "name": "Jamkkaebi.UI.TestSupport",
+  "references": ["Jamkkaebi.UI", "Unity.ugui"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

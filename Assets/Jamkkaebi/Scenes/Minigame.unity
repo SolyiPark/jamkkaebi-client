@@ -164,9 +164,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 4154226}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d486b9239edf4be0aa8ca94f6ab38ec, type: 3}
+  m_Script: {fileID: 11500000, guid: 50fd21eb87805e941af756e7b0525422, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SafeArea
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.SafeArea
 --- !u!1 &190990736
 GameObject:
   m_ObjectHideFlags: 0

@@ -6,16 +6,16 @@
 
 | 구성 | 위치 | 책임 |
 | --- | --- | --- |
-| 홈 씬 | `Assets/MobileUI/Scenes/Home.unity` | 10개 배경, 전시관 카메라, 하우징 콘텐츠의 부모 |
-| 탭 전환 | `Assets/MobileUI/Scripts/TabTransition.cs` | 드래그 진행량, 두 화면 슬라이드, 확정/취소, 프로필 높이 전환 |
-| 입력 분기 | `Assets/MobileUI/Scripts/MirrorInput.cs` | 전용 콘텐츠 드래그 우선, 일반 수평 스와이프, 클릭 취소, 단일 포인터 소유권 |
-| 논리 격자 | `Assets/MobileUI/Configuration/ExhibitionGrid.asset` | 상판의 7×7 좌표, 두 축, 유효 범위 및 제외 셀 |
-| 격자 변환 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionGrid.cs` | 로컬↔격자, 셀 중심, 범위 및 다중 셀 영역 검사 |
-| 바닥 입력 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionSurface.cs` | 카메라 텍스처 좌표에서 셀 선택, 셀의 월드 위치 |
-| 표시 순서 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionDepth.cs` | 바닥 접점 기준 SortingGroup 정렬 |
-| 최초 등장 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionIntro.cs` | 앱 실행 세션에서 홈 최초 표시 시 한 번 재생 |
-| 시점·시차 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionView.cs` | 카메라 맞춤, 줌 API, 독립적인 탭 전환 오프셋 |
-| 배경 레이어 | `Assets/MobileUI/Scripts/Exhibition/ExhibitionLayer.cs` | 원래 위치 + 등장 위치 + 시차의 합성, 레이어별 불투명도 |
+| 홈 씬 | `Assets/Jamkkaebi/Scenes/Home.unity` | 10개 배경, 전시관 카메라, 하우징 콘텐츠의 부모 |
+| 탭 전환 | `Assets/Jamkkaebi/Scripts/UI/TabTransition.cs` | 드래그 진행량, 두 화면 슬라이드, 확정/취소, 프로필 높이 전환 |
+| 입력 분기 | `Assets/Jamkkaebi/Scripts/UI/MirrorInput.cs` | 전용 콘텐츠 드래그 우선, 일반 수평 스와이프, 클릭 취소, 단일 포인터 소유권 |
+| 논리 격자 | `Assets/Jamkkaebi/Configuration/ExhibitionGrid.asset` | 상판의 7×7 좌표, 두 축, 유효 범위 및 제외 셀 |
+| 격자 변환 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionGrid.cs` | 로컬↔격자, 셀 중심, 범위 및 다중 셀 영역 검사 |
+| 바닥 입력 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionSurface.cs` | 카메라 텍스처 좌표에서 셀 선택, 셀의 월드 위치 |
+| 표시 순서 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionDepth.cs` | 바닥 접점 기준 SortingGroup 정렬 |
+| 최초 등장 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionIntro.cs` | 앱 실행 세션에서 홈 최초 표시 시 한 번 재생 |
+| 시점·시차 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionView.cs` | 카메라 맞춤, 줌 API, 독립적인 탭 전환 오프셋 |
+| 배경 레이어 | `Assets/Jamkkaebi/Scripts/UI/Exhibition/ExhibitionLayer.cs` | 원래 위치 + 등장 위치 + 시차의 합성, 레이어별 불투명도 |
 
 ## 입력 및 수명 정책
 
@@ -37,7 +37,7 @@
 
 ## 에셋 처리
 
-원본 PNG 10장을 `Assets/MobileUI/Art/Exhibition`에 복사하고 기존 Git LFS 규칙을 따른다. 중앙 피벗, 1000 PPU, Full Rect, 자동 물리 윤곽 없음, 밉맵 없음, 최대 2048로 임포트한다. Android/iOS는 ASTC 6×6 설정을 제공한다. 원본 이미지 자체는 수정하지 않았다.
+원본 PNG 10장을 `Assets/Jamkkaebi/Art/Exhibition`에 복사하고 기존 Git LFS 규칙을 따른다. 중앙 피벗, 1000 PPU, Full Rect, 자동 물리 윤곽 없음, 밉맵 없음, 최대 2048로 임포트한다. Android/iOS는 ASTC 6×6 설정을 제공한다. 원본 이미지 자체는 수정하지 않았다.
 
 질감 레이어 9번은 불투명도 0.22, 10번은 0.075를 기본으로 한다. 배경 1번은 화면 비율과 작은 시차 이동에 대비해 여유 있게 채운다. 산·구름(2·4·6·7·8번)은 원본 비율을 유지한 채 화면 폭에 맞춰 확대해 양옆의 잘린 경계를 화면 밖으로 보낸다. 플랫폼과 논리 격자는 이 장식용 확대에서 제외한다. 순수 배경은 표시 순서 0~30, 플랫폼은 100, 배치물의 기본 깊이 정렬은 150~1850, 앞쪽 구름·질감은 2000 이상을 사용한다.
 

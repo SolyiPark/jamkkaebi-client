@@ -134,10 +134,10 @@ View는 `CollectionProgress`를 보관하거나 복원 완료·열람 처리를 
 
 ## 코드를 읽는 추천 순서
 
-1. [CollectionView.cs](../Assets/MobileUI/Scripts/Collection/CollectionView.cs): 화면 담당자와 처리 담당자 사이의 사용법부터 읽는다. `RequestRelic`은 요청이고 `Render`는 처리 결과를 받아 표시하는 함수다.
-2. [CollectionPresenter.cs](../Assets/MobileUI/Scripts/Collection/CollectionPresenter.cs): `Awake`에서 연결하는 순서와 `ShowRelic`에서 잠금을 검사하고 신규 표시를 확인하는 순서를 본다.
-3. [CollectionViewData.cs](../Assets/MobileUI/Scripts/Collection/CollectionViewData.cs): 원본 기록을 보관하지 않고 표시할 값만 복사하는 부분을 본다.
-4. [CollectionDefaultView.cs](../Assets/MobileUI/Scripts/Collection/CollectionDefaultView.cs): `Initialize`가 공통 틀을 만들고 `Render`가 현재 페이지를 표시하는 흐름을 본다. 좌표·색상 코드는 기능 규칙과 분리돼 있다.
+1. [CollectionView.cs](../Assets/Jamkkaebi/Scripts/UI/Collection/CollectionView.cs): 화면 담당자와 처리 담당자 사이의 사용법부터 읽는다. `RequestRelic`은 요청이고 `Render`는 처리 결과를 받아 표시하는 함수다.
+2. [CollectionPresenter.cs](../Assets/Jamkkaebi/Scripts/UI/Collection/CollectionPresenter.cs): `Awake`에서 연결하는 순서와 `ShowRelic`에서 잠금을 검사하고 신규 표시를 확인하는 순서를 본다.
+3. [CollectionViewData.cs](../Assets/Jamkkaebi/Scripts/UI/Collection/CollectionViewData.cs): 원본 기록을 보관하지 않고 표시할 값만 복사하는 부분을 본다.
+4. [CollectionDefaultView.cs](../Assets/Jamkkaebi/Scripts/UI/Collection/CollectionDefaultView.cs): `Initialize`가 공통 틀을 만들고 `Render`가 현재 페이지를 표시하는 흐름을 본다. 좌표·색상 코드는 기능 규칙과 분리돼 있다.
 
 개발 시에는 “이 코드는 장부를 바꾸는 일인가, 무엇을 보여줄지 정하는 일인가, 어떤 모양으로 보여줄지 정하는 일인가?”로 먼저 구분하면 수정할 위치를 고르기 쉽다.
 

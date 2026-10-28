@@ -6,19 +6,19 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/MobileUI/Scenes/UIPrototype.unity
+    path: Assets/Jamkkaebi/Scenes/UIPrototype.unity
     guid: a00cae362a876024e8d072d0ffcbdb90
   - enabled: 1
-    path: Assets/MobileUI/Scenes/Home.unity
+    path: Assets/Jamkkaebi/Scenes/Home.unity
     guid: 16ad0c9fcfd69cf4b93ca4a7b5251468
   - enabled: 1
-    path: Assets/MobileUI/Scenes/Workshop.unity
+    path: Assets/Jamkkaebi/Scenes/Workshop.unity
     guid: d4d45efed82424649ba372348a14cc95
   - enabled: 1
-    path: Assets/MobileUI/Scenes/Collection.unity
+    path: Assets/Jamkkaebi/Scenes/Collection.unity
     guid: 1722971fa12b8fc468eea7d409719998
   - enabled: 1
-    path: Assets/MobileUI/Scenes/Friends.unity
+    path: Assets/Jamkkaebi/Scenes/Friends.unity
     guid: 40d60e6dc85c69e498fbc9f039d7d175
   - enabled: 1
     path: Assets/Jamkkaebi/Scenes/Minigame.unity

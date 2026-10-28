@@ -6,7 +6,7 @@
 
 1. Git LFS를 설치하고 저장소 루트에서 `git lfs pull`을 실행합니다.
 2. Unity Hub에 **이 저장소 루트**를 추가하고 Unity **6000.3.23f1**로 엽니다.
-3. `Assets/MobileUI/Scenes/UIPrototype.unity`를 열고 Play를 실행합니다.
+3. `Assets/Jamkkaebi/Scenes/UIPrototype.unity`를 열고 Play를 실행합니다.
    `Prototype > Open UI Prototype` 메뉴로 세로형 Game 뷰도 설정할 수 있습니다.
 4. 하단 **작업대** 탭에서 발굴 타일을 클릭/터치합니다. 안전·공격·정찰 도구와 새 발굴 버튼을 사용할 수 있습니다.
 
@@ -14,10 +14,20 @@
 
 ## 구조
 
-- `Assets/Jamkkaebi/`: 기존 게임 규칙, 데이터, 프리팹, 단독 미니게임 씬 및 테스트.
-- `Assets/MobileUI/`: 공통 UI 셸, 탭 씬, 프로필 표시, 입력 연결 및 작업대 프레젠테이션.
+모든 게임 자산과 코드는 `Assets/Jamkkaebi/` 아래에 있습니다.
+
+| 경로 | 어셈블리 | 네임스페이스 | 내용 |
+| --- | --- | --- | --- |
+| `Scripts/Gameplay/` | `Jamkkaebi.Runtime` | `Jamkkaebi.Scripts.Gameplay.*` | 미니게임 규칙, 수집 규칙, 데이터, NPC 계약 |
+| `Scripts/UI/` | `Jamkkaebi.UI` | `Jamkkaebi.Scripts.UI.*` | 탭 셸, SafeArea, 전시관·도감·친구·작업대 화면 |
+| `Editor/` | Assembly-CSharp-Editor | 전역 | 씬 이관·검증·인스펙터 도구 |
+| `Tests/EditMode/` | `Jamkkaebi.Gameplay.EditMode` | `Jamkkaebi.Tests.EditMode` | 게임 규칙 테스트 |
+| `Tests/UI/` | `Jamkkaebi.UI.EditMode`, `Jamkkaebi.UI.TestSupport` | `Jamkkaebi.Tests.UI.*` | UI 계약 테스트와 테스트 대역 |
+
+- 의존 방향은 `Jamkkaebi.UI → Jamkkaebi.Runtime` 한 방향입니다. 게임 규칙 코드에서 UI를 참조하지 않습니다.
+- `Art/`, `Configuration/`, `Fonts/`, `Materials/`, `Prefabs/`, `Scenes/`, `ScriptableObjects/`: 자산 폴더.
 - `Packages/`, `ProjectSettings/`: 프로젝트 전체에서 한 벌만 사용합니다. 기존 URP 및 Both 입력 설정을 유지합니다.
-- `Assets/MobileUI/Configuration/MainTabs.asset`: 탭 목록과 배경 실행 정책.
+- `Assets/Jamkkaebi/Configuration/MainTabs.asset`: 탭 목록과 배경 실행 정책.
 
 작업대는 `Background Policy`가 `Pause While Hidden`으로 설정되어 있어 탭을 떠나면 타이머와 게임이 멈추고, 돌아오면 같은 상태에서 이어집니다. 다른 탭은 계속 실행됩니다. `MainTabs`에서 탭별로 `Continue Running`(계속 실행), `Pause While Hidden`(숨김 중 동결), `Restart On Return`(복귀 시 초기화)을 선택할 수 있습니다.
 
@@ -30,7 +40,7 @@
 
 게임 실행 후 홈 첫 표시에서 배경 등장 연출을 한 번 재생합니다. 홈 진입·이탈 시의 배경 시차는 별도 연출이며, 탭을 왕복해도 계속 동작합니다. 짧게 밀고 멈춘 뒤 놓으면 원위치로 복귀하고, 충분히 밀거나 빠르게 밀면 인접 탭으로 이동합니다. 양 끝 탭은 순환하지 않습니다. 전용 드래그 오브젝트는 자체 조작을 우선합니다.
 
-5번 아트워크 상판은 **화면에 선을 표시하지 않는 7×7 논리 격자**입니다. `Assets/MobileUI/Configuration/ExhibitionGrid.asset`에서 원점·두 축·범위를 확인할 수 있습니다. 격자 변환·가려짐 정렬·시점 배율 변경 API를 제공합니다. 핀치 줌 조작은 아직 포함하지 않습니다.
+5번 아트워크 상판은 **화면에 선을 표시하지 않는 7×7 논리 격자**입니다. `Assets/Jamkkaebi/Configuration/ExhibitionGrid.asset`에서 원점·두 축·범위를 확인할 수 있습니다. 격자 변환·가려짐 정렬·시점 배율 변경 API를 제공합니다. 핀치 줌 조작은 아직 포함하지 않습니다.
 
 전시물 종류 ID·점유 크기·표현은 HousingItemDefinition 자산에서 설정합니다. 도감 연결 계층은 배치 요청을 받아 선택한 정의를 전달하고 배치·회수 이벤트를 받을 수 있습니다. 현재 기본 자산은 PrototypeExhibitionItem.asset이며 실제 도감·인벤토리는 연결하지 않았습니다.
 

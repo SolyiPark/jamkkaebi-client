@@ -21,7 +21,7 @@
 
 ## 검토 방법
 
-1. `Assets/MobileUI/Scenes/UIPrototype.unity`에서 Play하고 친구 탭의 프로필을 누른다.
+1. `Assets/Jamkkaebi/Scenes/UIPrototype.unity`에서 Play하고 친구 탭의 프로필을 누른다.
 2. 약 0.3초 동안 로딩 표시와 비활성 보상 버튼을 확인한다.
 3. 전시 객체를 누르면 이름·각성·레벨이 나타난다. 도깨비는 약 1초마다 이동하지만 저장 배치는 바뀌지 않는다.
 4. 방문 보상을 누르면 별도 모의 명령이 완료된 뒤 일일 완료 상태로 바뀐다. 친구를 바꾸어도 같은 날 두 번 받지 않는다.
@@ -51,7 +51,7 @@
 
 ## 파일 구성
 
-`Assets/MobileUI/Scripts/Friends/`의 `IExhibitionBackend`, `MockExhibitionBackend`, `ExhibitionSnapshot`, `SnapshotPlacement`, `ExhibitionVisitSession`, `ExhibitionVisitScene`, `VisitObject`가 조회와 재현을 담당한다. `FriendsPresenter`는 이 계층을 호출하고 표시한다. 기존 `Friends.unity`에 격자 자산 참조를 추가했으며 씬 GUID와 공통 입력·탭 구조를 유지한다.
+`Assets/Jamkkaebi/Scripts/UI/Friends/`의 `IExhibitionBackend`, `MockExhibitionBackend`, `ExhibitionSnapshot`, `SnapshotPlacement`, `ExhibitionVisitSession`, `ExhibitionVisitScene`, `VisitObject`가 조회와 재현을 담당한다. `FriendsPresenter`는 이 계층을 호출하고 표시한다. 기존 `Friends.unity`에 격자 자산 참조를 추가했으며 씬 GUID와 공통 입력·탭 구조를 유지한다.
 
 ## 실행 검증
 
