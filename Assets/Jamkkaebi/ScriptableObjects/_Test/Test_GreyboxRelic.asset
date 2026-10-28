@@ -22,4 +22,3 @@ MonoBehaviour:
     _reinforcedTileCount: 3
     _destructiveToolLimit: 30
     _scoutToolLimit: 2
-    _allowedThreatHits: 4

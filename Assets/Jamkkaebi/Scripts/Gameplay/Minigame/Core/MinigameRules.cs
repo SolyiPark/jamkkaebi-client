@@ -8,6 +8,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
     public static class MinigameRules
     {
         /// <summary>
+        /// 실패하기 전까지 허용하는 위협 타일 공개 횟수. 이 횟수만큼 열리면 손상도가 100%가 된다.
+        /// </summary>
+        /// <remarks>
+        /// 서버 탭·위협 기본 수치가 "위협 3개에 실패"를 전제로 맞춰져 있어 모든 난이도에 같은 값을 쓴다.
+        /// 서버 기준이 바뀌면 함께 바꿔야 한다.
+        /// </remarks>
+        public const int AllowedThreatHits = 3;
+
+        /// <summary>
         /// 목표 폴리오미노를 고를 때 쓰는 모양 풀. 서로 다른 모양만 들어 있다.
         /// </summary>
         /// <remarks>

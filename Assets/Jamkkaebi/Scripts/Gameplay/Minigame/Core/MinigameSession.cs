@@ -12,7 +12,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 
         public float DamageGauge                                        // 손상도 게이지
         {
-            // (지금까지 열린 위협 타일의 개수)와 (페이즈별 허용 위협타일 개수)의 비율로 계산
+            // (지금까지 열린 위협 타일의 개수)와 (허용 위협타일 개수)의 비율로 계산
             // damagePerThreat을 누적계산하면 합이 1이 되지 않는 문제가 있음
             // public float DamageGauge => Mathf.Clamp((float)_threatHtisRevealed / _allowedThreatHits);
             get { return Mathf.Clamp01((float)_threatHitsRevealed / _allowedThreatHits); }
