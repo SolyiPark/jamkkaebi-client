@@ -122,11 +122,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private void Update()
         {
-            if (_session != null && _session.State == SessionState.InProgress)
-            {
-                _session.AdvanceTime(Time.deltaTime);
-                HandleSessionEndIfNeeded();
-            }
             if (!CanAcceptInput) return;
             
             // TODO: 정식 도구 선택 UI 완성되면 해당 Update는 필요 없음
@@ -220,7 +215,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         {
             if (_hasHandledEnd || _session.State == SessionState.InProgress) return;
             _hasHandledEnd = true;
-            Debug.Log($"세션 종료: {_session.State} (남은 시간: {_session.RemainingSeconds:F1}s, 손상도: {_session.DamageGauge:P0})");
+            Debug.Log($"세션 종료: {_session.State} (손상도: {_session.DamageGauge:P0})");
             // TODO: 세션 종료 결과 화면 처리
         }
 

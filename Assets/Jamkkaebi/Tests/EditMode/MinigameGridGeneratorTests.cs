@@ -15,7 +15,6 @@ namespace Jamkkaebi.Tests.EditMode
             threatTileCount: 5,
             helperTileCount: 2,
             reinforcedTileCount: 3,
-            timeLimit: 60f,
             destructiveToolLimit: 19,
             scoutToolLimit: 3,
             allowedThreatHits: 3 
@@ -28,7 +27,6 @@ namespace Jamkkaebi.Tests.EditMode
             threatTileCount: 5,
             helperTileCount: 2,
             reinforcedTileCount: 3,
-            timeLimit: 60f,
             destructiveToolLimit: 19,
             scoutToolLimit: 3,
             allowedThreatHits: 3 
@@ -41,7 +39,6 @@ namespace Jamkkaebi.Tests.EditMode
             threatTileCount: 5,
             helperTileCount: 2,
             reinforcedTileCount: 3,
-            timeLimit: 60f,
             destructiveToolLimit: 19,
             scoutToolLimit: 3,
             allowedThreatHits: 3 
@@ -162,7 +159,7 @@ namespace Jamkkaebi.Tests.EditMode
             long seed = 12345678;
             PolyominoSetRule rule = CreateRule();
             MinigamePhaseConfig smallGridConfig =
-                new MinigamePhaseConfig(3, 3, new List<PolyominoShape>(), 5, 2, 3, 60f, 19, 3, 3);
+                new MinigamePhaseConfig(3, 3, new List<PolyominoShape>(), 5, 2, 3, 19, 3, 3);
             
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(smallGridConfig, rule, ShapeCount, seed));

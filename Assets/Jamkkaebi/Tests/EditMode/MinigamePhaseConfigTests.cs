@@ -12,7 +12,6 @@ namespace Jamkkaebi.Tests.EditMode
         private const int BaseThreat = 5;
         private const int BaseHelper = 2;
         private const int BaseReinforced = 3;
-        private const float BaseTimeLimit = 60f;
         private const int BaseDestructive = 19;
         private const int BaseScout = 4;
         private const int BaseAllowedThreatHits = 1;
@@ -24,7 +23,7 @@ namespace Jamkkaebi.Tests.EditMode
         {
             List<PolyominoShape> baseShapes = new List<PolyominoShape>
                 { PolyominoShape.Square4, PolyominoShape.Line5 };
-            _baseConfig = new MinigamePhaseConfig(BaseWidth, BaseHeight, baseShapes, BaseThreat, BaseHelper, BaseReinforced, BaseTimeLimit, BaseDestructive, BaseScout, BaseAllowedThreatHits);
+            _baseConfig = new MinigamePhaseConfig(BaseWidth, BaseHeight, baseShapes, BaseThreat, BaseHelper, BaseReinforced, BaseDestructive, BaseScout, BaseAllowedThreatHits);
         }
         
         [Test]
@@ -44,7 +43,6 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(BaseThreat, config.ThreatTileCount);
             Assert.AreEqual(BaseHelper, config.HelperTileCount);
             Assert.AreEqual(BaseReinforced, config.ReinforcedTileCount);
-            Assert.AreEqual(BaseTimeLimit, config.TimeLimit);
             Assert.AreEqual(BaseDestructive, config.DestructiveToolLimit);
             Assert.AreEqual(BaseScout, config.ScoutToolLimit);
             Assert.AreEqual(BaseAllowedThreatHits, config.AllowedThreatHits);

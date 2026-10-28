@@ -22,7 +22,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         private int _threatHitsRevealed;                                // 지금까지 열린 위협 타일 개수
         public int RemainingDestructiveToolUses { get; private set; }   // 남은 타일 파괴 시도 횟수(공격형, 안전형 도구)
         public int RemainingScoutToolUses { get; private set; }         // 남은 정찰 도구 사용 횟수
-        public float RemainingSeconds { get; private set; }             // 현재 남은시간
 
         public long Seed { get; }
         
@@ -34,26 +33,27 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             Seed = seed;
         }
 
+        /// <summary>
+        /// 이미 만들어진 그리드와 설정으로 진행 중 상태의 세션을 만든다.
+        /// </summary>
+        /// <param name="grid">세션에서 사용할 그리드.</param>
+        /// <param name="config">도구 사용 횟수, 허용 위협 횟수 등이 담긴 설정.</param>
+        /// <exception cref="ArgumentException">설정의 파괴 도구 사용 횟수가 1 미만일 때.</exception>
         public MinigameSession(MinigameGrid grid, MinigamePhaseConfig config)
         {
+            // 파괴 도구가 없으면 플레이가 성립하지 않으므로 잘못된 설정으로 본다.
+            if (config.DestructiveToolLimit < 1)
+            {
+                throw new ArgumentException(
+                    $"파괴 도구 사용 횟수는 1 이상이어야 합니다. (입력값: {config.DestructiveToolLimit})", nameof(config));
+            }
+
             Grid = grid;
             State = SessionState.InProgress;
             _allowedThreatHits = config.AllowedThreatHits;
             _threatHitsRevealed = 0;
             RemainingDestructiveToolUses = config.DestructiveToolLimit;
             RemainingScoutToolUses = config.ScoutToolLimit;
-            RemainingSeconds = config.TimeLimit;
-        }
-
-        public void AdvanceTime(float deltaTime)
-        {
-            if (State != SessionState.InProgress)
-            {
-                return;
-            }
-            
-            RemainingSeconds = Mathf.Max(0f, RemainingSeconds - deltaTime);
-            EvaluateEndCondition();
         }
 
         public void EvaluateEndCondition()
@@ -70,7 +70,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             {
                 State = SessionState.Succeeded;
             }
-            else if (RemainingSeconds <= 0 || DamageGauge >= 1.0f || RemainingDestructiveToolUses <= 0)
+            else if (DamageGauge >= 1.0f || RemainingDestructiveToolUses <= 0)
             {
                 State = SessionState.Failed;
             }
@@ -108,6 +108,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
             
             // 가드2: 도구 사용 횟수를 모두 소진했을 때 -> NoUsesRemaining 반환
+            // 생성자가 0회 설정을 막고, 횟수가 0이 되는 순간 실패로 판정되므로 현재는 도달하지 않는다. 방어용으로 남겨 둔다.
             if (RemainingDestructiveToolUses <= 0)
             {
                 return DestroyResult.NoUsesRemaining;

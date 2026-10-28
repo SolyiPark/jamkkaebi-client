@@ -19,7 +19,6 @@ MonoBehaviour:
     _threatTileCount: 5
     _helperTileCount: 2
     _reinforcedTileCount: 3
-    _timeLimit: 90
     _destructiveToolLimit: 30
     _scoutToolLimit: 2
     _allowedThreatHits: 4

@@ -1028,13 +1028,13 @@ namespace MobilePrototype
             yield return new WaitForSeconds(.35f);
             Check(host.ActiveIndex == 0 && adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses,
                 "swiping from excavation tile does not click it");
-            float hiddenSeconds = adapter.Session.RemainingSeconds;
+            var hiddenSession = adapter.Session;
             dragPointer = PointerAt(host, new Vector2(.5f, .8f));
             host.input.OnPointerDown(dragPointer);
             dragPointer.position -= Vector2.right * Screen.width * .1f;
             host.input.OnDrag(dragPointer);
             yield return new WaitForSeconds(.2f);
-            Check(Mathf.Abs(adapter.Session.RemainingSeconds - hiddenSeconds) < .001f, "preview does not resume hidden workshop");
+            Check(!adapter.CanAcceptInput && adapter.Session == hiddenSession, "preview does not resume hidden workshop");
             host.input.Cancel();
             yield return null;
             Check(host.ActiveIndex == 0 && !host.IsBusy, "input cancellation restores tab");
@@ -1058,21 +1058,21 @@ namespace MobilePrototype
             Check(adapter.Session.RemainingScoutToolUses == pausedUses, "global pause blocks tile input");
             Time.timeScale = 1;
             host.SelectTab(0); yield return new WaitForSeconds(.35f);
-            float remaining = adapter.Session.RemainingSeconds;
+            var retainedSession = adapter.Session;
             yield return new WaitForSeconds(.15f);
             Check(host.catalog.tabs[1].backgroundPolicy == BackgroundPolicy.PauseWhileHidden &&
-                Mathf.Abs(adapter.Session.RemainingSeconds - remaining) < .001f,
-                "default hidden workshop freezes timer and retains session");
+                !adapter.CanAcceptInput && adapter.Session == retainedSession,
+                "default hidden workshop pauses and retains session");
             adapter.SelectTool(ToolMode.AttackDestroy);
             Check(adapter.SelectedTool == ToolMode.Scout && !adapter.CanAcceptInput, "hidden workshop rejects input");
             Check(exhibition.Intro.IsComplete, "minigame input does not replay home intro");
             host.SelectTab(1); yield return new WaitForSeconds(.35f);
             host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
-            host.SelectTab(0); yield return new WaitForSeconds(.35f); remaining = adapter.Session.RemainingSeconds;
+            host.SelectTab(0); yield return new WaitForSeconds(.35f);
             yield return new WaitForSeconds(.35f);
-            Check(Mathf.Abs(adapter.Session.RemainingSeconds - remaining) < .001f, "hidden pause freezes workshop timer");
+            Check(!adapter.CanAcceptInput && adapter.Session.RemainingDestructiveToolUses == uses - 1, "hidden pause retains workshop state");
             host.SelectTab(1); yield return new WaitForSeconds(.45f);
-            Check(adapter.Session.RemainingSeconds < remaining && adapter.Session.RemainingDestructiveToolUses == uses - 1, "resume retains state and resumes timer");
+            Check(adapter.CanAcceptInput && adapter.Session.RemainingDestructiveToolUses == uses - 1, "resume retains state and accepts input");
             Click(host, presenter.toolButtons[0].transform.position);
             tileView = CoveredEmpty(adapter); Click(host, tileView.transform.position);
             Check(tileView.GetComponent<SpriteRenderer>().color == Color.white, "tile event subscription restored after pause");
