@@ -195,6 +195,18 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(overConfig, seed));
         }
 
+        [TestCase(-1, 1)]   // 형상 안 강화가 음수
+        [TestCase(2, -1)]   // 형상 밖 강화가 음수
+        public void Generate_NegativeReinforcedCount_ThrowsArgumentException(int onShape, int onField)
+        {
+            // Arrange
+            long seed = 12345678;
+            MinigameBoardConfig negativeConfig = WithReinforced(onShape, onField);
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() => MinigameGridGenerator.Generate(negativeConfig, seed));
+        }
+
         private MinigameBoardConfig WithReinforced(int onShape, int onField)
         {
             return new MinigameBoardConfig(
