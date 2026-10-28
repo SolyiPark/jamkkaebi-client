@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a1fb26222cf4faa9f4d6a7900af5059, type: 3}
+  m_Name: LocalMinigameDifficultyTable
+  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Data.MinigameDifficultyTable
+  _entries:
+  - _difficulty: 0
+    _board:
+      _width: 5
+      _height: 6
+      _shapeCount: 2
+      _shapeCellTotal: 7
+      _threatTileCount: 2
+      _helperTileCount: 1
+      _reinforcedTileCount: 2
+      _destructiveToolLimit: 12
+      _scoutToolLimit: 3
+  - _difficulty: 1
+    _board:
+      _width: 6
+      _height: 7
+      _shapeCount: 3
+      _shapeCellTotal: 10
+      _threatTileCount: 4
+      _helperTileCount: 1
+      _reinforcedTileCount: 2
+      _destructiveToolLimit: 16
+      _scoutToolLimit: 3
+  - _difficulty: 2
+    _board:
+      _width: 7
+      _height: 8
+      _shapeCount: 3
+      _shapeCellTotal: 12
+      _threatTileCount: 6
+      _helperTileCount: 1
+      _reinforcedTileCount: 3
+      _destructiveToolLimit: 19
+      _scoutToolLimit: 3
+  - _difficulty: 3
+    _board:
+      _width: 8
+      _height: 9
+      _shapeCount: 4
+      _shapeCellTotal: 14
+      _threatTileCount: 8
+      _helperTileCount: 2
+      _reinforcedTileCount: 4
+      _destructiveToolLimit: 20
+      _scoutToolLimit: 3
