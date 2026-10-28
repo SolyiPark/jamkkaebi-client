@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     /// <summary>ServerId는 보유한 완성 유물의 artifactId. Cell은 걷기 좌표가 아닌 배치 기준점.</summary>
     public sealed class ExhibitionNpcData : ExhibitionObjectData

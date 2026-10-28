@@ -1,8 +1,8 @@
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace MobilePrototype.Tests.EditMode
+namespace Jamkkaebi.Tests.UI.EditMode
 {
     public sealed class HousingLayoutTests
     {

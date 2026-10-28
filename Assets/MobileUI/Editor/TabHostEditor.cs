@@ -1,4 +1,4 @@
-using MobilePrototype;
+using Jamkkaebi.Scripts.UI;
 using UnityEditor;
 using UnityEngine;
 

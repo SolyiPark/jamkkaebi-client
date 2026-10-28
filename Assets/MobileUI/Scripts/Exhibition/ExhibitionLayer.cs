@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     [RequireComponent(typeof(SpriteRenderer))]
     public sealed class ExhibitionLayer : MonoBehaviour

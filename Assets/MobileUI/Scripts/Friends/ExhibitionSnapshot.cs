@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>조회 한 번으로 전달할 전시 패키지. 서버 DTO와 구분되는 모의 어댑터의 출력입니다.</summary>
     public sealed class ExhibitionSnapshot

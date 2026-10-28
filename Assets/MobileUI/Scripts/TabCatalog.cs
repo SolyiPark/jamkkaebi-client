@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     public class ScenePathAttribute : PropertyAttribute { }
     public enum BackgroundPolicy { ContinueRunning, PauseWhileHidden, RestartOnReturn }

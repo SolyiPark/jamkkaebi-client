@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>스냅샷의 저장 배치. 런타임 이동 상태와 분리한 읽기 전용 값입니다.</summary>
     public sealed class SnapshotPlacement

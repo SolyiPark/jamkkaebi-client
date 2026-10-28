@@ -3,7 +3,7 @@ using System;
 using System.Reflection;
 using UnityEngine;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     internal static class SpriteFallbackBufferCleanup
     {

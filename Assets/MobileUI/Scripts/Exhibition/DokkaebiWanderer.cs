@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     // Replace this adjacent-cell policy when richer movement is introduced.
     public sealed class DokkaebiWanderer : MonoBehaviour

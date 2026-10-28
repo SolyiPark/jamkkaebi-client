@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     /// <summary>ServerId는 보유 건물의 buildingId. 로컬 배치 번호를 서버 ID로 사용하지 않는다.</summary>
     public sealed class ExhibitionBuildingData : ExhibitionObjectData

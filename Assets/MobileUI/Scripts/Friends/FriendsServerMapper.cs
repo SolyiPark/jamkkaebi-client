@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>JsonUnwrapped 요약과 중첩 player를 구분하여 서버 상태를 화면 모델로 변환합니다.</summary>
     public static class FriendsServerMapper

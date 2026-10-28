@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using UnityEngine;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>패키지 검증과 방문 전용 재현 상태. 홈의 배치·정령 데이터에 접근하지 않습니다.</summary>
     public sealed class ExhibitionVisitScene

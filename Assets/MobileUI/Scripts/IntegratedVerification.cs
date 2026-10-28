@@ -1,7 +1,7 @@
 using System;
-using MobilePrototype.Collection;
-using MobilePrototype.Friends;
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI.Collection;
+using Jamkkaebi.Scripts.UI.Friends;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -16,7 +16,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Newtonsoft.Json.Linq;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     /// <summary>
     /// 명시적 검증 옵션을 받은 개발 플레이어에서 실제 씬·입력·렌더링을 검사하고 결과를 저장합니다.

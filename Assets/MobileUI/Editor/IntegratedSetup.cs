@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
-using MobilePrototype;
+using Jamkkaebi.Scripts.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     public static class UIFactory
     {

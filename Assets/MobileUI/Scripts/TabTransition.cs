@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI.Exhibition;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     public sealed class TabTransition : MonoBehaviour
     {

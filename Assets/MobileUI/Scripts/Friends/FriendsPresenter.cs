@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
-using MobilePrototype.Collection;
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI.Collection;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using UnityEngine;
 using UnityEngine.UI;
 using Newtonsoft.Json.Linq;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>PDF의 친구 화면을 기존 카메라·입력 브리지 안에서 구성하는 로컬 프론트엔드입니다.</summary>
     [RequireComponent(typeof(MirrorSceneRoot))]

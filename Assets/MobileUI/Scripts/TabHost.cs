@@ -1,5 +1,5 @@
 using System;
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     public class TabHost : MonoBehaviour
     {

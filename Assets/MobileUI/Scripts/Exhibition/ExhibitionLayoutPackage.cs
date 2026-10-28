@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     public static class ExhibitionLayoutPackage
     {

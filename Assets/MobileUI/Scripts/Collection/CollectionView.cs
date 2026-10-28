@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>도감 디자인을 교체할 수 있는 표시 경계입니다. 입력 의도만 알리고 수집 기록은 변경하지 않습니다.</summary>
     /// <remarks>

@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
-using MobilePrototype.Friends;
+using Jamkkaebi.Scripts.UI.Friends;
 using Newtonsoft.Json.Linq;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     /// <summary>객체마다 요청하지 않고 캡처한 편집 결과를 한 패키지로 저장한다.</summary>
     public sealed class ExhibitionLayoutWrapper

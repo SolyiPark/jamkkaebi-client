@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     [RequireComponent(typeof(ExhibitionIntro))]
     public sealed class ExhibitionView : MonoBehaviour

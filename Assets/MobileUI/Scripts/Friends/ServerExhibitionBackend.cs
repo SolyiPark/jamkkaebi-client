@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     public sealed class ServerExhibitionBackend : IExhibitionBackend
     {

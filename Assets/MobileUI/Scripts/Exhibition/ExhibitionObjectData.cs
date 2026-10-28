@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     /// <summary>로컬 표현과 서버 소유 객체의 식별자를 분리한 불변 배치 데이터.</summary>
     public abstract class ExhibitionObjectData

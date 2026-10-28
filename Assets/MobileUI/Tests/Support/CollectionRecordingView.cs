@@ -1,9 +1,10 @@
 using System.Collections.Generic;
-using MobilePrototype.Collection;
+using Jamkkaebi.Scripts.UI;
+using Jamkkaebi.Scripts.UI.Collection;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MobilePrototype.Tests.EditMode
+namespace Jamkkaebi.Tests.UI.EditMode
 {
     /// <summary>실제 UI 계층 없이 교체 View의 데이터·입력 계약을 검사합니다.</summary>
     /// <remarks>

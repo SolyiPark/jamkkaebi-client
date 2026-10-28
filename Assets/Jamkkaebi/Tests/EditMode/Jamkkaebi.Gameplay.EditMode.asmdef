@@ -1,5 +1,5 @@
 {
-    "name": "EditMode",
+    "name": "Jamkkaebi.Gameplay.EditMode",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",

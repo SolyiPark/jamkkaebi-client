@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
     /// 카탈로그 그림이 비어 있을 때 유물, 정령, 건물과 잠금 상태를 임시 벡터 기호로 표시합니다.

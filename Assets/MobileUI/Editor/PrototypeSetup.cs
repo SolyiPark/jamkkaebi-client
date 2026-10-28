@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using MobilePrototype;
+using Jamkkaebi.Scripts.UI;
 using UnityEditor;
 using UnityEngine;
 

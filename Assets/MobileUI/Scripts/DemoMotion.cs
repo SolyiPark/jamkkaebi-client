@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     public class DemoMotion : MonoBehaviour
     {

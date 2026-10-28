@@ -1,14 +1,14 @@
 using System;
 using System.Collections;
 using System.IO;
-using MobilePrototype.Exhibition;
-using MobilePrototype.Friends;
+using Jamkkaebi.Scripts.UI.Exhibition;
+using Jamkkaebi.Scripts.UI.Friends;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace MobilePrototype.Tests
+namespace Jamkkaebi.Tests.UI
 {
     public sealed class ExhibitionLayoutTransmissionTests
     {

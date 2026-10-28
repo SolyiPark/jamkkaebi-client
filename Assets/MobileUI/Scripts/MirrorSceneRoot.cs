@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     // Keep all scene content under this root. A pause deactivates this root only;
     // Time.timeScale and the other scenes are deliberately unaffected.

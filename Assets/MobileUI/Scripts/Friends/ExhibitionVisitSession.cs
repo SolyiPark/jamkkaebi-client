@@ -1,6 +1,6 @@
 using System;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>요청 세대 번호로 취소·복귀 후 응답과 이전 친구의 늦은 응답을 무시합니다.</summary>
     public sealed class ExhibitionVisitSession

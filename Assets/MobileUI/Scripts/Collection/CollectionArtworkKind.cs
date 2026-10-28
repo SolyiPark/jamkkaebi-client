@@ -1,4 +1,4 @@
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>실제 그림 자산이 없을 때 표시할 도감 임시 벡터 기호의 종류입니다.</summary>
     public enum CollectionArtworkKind

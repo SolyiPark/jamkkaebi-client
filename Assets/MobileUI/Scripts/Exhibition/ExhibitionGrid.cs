@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     [CreateAssetMenu(menuName = "Jamkkaebi/Exhibition/Grid")]
     public sealed class ExhibitionGrid : ScriptableObject

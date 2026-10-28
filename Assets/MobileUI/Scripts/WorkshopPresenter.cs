@@ -3,7 +3,7 @@ using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     public class WorkshopPresenter : MonoBehaviour
     {

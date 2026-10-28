@@ -1,4 +1,4 @@
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     // Conditional gestures leave ordinary swipes to navigation until they explicitly capture input.
     public interface IMirrorGestureOwner

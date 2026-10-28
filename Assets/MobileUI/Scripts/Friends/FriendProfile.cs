@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>친구 화면에서 사용하는 로컬 미리보기 프로필입니다. 서버 DTO가 아닙니다.</summary>
     public sealed class FriendProfile

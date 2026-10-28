@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>방문 장면에서만 사용하는 현재 셀. 저장 앵커는 변경하지 않습니다.</summary>
     public sealed class VisitObject

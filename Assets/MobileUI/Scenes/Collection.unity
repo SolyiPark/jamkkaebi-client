@@ -276,7 +276,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6af1510803bf26409cb08fa2e7c8313, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MobilePrototype.MirrorSceneRoot
+  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.MirrorSceneRoot
   sceneCamera: {fileID: 71618419}
   uiRaycasters: []
 --- !u!4 &1110976198
@@ -306,7 +306,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8c5d4a2c3f8e4a18a331a791097c53a0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Collection.CollectionPresenter
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Collection.CollectionPresenter
   _catalog: {fileID: 11400000, guid: 22828c1a012011741b19400997c6af8e, type: 2}
   _font: {fileID: 12800000, guid: 8ff598083fa05724cb7948bd3db7f4ac, type: 3}
   _appearance: {fileID: 11400000, guid: 49d8d7188a1f0144cbddcbf62b76986a, type: 2}

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
     /// 도감 공통 UI 그림입니다. 비어 있는 슬롯은 기존 색상과 벡터 기호를 사용합니다.

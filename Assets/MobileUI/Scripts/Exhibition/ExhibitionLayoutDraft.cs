@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     /// <summary>관리 대상 전체. Placed=false도 포함해야 회수한 객체가 서버에서 제거된다.</summary>
     public sealed class ExhibitionLayoutDraft

@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Collection;
-using MobilePrototype;
-using MobilePrototype.Collection;
+using Jamkkaebi.Scripts.UI;
+using Jamkkaebi.Scripts.UI.Collection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;

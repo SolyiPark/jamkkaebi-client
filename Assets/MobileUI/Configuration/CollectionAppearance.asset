@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d2e0df7fa13d435e999e3b332e02941c, type: 3}
   m_Name: CollectionAppearance
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Collection.CollectionAppearance
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Collection.CollectionAppearance
   _pageBackground: {fileID: 0}
   _eraCardBackground: {fileID: 0}
   _restoredRelicCardBackground: {fileID: 0}

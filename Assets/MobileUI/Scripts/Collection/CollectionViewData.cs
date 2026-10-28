@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Jamkkaebi.Scripts.Gameplay.Collection;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>한 번의 화면 갱신에 사용할 수집 판정의 복사본입니다. View에는 변경 가능한 진행 모델을 전달하지 않습니다.</summary>
     /// <remarks>

@@ -1,6 +1,6 @@
 using Jamkkaebi.Scripts.Gameplay.Collection;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
     /// 확정 카탈로그를 사용하는 도감 화면 검토용 샘플 완료 기록입니다.

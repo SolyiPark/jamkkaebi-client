@@ -3,7 +3,7 @@ using Jamkkaebi.Scripts.Gameplay.Collection;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
     /// 복원 완료 기록을 시대 목록, 시대 상세와 유물 상세로 표시하고 도감 내부 탐색을 관리합니다.

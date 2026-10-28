@@ -1,4 +1,4 @@
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>하나의 도감 콘텐츠 씬 안에서 전환하는 내부 화면 종류입니다.</summary>
     public enum CollectionPage

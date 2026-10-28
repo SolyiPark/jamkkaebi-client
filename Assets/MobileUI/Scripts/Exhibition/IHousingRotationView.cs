@@ -1,4 +1,4 @@
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     // Optional prefab presentation hook; footprint rotation stays in HousingLayout.
     public interface IHousingRotationView

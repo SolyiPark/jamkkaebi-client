@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>화면 검토용 메모리 상태입니다. 게임 보상이나 서버 저장을 변경하지 않습니다.</summary>
     public sealed class FriendsPreviewState

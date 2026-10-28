@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     [RequireComponent(typeof(SortingGroup))]
     public sealed class ExhibitionDepth : MonoBehaviour

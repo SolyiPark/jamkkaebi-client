@@ -4,7 +4,7 @@ using Jamkkaebi.Scripts.Gameplay.Collection;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>기존 도감의 배치와 그림 선택을 유지하는 기본 View입니다. 수집 기록을 변경하지 않습니다.</summary>
     /// <remarks>

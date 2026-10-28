@@ -1,6 +1,6 @@
 using System;
-using MobilePrototype;
-using MobilePrototype.Friends;
+using Jamkkaebi.Scripts.UI;
+using Jamkkaebi.Scripts.UI.Friends;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -23,7 +23,7 @@ public static class FriendsSetup
         root.uiRaycasters = Array.Empty<UnityEngine.UI.GraphicRaycaster>();
         var presenter = new SerializedObject(root.gameObject.AddComponent<FriendsPresenter>());
         presenter.FindProperty("_font").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Font>("Assets/MobileUI/Fonts/NotoSansCJKkr-Regular.otf");
-        presenter.FindProperty("_visitGrid").objectReferenceValue = AssetDatabase.LoadAssetAtPath<MobilePrototype.Exhibition.ExhibitionGrid>("Assets/MobileUI/Configuration/ExhibitionGrid.asset");
+        presenter.FindProperty("_visitGrid").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Jamkkaebi.Scripts.UI.Exhibition.ExhibitionGrid>("Assets/MobileUI/Configuration/ExhibitionGrid.asset");
         presenter.ApplyModifiedPropertiesWithoutUndo();
         MirrorSceneRoot.SetLayer(root.transform, 11); root.sceneCamera.cullingMask = 1 << 11;
         EditorSceneManager.SaveScene(scene);

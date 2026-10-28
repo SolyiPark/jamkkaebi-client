@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype
+namespace Jamkkaebi.Scripts.UI
 {
     /// <summary>
     /// 이 RectTransform을 기기의 안전 영역(노치·홈 인디케이터 제외 영역)에 맞춘다.

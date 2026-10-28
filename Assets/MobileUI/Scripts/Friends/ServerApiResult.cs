@@ -1,6 +1,6 @@
 using Newtonsoft.Json.Linq;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     public sealed class ServerApiResult
     {

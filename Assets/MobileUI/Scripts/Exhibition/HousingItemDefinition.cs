@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     [CreateAssetMenu(menuName = "Jamkkaebi/Exhibition/Item")]
     public sealed class HousingItemDefinition : ScriptableObject

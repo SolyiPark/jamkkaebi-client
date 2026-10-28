@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     // Small code-drawn placeholders; real sprites can replace these without changing occupancy.
     public sealed class ExhibitionDummyVisuals : IDisposable

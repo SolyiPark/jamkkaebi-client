@@ -1,12 +1,12 @@
 using System;
 using System.Collections;
 using System.IO;
-using MobilePrototype.Friends;
+using Jamkkaebi.Scripts.UI.Friends;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 
-namespace MobilePrototype.Tests
+namespace Jamkkaebi.Tests.UI
 {
     public sealed class ServerContractTests
     {

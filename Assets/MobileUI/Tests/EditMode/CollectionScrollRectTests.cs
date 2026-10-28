@@ -1,11 +1,11 @@
-using MobilePrototype.Collection;
+using Jamkkaebi.Scripts.UI.Collection;
 using NUnit.Framework;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace MobilePrototype.Tests.EditMode
+namespace Jamkkaebi.Tests.UI.EditMode
 {
     /// <summary>
     /// 도감 스크롤의 탭 제스처 분리, 수명 정리와 뷰포트 변경 시 논리 위치 보존을 검증합니다.

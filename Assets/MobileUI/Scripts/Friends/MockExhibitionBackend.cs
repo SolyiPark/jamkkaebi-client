@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>독립 모의 구현의 응답 시나리오를 Unity에서 재현합니다. 숨김·미배치 콘텐츠는 패키지에서 제외합니다.</summary>
     public sealed class MockExhibitionBackend : IExhibitionBackend

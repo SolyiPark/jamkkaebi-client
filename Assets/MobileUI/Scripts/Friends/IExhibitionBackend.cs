@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>모의·HTTP 공급자가 공유하는 전시 전체 조회와 별도 방문 보상 명령의 경계입니다.</summary>
     public interface IExhibitionBackend

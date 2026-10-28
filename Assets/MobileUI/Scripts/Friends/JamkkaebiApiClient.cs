@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine.Networking;
 
-namespace MobilePrototype.Friends
+namespace Jamkkaebi.Scripts.UI.Friends
 {
     /// <summary>서버의 ApiResponse·Bearer 인증·회전 토큰 계약. 토큰을 자산이나 PlayerPrefs에 저장하지 않습니다.</summary>
     public sealed class JamkkaebiApiClient

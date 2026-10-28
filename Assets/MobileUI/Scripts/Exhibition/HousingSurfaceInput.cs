@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace MobilePrototype.Exhibition
+namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     public sealed class HousingSurfaceInput : MonoBehaviour, IPointerClickHandler, IPointerDownHandler,
         IPointerUpHandler, IDragHandler, IMirrorGestureOwner

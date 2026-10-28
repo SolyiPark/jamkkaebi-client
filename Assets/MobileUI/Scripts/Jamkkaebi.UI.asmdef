@@ -1,5 +1,5 @@
 {
-  "name": "MobileUI.Runtime",
+  "name": "Jamkkaebi.UI",
   "references": ["Unity.ugui", "Jamkkaebi.Runtime", "Unity.Newtonsoft.Json"],
   "versionDefines": [
     {

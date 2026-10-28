@@ -1,5 +1,5 @@
 using System;
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;

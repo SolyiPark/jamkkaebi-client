@@ -1,10 +1,10 @@
 using System.Reflection;
 using Jamkkaebi.Scripts.Gameplay.Collection;
-using MobilePrototype.Collection;
+using Jamkkaebi.Scripts.UI.Collection;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace MobilePrototype.Tests.EditMode
+namespace Jamkkaebi.Tests.UI.EditMode
 {
     /// <summary>실제 디자인 대신 기록용 View를 연결해도 Presenter가 기능 규칙을 유지하는지 검사합니다.</summary>
     public sealed class CollectionViewContractTests

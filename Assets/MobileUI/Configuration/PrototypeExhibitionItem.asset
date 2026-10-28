@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1b0174a62d664b15bef256bff5a7900a, type: 3}
   m_Name: PrototypeExhibitionItem
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.HousingItemDefinition
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.HousingItemDefinition
   _itemId: prototype-exhibition-stand
   _displayName: 임시 전시물
   _footprint: {x: 1, y: 1}

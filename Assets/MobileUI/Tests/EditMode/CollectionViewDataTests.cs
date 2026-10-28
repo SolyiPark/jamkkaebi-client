@@ -1,9 +1,9 @@
 using Jamkkaebi.Scripts.Gameplay.Collection;
-using MobilePrototype.Collection;
+using Jamkkaebi.Scripts.UI.Collection;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace MobilePrototype.Tests.EditMode
+namespace Jamkkaebi.Tests.UI.EditMode
 {
     public sealed class CollectionViewDataTests
     {

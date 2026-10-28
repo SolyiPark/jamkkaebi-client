@@ -1,9 +1,9 @@
 using System.Linq;
-using MobilePrototype.Friends;
+using Jamkkaebi.Scripts.UI.Friends;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace MobilePrototype.Tests
+namespace Jamkkaebi.Tests.UI
 {
     public sealed class ExhibitionVisitTests
     {

@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using MobilePrototype;
-using MobilePrototype.Exhibition;
+using Jamkkaebi.Scripts.UI;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;

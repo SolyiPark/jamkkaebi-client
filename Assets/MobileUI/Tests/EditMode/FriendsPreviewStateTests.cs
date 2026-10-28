@@ -1,8 +1,8 @@
 using System;
-using MobilePrototype.Friends;
+using Jamkkaebi.Scripts.UI.Friends;
 using NUnit.Framework;
 
-namespace MobilePrototype.Tests
+namespace Jamkkaebi.Tests.UI
 {
     public sealed class FriendsPreviewStateTests
     {

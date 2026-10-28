@@ -204,7 +204,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0
   _introDelay: 0.81000006
   _opacity: 0.075
@@ -441,7 +441,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.025
   _introDelay: 0.18
   _opacity: 1
@@ -550,7 +550,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.36
   _introDelay: 0.63
   _opacity: 1
@@ -659,7 +659,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.055
   _introDelay: 0.09
   _opacity: 1
@@ -799,7 +799,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.32
   _introDelay: 0.54
   _opacity: 1
@@ -895,7 +895,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: db0845969efcfc341b16f3fa7919be34, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionView
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionView
   _camera: {fileID: 339322683}
   _zoom: 1
   _center: {x: 0, y: 0}
@@ -910,7 +910,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af55932940d53c34588bd328ac955160, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionIntro
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionIntro
   _playOnSessionStart: 1
   _duration: 1.65
 --- !u!114 &1191466250
@@ -924,7 +924,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6af1510803bf26409cb08fa2e7c8313, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.MirrorSceneRoot
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.MirrorSceneRoot
   sceneCamera: {fileID: 339322683}
   uiRaycasters: []
 --- !u!114 &1191466252
@@ -938,7 +938,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b4b77135840048de9cc7f1cacb5af204, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionHousing
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionHousing
   _surface: {fileID: 1350913802}
   _content: {fileID: 1113513872}
   _font: {fileID: 12800000, guid: 8ff598083fa05724cb7948bd3db7f4ac, type: 3}
@@ -1009,7 +1009,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c5868c0c4fdaf0049bdd7d2cd3e70a38, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionSurface
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionSurface
   _grid: {fileID: 11400000, guid: 300bc83a9a97f5f41adeb607421115b9, type: 2}
   _showEditorGrid: 0
 --- !u!114 &1350913803
@@ -1023,7 +1023,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.18
   _introDelay: 0.36
   _opacity: 1
@@ -1132,7 +1132,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.11
   _introDelay: 0.27
   _opacity: 1
@@ -1241,7 +1241,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.015
   _introDelay: 0
   _opacity: 1
@@ -1350,7 +1350,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.01
   _introDelay: 0.72
   _opacity: 0.22
@@ -1459,7 +1459,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
   m_Name:
-  m_EditorClassIdentifier: MobileUI.Runtime::MobilePrototype.Exhibition.ExhibitionLayer
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
   _parallax: 0.27
   _introDelay: 0.45000002
   _opacity: 1

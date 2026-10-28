@@ -1,7 +1,7 @@
 using Jamkkaebi.Scripts.Gameplay.Collection;
 using UnityEngine;
 
-namespace MobilePrototype.Collection
+namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
     /// 2026-10-09 확인한 「깨비별 특성」 시트1 A2:C10의 유물·시대 스냅샷.
