@@ -135,14 +135,29 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             
             // Helper 타일이 연쇄반응을 일으킬 수 있기 때문에 queue 사용
             Queue<Vector2Int> toProcess = new Queue<Vector2Int>(coordinates);
+            
+            // queue의 앞쪽 coordinates.Count개는 도구가 직접 친 칸이고, 그 뒤는 도움 타일 연쇄로 추가된 칸이다.
+            int processedCount = 0;
+            int newThreatHits = 0;
 
             while (toProcess.Count > 0)
             {
                 // queue에서 좌표를 뽑아 RevealOutcome 만들고 results에 추가
                 Vector2Int c = toProcess.Dequeue();
+                bool isDirectHit = processedCount < coordinates.Count;
+                processedCount++;
+                
                 Tile tile = Grid.GetTile(c.x, c.y);
                 RevealOutcome outcome = tile.Reveal();
                 results.Add(new TileRevealResult(c, tile.Content, outcome));
+                
+                // 위협 타일은 도구가 직접 쳐서 열었을 때만 손상도에 반영한다.
+                // 도움 타일 연쇄로 열린 위협은 피해를 주지 않는다(힐링 톤: 도움 타일이 플레이어에게 불리하게 작용하지 않도록).
+                // 직접 친 칸의 강화만 벗겨지고 같은 시행의 연쇄에서 열린 경우도 연쇄로 열린 것으로 본다.
+                if (isDirectHit && tile.Content == TileContent.Threat && outcome == RevealOutcome.Revealed)
+                {
+                    newThreatHits++;
+                }
 
                 // Helper 타일 개봉 분기
                 // 가로와 세로 중 남은 타일이 더 많은 방향으로 queue에 등록
@@ -178,9 +193,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 return DestroyResult.NoValidTargets;
             }
 
-            // 이번 시행으로 열린 위협 타일 개수를 세고 카운터에 누적
-            int newThreatHits = results.Count(r =>
-                r.Content == TileContent.Threat && r.Outcome == RevealOutcome.Revealed);
+            // 이번 시행에서 직접 쳐서 열린 위협 타일 개수를 카운터에 누적
             _threatHitsRevealed += newThreatHits;
             
             // 이번 시행으로 열린 보너스 타일 개수를 누적
