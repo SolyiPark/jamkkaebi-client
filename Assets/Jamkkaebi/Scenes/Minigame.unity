@@ -196,7 +196,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ecfb0404b9d34e2bb80a10b97a431bad, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.BackgroundView
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.BackgroundView
   _camera: {fileID: 269342921}
 --- !u!212 &190990738
 SpriteRenderer:
@@ -570,7 +570,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a140ca62a3ca4d25840b0e0a78aaf798, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.MinigameSessionAdapter
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.MinigameSessionAdapter
   _difficultyTable: {fileID: 11400000, guid: 62ecbb1971b14772af749556f505d6e9, type: 2}
   _difficulty: 2
   _tilePrefab: {fileID: 6224122067789507894, guid: 08efc0163c9a9428bb072080fb260a02, type: 3}

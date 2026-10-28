@@ -32,7 +32,7 @@ UI의 자산과 .meta는 `Assets/Jamkkaebi`로 옮겼으며 원래 GUID를 유�
 
 ## 도감 화면 후속 구현 (2026-10-09)
 
-기존 도감 탭의 더미 버튼·사각형을 시대 목록·시대 상세·유물 상세로 교체했다. 고정 정의는 `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`, 수집 규칙은 `Jamkkaebi.Runtime`의 `Gameplay/Collection/`, 표시와 제스처는 `Jamkkaebi.UI`의 `Collection/`에 둔다. 수집 인정 시점은 3페이즈 전체의 복원 완료이며, 현재 작업대는 변경하지 않고 샘플 완료 기록을 주입한다. 실제 연결 API와 미구현 범위는 `collection-integration.md`에 기록한다.
+기존 도감 탭의 더미 버튼·사각형을 시대 목록·시대 상세·유물 상세로 교체했다. 고정 정의는 `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`, 수집 규칙은 `Jamkkaebi.Gameplay`의 `Gameplay/Collection/`, 표시와 제스처는 `Jamkkaebi.UI`의 `Collection/`에 둔다. 수집 인정 시점은 3페이즈 전체의 복원 완료이며, 현재 작업대는 변경하지 않고 샘플 완료 기록을 주입한다. 실제 연결 API와 미구현 범위는 `collection-integration.md`에 기록한다.
 
 `CollectionSetup.Apply`는 이번 도감 씬을 변경한 일회성 batch 이관이다. 이미 이관된 씬에서는 실행을 거절하며 일반 실행·빌드·콘텐츠 교체에 사용하지 않는다. 현재 도감은 씬에 연결된 카탈로그와 글꼴로 런타임 UI를 생성한다. 실제 스프라이트는 카탈로그의 유물·정령 이미지 참조에 연결한다.
 
