@@ -8,7 +8,7 @@ namespace Jamkkaebi.Tests.EditMode
 {
     public class MinigameGridGeneratorTests
     {
-        MinigamePhaseConfig config = new MinigamePhaseConfig(
+        MinigamePhaseConfig _config = new MinigamePhaseConfig(
             width: 7,
             height: 8,
             shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
@@ -21,7 +21,7 @@ namespace Jamkkaebi.Tests.EditMode
             allowedThreatHits: 3 
         );
         
-        MinigamePhaseConfig oneShapeConfig = new MinigamePhaseConfig(
+        MinigamePhaseConfig _oneShapeConfig = new MinigamePhaseConfig(
             width: 7,
             height: 3,
             shapes: new List<PolyominoShape> { PolyominoShape.Line5 },
@@ -34,7 +34,7 @@ namespace Jamkkaebi.Tests.EditMode
             allowedThreatHits: 3 
         );
         
-        MinigamePhaseConfig ruleBasedConfig = new MinigamePhaseConfig(
+        MinigamePhaseConfig _ruleBasedConfig = new MinigamePhaseConfig(
             width: 7,
             height: 8,
             shapes: new List<PolyominoShape>(),
@@ -54,8 +54,8 @@ namespace Jamkkaebi.Tests.EditMode
         {
             // Arrange & Act
             long seed = 12345678;
-            MinigameGrid a = MinigameGridGenerator.Generate(config, seed);
-            MinigameGrid b = MinigameGridGenerator.Generate(config, seed);
+            MinigameGrid a = MinigameGridGenerator.Generate(_config, seed);
+            MinigameGrid b = MinigameGridGenerator.Generate(_config, seed);
             
             // Assert
             Assert.IsTrue(AreSameGrid(a, b));
@@ -65,13 +65,13 @@ namespace Jamkkaebi.Tests.EditMode
         public void Generate_DifferentSeed_CreatesDifferentGrid()
         {
             long seed = 12345678;
-            MinigameGrid target = MinigameGridGenerator.Generate(config, seed);
+            MinigameGrid target = MinigameGridGenerator.Generate(_config, seed);
 
             bool foundDifferentGrid = false;
             
             for (int i = 0; i < 20; i++)
             {
-                MinigameGrid source = MinigameGridGenerator.Generate(config, seed + i + 1);
+                MinigameGrid source = MinigameGridGenerator.Generate(_config, seed + i + 1);
                 if (!AreSameGrid(target, source))
                 {
                     foundDifferentGrid = true;
@@ -87,7 +87,7 @@ namespace Jamkkaebi.Tests.EditMode
         {
             for (int i = 0; i < 50; i++)
             {
-                Assert.DoesNotThrow(() => MinigameGridGenerator.Generate(oneShapeConfig, i), $"seed: {i}");
+                Assert.DoesNotThrow(() => MinigameGridGenerator.Generate(_oneShapeConfig, i), $"seed: {i}");
             }
         }
 
@@ -99,8 +99,8 @@ namespace Jamkkaebi.Tests.EditMode
             PolyominoSetRule rule = CreateRule();
             
             // Act
-            MinigameGrid a = MinigameGridGenerator.Generate(ruleBasedConfig, rule, ShapeCount, seed);
-            MinigameGrid b = MinigameGridGenerator.Generate(ruleBasedConfig, rule, ShapeCount, seed);
+            MinigameGrid a = MinigameGridGenerator.Generate(_ruleBasedConfig, rule, ShapeCount, seed);
+            MinigameGrid b = MinigameGridGenerator.Generate(_ruleBasedConfig, rule, ShapeCount, seed);
             
             // Assert
             Assert.IsTrue(AreSameGrid(a, b));
@@ -115,7 +115,7 @@ namespace Jamkkaebi.Tests.EditMode
             
             for (int i = 0; i < 50; i++) {
                 // Act
-                MinigameGrid grid = MinigameGridGenerator.Generate(ruleBasedConfig, rule, ShapeCount, seed + i);
+                MinigameGrid grid = MinigameGridGenerator.Generate(_ruleBasedConfig, rule, ShapeCount, seed + i);
 
                 // Assert
                 Assert.AreEqual(ShapeCount, grid.PolyominoGroups.Count, $"seed: {seed + i}");
@@ -143,7 +143,7 @@ namespace Jamkkaebi.Tests.EditMode
                 new List<PolyominoShape> { PolyominoShape.Dot, PolyominoShape.LShape3 });
             
             // Act
-            MinigameGrid grid = MinigameGridGenerator.Generate(oneShapeConfig, rule, ShapeCount, seed);
+            MinigameGrid grid = MinigameGridGenerator.Generate(_oneShapeConfig, rule, ShapeCount, seed);
 
             List<PolyominoShape> shapes = new List<PolyominoShape>();
             foreach (PolyominoGroup group in grid.PolyominoGroups)
