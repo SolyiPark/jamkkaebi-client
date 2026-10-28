@@ -100,6 +100,18 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 
         private static void ValidateConfig(MinigameBoardConfig config, IReadOnlyList<PolyominoShape> shapes)
         {
+            // 0. 강화 타일 수는 0 이상이어야 한다. 음수면 상한 검사를 통과하고 배치 반복도 돌지 않아 잘못된 설정이 조용히 통과한다.
+            if (config.ReinforcedOnShapeCount < 0)
+            {
+                throw new ArgumentException(
+                    $"형상 안 강화 타일 수는 0 이상이어야 합니다. (입력값: {config.ReinforcedOnShapeCount})", nameof(config));
+            }
+            if (config.ReinforcedOnFieldCount < 0)
+            {
+                throw new ArgumentException(
+                    $"형상 밖 강화 타일 수는 0 이상이어야 합니다. (입력값: {config.ReinforcedOnFieldCount})", nameof(config));
+            }
+            
             // 1. 폴리오미노 전체 칸 수 + ThreatTileCount + HelperTileCount <= Width * Height
             int polyTileCount = 0;
             for (int i = 0; i < shapes.Count; i++)
@@ -267,7 +279,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <param name="config">그리드 크기, 형상 수와 칸 합, 특수 타일 개수 등이 담긴 설정.</param>
         /// <param name="seed">난수 생성 시드. 같은 값이면 같은 그리드가 나온다.</param>
         /// <returns>새로 생성된 그리드.</returns>
-        /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때.</exception>
+        /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때, 강화 타일 수가 음수일 때.</exception>
         /// <exception cref="InvalidOperationException">형상 수와 칸 합에 맞는 모양 세트가 없을 때, 설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
         public static MinigameGrid Generate(MinigameBoardConfig config, long seed)
         {
