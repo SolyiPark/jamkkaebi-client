@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Shell
 {
     [CreateAssetMenu(menuName = "Mobile Prototype/Tab Catalog")]
     public class TabCatalog : ScriptableObject

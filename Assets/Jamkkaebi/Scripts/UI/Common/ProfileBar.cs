@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Common
 {
     public class ProfileBar : MonoBehaviour
     {

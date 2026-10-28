@@ -1,12 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Jamkkaebi.Scripts.UI.Collection;
+using Jamkkaebi.Scripts.UI.Common;
 using Jamkkaebi.Scripts.UI.Exhibition;
+using Jamkkaebi.Scripts.UI.Shell;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using Newtonsoft.Json.Linq;
 
 namespace Jamkkaebi.Scripts.UI.Friends
 {

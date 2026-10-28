@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Collection;
+using Jamkkaebi.Scripts.UI.Common;
+using Jamkkaebi.Scripts.UI.Shell;
 using UnityEngine;
 using UnityEngine.UI;
 

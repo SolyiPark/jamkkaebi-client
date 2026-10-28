@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Jamkkaebi.Scripts.UI;
+using Jamkkaebi.Scripts.UI.Common;
+using Jamkkaebi.Scripts.UI.Dev;
+using Jamkkaebi.Scripts.UI.Shell;
+using Jamkkaebi.Scripts.UI.Workshop;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -60,7 +63,7 @@ public static class ReviewRegressionChecks
                 "new catalog scenes included and enabled");
 
             var safeAreaObject = new GameObject("Safe area requirement");
-            var safeArea = safeAreaObject.AddComponent<Jamkkaebi.Scripts.UI.SafeArea>();
+            var safeArea = safeAreaObject.AddComponent<Jamkkaebi.Scripts.UI.Common.SafeArea>();
             Check(safeAreaObject.GetComponent<RectTransform>() != null && safeArea.enabled,
                 "SafeArea adds required RectTransform to an ordinary object");
             safeAreaObject.SetActive(false);

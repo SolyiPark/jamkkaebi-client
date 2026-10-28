@@ -1194,7 +1194,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8610828bab873724f87f173dce6c3891, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.WorkshopPresenter
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Workshop.WorkshopPresenter
   adapter: {fileID: 1276415655}
   sceneCamera: {fileID: 269342921}
   summary: {fileID: 935174816}
@@ -1215,7 +1215,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6af1510803bf26409cb08fa2e7c8313, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.MirrorSceneRoot
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Shell.MirrorSceneRoot
   sceneCamera: {fileID: 269342921}
   uiRaycasters:
   - {fileID: 1413304333}

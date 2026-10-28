@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Shell
 {
     [Serializable]
     public class TabDefinition

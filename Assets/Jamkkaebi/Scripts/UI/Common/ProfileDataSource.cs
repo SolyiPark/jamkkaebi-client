@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Common
 {
     // Replace the dummy publisher with a network/save-data adapter calling SetProfile.
     public class ProfileDataSource : MonoBehaviour

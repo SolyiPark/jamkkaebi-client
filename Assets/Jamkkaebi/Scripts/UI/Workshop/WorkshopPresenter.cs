@@ -3,7 +3,7 @@ using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Workshop
 {
     public class WorkshopPresenter : MonoBehaviour
     {

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Jamkkaebi.Scripts.Gameplay.Collection;
+using Jamkkaebi.Scripts.UI.Shell;
 using UnityEngine;
 using UnityEngine.UI;
 

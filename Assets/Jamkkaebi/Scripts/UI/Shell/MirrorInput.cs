@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Shell
 {
     // One pointer is captured until release. Other fingers are ignored.
     // Raycasts only the active scene; captured drags may leave the viewport.

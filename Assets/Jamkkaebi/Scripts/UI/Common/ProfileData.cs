@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Common
 {
     [Serializable]
     public class ProfileData
