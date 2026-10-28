@@ -47,7 +47,7 @@ namespace MobilePrototype
             string state = session.State == SessionState.InProgress ? "발굴 중" :
                 session.State == SessionState.Succeeded ? "발굴 성공" : "발굴 종료";
             summary.text = $"{state}\n" +
-                $"도구 {session.RemainingDestructiveToolUses} · 정찰 {session.RemainingScoutToolUses} · 손상 {session.DamageGauge:P0}";
+                $"도구 {session.RemainingDestructiveToolUses} · 정찰 {session.RemainingScoutToolUses} · 손상 {session.DamageGauge:P0} · 정성 {session.RevealedBonusTileCount}";
             for (int i = 0; i < toolButtons.Length; i++)
             {
                 toolButtons[i].interactable = adapter.CanAcceptInput && session.State == SessionState.InProgress;

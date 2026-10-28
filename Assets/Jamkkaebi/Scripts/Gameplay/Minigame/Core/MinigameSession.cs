@@ -23,6 +23,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         public int RemainingDestructiveToolUses { get; private set; }   // 남은 타일 파괴 시도 횟수(공격형, 안전형 도구)
         public int RemainingScoutToolUses { get; private set; }         // 남은 정찰 도구 사용 횟수
 
+        /// <summary>
+        /// 이번 세션에서 열린 정성 보너스 타일 수. 결과 보고에 쓴다.
+        /// </summary>
+        /// <remarks>
+        /// 안전·공격 파괴와 도움 타일 연쇄 등 어떤 방식으로 열려도 센다. 강화된 보너스는 강화가 벗겨지고 실제로 열릴 때 한 번만 센다.
+        /// </remarks>
+        public int RevealedBonusTileCount { get; private set; }
+
         public long Seed { get; }
         
         public event Action<TileRevealResult> TileRevealAttempted;
@@ -174,6 +182,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             int newThreatHits = results.Count(r =>
                 r.Content == TileContent.Threat && r.Outcome == RevealOutcome.Revealed);
             _threatHitsRevealed += newThreatHits;
+            
+            // 이번 시행으로 열린 보너스 타일 개수를 누적
+            RevealedBonusTileCount += results.Count(r =>
+                r.Content == TileContent.Bonus && r.Outcome == RevealOutcome.Revealed);
             
             // 도구 사용 횟수 차감
             RemainingDestructiveToolUses -= 1;

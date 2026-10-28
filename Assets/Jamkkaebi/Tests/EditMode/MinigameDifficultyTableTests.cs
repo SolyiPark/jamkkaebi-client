@@ -118,12 +118,30 @@ namespace Jamkkaebi.Tests.EditMode
                 Assert.AreEqual(config.Width, grid.Width, $"seed: {seed}");
                 Assert.AreEqual(config.Height, grid.Height, $"seed: {seed}");
                 Assert.AreEqual(config.ShapeCount, grid.PolyominoGroups.Count, $"seed: {seed}");
+                Assert.AreEqual(config.BonusTileCount, CountBonus(grid), $"seed: {seed}");
             }
         }
 
         // ==============
         //      헬퍼들
         // ==============
+
+        private static int CountBonus(MinigameGrid grid)
+        {
+            int count = 0;
+            for (int x = 0; x < grid.Width; x++)
+            {
+                for (int y = 0; y < grid.Height; y++)
+                {
+                    if (grid.GetTile(x, y).Content == TileContent.Bonus)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
 
         private MinigameDifficultyTable CreateTable(params MinigameDifficultyEntry[] entries)
         {

@@ -111,6 +111,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 throw new ArgumentException(
                     $"형상 밖 강화 타일 수는 0 이상이어야 합니다. (입력값: {config.ReinforcedOnFieldCount})", nameof(config));
             }
+            if (config.BonusTileCount < 0)
+            {
+                throw new ArgumentException(
+                    $"보너스 타일 수는 0 이상이어야 합니다. (입력값: {config.BonusTileCount})", nameof(config));
+            }
             
             // 1. 폴리오미노 전체 칸 수 + ThreatTileCount + HelperTileCount <= Width * Height
             int polyTileCount = 0;
@@ -139,6 +144,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             {
                 throw new InvalidOperationException(
                     $"형상 밖 강화 타일 {config.ReinforcedOnFieldCount}칸을 놓을 일반 칸이 {plainCellCount}칸뿐입니다.");
+            }
+            
+            // 2-2. 보너스 타일 수 <= 일반 칸 수. 보너스와 형상 밖 강화는 같은 칸에 겹칠 수 있어 따로 비교한다.
+            if (config.BonusTileCount > plainCellCount)
+            {
+                throw new InvalidOperationException(
+                    $"보너스 타일 {config.BonusTileCount}칸을 놓을 일반 칸이 {plainCellCount}칸뿐입니다.");
             }
             
             // 3. 각 shape이 4방향 회전 중 최소 하나라도 그리드에 들어맞는지
@@ -245,6 +257,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             // 남은 빈 셀이 곧 일반 칸이다. 형상 밖 강화 후보로 쓰기 위해 복사해 둔다.
             List<Vector2Int> plainCells = new List<Vector2Int>(emptyCells);
             
+            // 3-1. 보너스 타일 배치. 일반 칸에서 고르며, plainCells에서는 빼지 않으므로 형상 밖 강화와 겹칠 수 있다.
+            PlaceTileType(TileContent.Bonus, config.BonusTileCount, tiles, emptyCells, rng);
+            
             // 4. 남은 셀을 일반 타일로 채우기
             for (int i = 0; i < emptyCells.Count; i++)
             {
@@ -279,7 +294,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <param name="config">그리드 크기, 형상 수와 칸 합, 특수 타일 개수 등이 담긴 설정.</param>
         /// <param name="seed">난수 생성 시드. 같은 값이면 같은 그리드가 나온다.</param>
         /// <returns>새로 생성된 그리드.</returns>
-        /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때, 강화 타일 수가 음수일 때.</exception>
+        /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때, 강화 타일 수나 보너스 타일 수가 음수일 때.</exception>
         /// <exception cref="InvalidOperationException">형상 수와 칸 합에 맞는 모양 세트가 없을 때, 설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
         public static MinigameGrid Generate(MinigameBoardConfig config, long seed)
         {
