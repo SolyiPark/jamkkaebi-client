@@ -9,7 +9,7 @@ namespace Jamkkaebi.Tests.EditMode
 {
     public class MinigameSessionTests
     {
-        MinigamePhaseConfig config = new MinigamePhaseConfig(
+        MinigameBoardConfig config = new MinigameBoardConfig(
             width: 7,
             height: 8,
             shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
@@ -139,7 +139,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void Constructor_WithNonPositiveDestructiveToolLimit_ThrowsArgumentException(int limit)
         {
             // Arrange
-            MinigamePhaseConfig invalidConfig = WithDestructiveToolLimit(limit);
+            MinigameBoardConfig invalidConfig = WithDestructiveToolLimit(limit);
             MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
 
             // Act & Assert
@@ -150,7 +150,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseDestructiveTool_SessionAlreadyFailed_ReturnsSessionNotInProgress()
         {
             // Arrange
-            MinigamePhaseConfig oneHitConfig = WithAllowedThreatHits(1);
+            MinigameBoardConfig oneHitConfig = WithAllowedThreatHits(1);
             Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
                 { { new Vector2Int(1, 0), TileContent.Threat } };
             MinigameGrid grid = BuildGrid(2, 2, layout);
@@ -332,7 +332,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseScoutTool_WithNoUsesRemaining_ReturnsNoUsesRemaining()
         {
             // Arrange
-            MinigamePhaseConfig zeroUsesConfig = WithScoutToolLimit(0);
+            MinigameBoardConfig zeroUsesConfig = WithScoutToolLimit(0);
 
             Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
             {
@@ -355,7 +355,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseScoutTool_SessionAlreadyFailed_ReturnsSessionNotInProgress()
         {
             // Arrange
-            MinigamePhaseConfig oneHitConfig = WithAllowedThreatHits(1);
+            MinigameBoardConfig oneHitConfig = WithAllowedThreatHits(1);
             Dictionary<Vector2Int, TileContent> layout = new Dictionary<Vector2Int, TileContent>
                 { { new Vector2Int(1, 0), TileContent.Threat } };
             MinigameGrid grid = BuildGrid(2, 2, layout);
@@ -397,7 +397,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void UseDestructiveTool_RevealedLastTarget_NoRemainingUses_SetStateToSucceeded()
         {
             // Arrange
-            MinigamePhaseConfig oneUseConfig = WithDestructiveToolLimit(1);
+            MinigameBoardConfig oneUseConfig = WithDestructiveToolLimit(1);
             MinigameGrid grid = BuildGrid(2, 2, new Dictionary<Vector2Int, TileContent>());
             MinigameSession session = new MinigameSession(grid, oneUseConfig);
             
@@ -474,9 +474,9 @@ namespace Jamkkaebi.Tests.EditMode
             return new MinigameGrid(tiles, finalGroups);
         }
         
-        private MinigamePhaseConfig WithDestructiveToolLimit(int limit)
+        private MinigameBoardConfig WithDestructiveToolLimit(int limit)
         {
-            return new MinigamePhaseConfig(
+            return new MinigameBoardConfig(
                 width: config.Width, height: config.Height, shapes: config.Shapes,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
                 reinforcedTileCount: config.ReinforcedTileCount,
@@ -485,9 +485,9 @@ namespace Jamkkaebi.Tests.EditMode
             );
         }
         
-        private MinigamePhaseConfig WithScoutToolLimit(int limit)
+        private MinigameBoardConfig WithScoutToolLimit(int limit)
         {
-            return new MinigamePhaseConfig(
+            return new MinigameBoardConfig(
                 width: config.Width, height: config.Height, shapes: config.Shapes,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
                 reinforcedTileCount: config.ReinforcedTileCount,
@@ -496,9 +496,9 @@ namespace Jamkkaebi.Tests.EditMode
             );
         }
         
-        private MinigamePhaseConfig WithAllowedThreatHits(int limit)
+        private MinigameBoardConfig WithAllowedThreatHits(int limit)
         {
-            return new MinigamePhaseConfig(
+            return new MinigameBoardConfig(
                 width: config.Width, height: config.Height, shapes: config.Shapes,
                 threatTileCount: config.ThreatTileCount, helperTileCount: config.HelperTileCount,
                 reinforcedTileCount: config.ReinforcedTileCount,

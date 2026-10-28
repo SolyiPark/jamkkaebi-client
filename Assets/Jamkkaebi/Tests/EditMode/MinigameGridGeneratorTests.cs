@@ -8,7 +8,7 @@ namespace Jamkkaebi.Tests.EditMode
 {
     public class MinigameGridGeneratorTests
     {
-        MinigamePhaseConfig _config = new MinigamePhaseConfig(
+        MinigameBoardConfig _config = new MinigameBoardConfig(
             width: 7,
             height: 8,
             shapes: new List<PolyominoShape> { PolyominoShape.Stairs4, PolyominoShape.Line2, PolyominoShape.LShape3 },
@@ -20,7 +20,7 @@ namespace Jamkkaebi.Tests.EditMode
             allowedThreatHits: 3 
         );
         
-        MinigamePhaseConfig _oneShapeConfig = new MinigamePhaseConfig(
+        MinigameBoardConfig _oneShapeConfig = new MinigameBoardConfig(
             width: 7,
             height: 3,
             shapes: new List<PolyominoShape> { PolyominoShape.Line5 },
@@ -32,7 +32,7 @@ namespace Jamkkaebi.Tests.EditMode
             allowedThreatHits: 3 
         );
         
-        MinigamePhaseConfig _ruleBasedConfig = new MinigamePhaseConfig(
+        MinigameBoardConfig _ruleBasedConfig = new MinigameBoardConfig(
             width: 7,
             height: 8,
             shapes: new List<PolyominoShape>(),
@@ -158,8 +158,8 @@ namespace Jamkkaebi.Tests.EditMode
             // Arrange
             long seed = 12345678;
             PolyominoSetRule rule = CreateRule();
-            MinigamePhaseConfig smallGridConfig =
-                new MinigamePhaseConfig(3, 3, new List<PolyominoShape>(), 5, 2, 3, 19, 3, 3);
+            MinigameBoardConfig smallGridConfig =
+                new MinigameBoardConfig(3, 3, new List<PolyominoShape>(), 5, 2, 3, 19, 3, 3);
             
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(smallGridConfig, rule, ShapeCount, seed));

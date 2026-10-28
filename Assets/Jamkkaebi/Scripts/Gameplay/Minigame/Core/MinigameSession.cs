@@ -27,7 +27,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         
         public event Action<TileRevealResult> TileRevealAttempted;
         
-        public MinigameSession(MinigamePhaseConfig config, long seed)
+        public MinigameSession(MinigameBoardConfig config, long seed)
             : this(MinigameGridGenerator.Generate(config, seed), config)
         {
             Seed = seed;
@@ -39,7 +39,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <param name="grid">세션에서 사용할 그리드.</param>
         /// <param name="config">도구 사용 횟수, 허용 위협 횟수 등이 담긴 설정.</param>
         /// <exception cref="ArgumentException">설정의 파괴 도구 사용 횟수가 1 미만일 때.</exception>
-        public MinigameSession(MinigameGrid grid, MinigamePhaseConfig config)
+        public MinigameSession(MinigameGrid grid, MinigameBoardConfig config)
         {
             // 파괴 도구가 없으면 플레이가 성립하지 않으므로 잘못된 설정으로 본다.
             if (config.DestructiveToolLimit < 1)

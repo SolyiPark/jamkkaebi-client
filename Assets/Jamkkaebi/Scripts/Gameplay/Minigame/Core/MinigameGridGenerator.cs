@@ -86,7 +86,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             }
         }
 
-        private static void ValidateConfig(MinigamePhaseConfig config)
+        private static void ValidateConfig(MinigameBoardConfig config)
         {
             // 1. ReinforcedTileCount <= Width * Height
             if (config.ReinforcedTileCount > config.Width * config.Height)
@@ -166,7 +166,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <param name="rng">그리드 생성에 쓸 난수 생성기.</param>
         /// <returns>새로 생성된 그리드.</returns>
         /// <exception cref="InvalidOperationException">설정대로 타일을 배치할 수 없을 때.</exception>
-        private static MinigameGrid GenerateCore(MinigamePhaseConfig config, Random rng)
+        private static MinigameGrid GenerateCore(MinigameBoardConfig config, Random rng)
         {
             // 0. configuration 유효성 검사(이 수치대로 그리드 배치가 실제로 가능한지)
             ValidateConfig(config);
@@ -248,7 +248,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <param name="seed">난수 생성 시드. 같은 값이면 같은 그리드가 나온다.</param>
         /// <returns>새로 생성된 그리드.</returns>
         /// <exception cref="InvalidOperationException">설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
-        public static MinigameGrid Generate(MinigamePhaseConfig config, long seed)
+        public static MinigameGrid Generate(MinigameBoardConfig config, long seed)
         {
             return GenerateCore(config, CreateRng(seed));
         }
@@ -268,12 +268,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <returns>새로 생성된 그리드.</returns>
         /// <exception cref="ArgumentException">shapeCount가 0 이하일 때, rule의 모양 풀이 연결되지 않았을 때.</exception>
         /// <exception cref="InvalidOperationException">폴리오미노 세트 후보가 없을 때, 폴리오미노 세트를 그리드에 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
-        public static MinigameGrid Generate(MinigamePhaseConfig config, PolyominoSetRule rule, int shapeCount,
+        public static MinigameGrid Generate(MinigameBoardConfig config, PolyominoSetRule rule, int shapeCount,
             long seed)
         {
             Random rng = CreateRng(seed);
             IReadOnlyList<PolyominoShape> shapes = PolyominoSetPicker.Pick(rule, shapeCount, rng);
-            MinigamePhaseConfig configWithShapes = config.WithShapes(shapes);
+            MinigameBoardConfig configWithShapes = config.WithShapes(shapes);
             return GenerateCore(configWithShapes, rng);
         }
 

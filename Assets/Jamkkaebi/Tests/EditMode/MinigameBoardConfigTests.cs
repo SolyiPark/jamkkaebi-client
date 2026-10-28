@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace Jamkkaebi.Tests.EditMode
 {
-    public class MinigamePhaseConfigTests
+    public class MinigameBoardConfigTests
     {
         private const int BaseWidth = 7;
         private const int BaseHeight = 8;
@@ -16,14 +16,14 @@ namespace Jamkkaebi.Tests.EditMode
         private const int BaseScout = 4;
         private const int BaseAllowedThreatHits = 1;
 
-        private MinigamePhaseConfig _baseConfig;
+        private MinigameBoardConfig _baseConfig;
         
         [SetUp]
         public void Setup()
         {
             List<PolyominoShape> baseShapes = new List<PolyominoShape>
                 { PolyominoShape.Square4, PolyominoShape.Line5 };
-            _baseConfig = new MinigamePhaseConfig(BaseWidth, BaseHeight, baseShapes, BaseThreat, BaseHelper, BaseReinforced, BaseDestructive, BaseScout, BaseAllowedThreatHits);
+            _baseConfig = new MinigameBoardConfig(BaseWidth, BaseHeight, baseShapes, BaseThreat, BaseHelper, BaseReinforced, BaseDestructive, BaseScout, BaseAllowedThreatHits);
         }
         
         [Test]
@@ -34,7 +34,7 @@ namespace Jamkkaebi.Tests.EditMode
                 {PolyominoShape.Dot, PolyominoShape.Line2, PolyominoShape.LShape3};
             
             // Act
-            MinigamePhaseConfig config = _baseConfig.WithShapes(shapes);
+            MinigameBoardConfig config = _baseConfig.WithShapes(shapes);
             
             // Assert
             CollectionAssert.AreEqual(shapes, config.Shapes);

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     [Serializable]
-    public class MinigamePhaseConfigData
+    public class MinigameBoardConfigData
     {
         [SerializeField] private int _width;
         [SerializeField] private int _height;
@@ -17,9 +17,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         [SerializeField] private int _scoutToolLimit;
         [SerializeField] private int _allowedThreatHits;
 
-        public MinigamePhaseConfig ToConfig()
+        public MinigameBoardConfig ToConfig()
         {
-            MinigamePhaseConfig config = new MinigamePhaseConfig(_width, _height, _shapes, _threatTileCount, _helperTileCount, _reinforcedTileCount, _destructiveToolLimit, _scoutToolLimit, _allowedThreatHits);
+            MinigameBoardConfig config = new MinigameBoardConfig(_width, _height, _shapes, _threatTileCount, _helperTileCount, _reinforcedTileCount, _destructiveToolLimit, _scoutToolLimit, _allowedThreatHits);
             return config;
         }
     }

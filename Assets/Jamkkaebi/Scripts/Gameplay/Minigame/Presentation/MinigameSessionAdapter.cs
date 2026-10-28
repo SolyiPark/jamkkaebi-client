@@ -91,7 +91,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _hasHandledEnd = false;
             
             // 2. 새 세션 생성
-            MinigamePhaseConfig config = _relicData.GetPhaseConfig(_phaseIndex);
+            MinigameBoardConfig config = _relicData.GetPhaseConfig(_phaseIndex);
             _session = new MinigameSession(config, seed);
             Debug.Log($"[Minigame] seed: {_session.Seed}");
             _tileViews = new Dictionary<Vector2Int, TileView>();
