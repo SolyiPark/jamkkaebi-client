@@ -115,6 +115,17 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(smallGridConfig, seed));
         }
 
+        [Test]
+        public void Generate_NoShapeSetMatchesCountAndTotal_ThrowsInvalidOperationException()
+        {
+            // Arrange: 서로 다른 모양 3개의 칸 합은 최소 2+3+4=9라서 6칸은 만들 수 없다(서버 수정 전 매우 쉬움 값)
+            long seed = 12345678;
+            MinigameBoardConfig impossibleConfig = new MinigameBoardConfig(5, 6, 3, 6, 2, 1, 2, 12, 3, 3);
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(impossibleConfig, seed));
+        }
+
         private bool AreSameGrid(MinigameGrid a, MinigameGrid b)
         {
             if (a.Width != b.Width || a.Height != b.Height)
