@@ -12,13 +12,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b0f8e9c20dc489b8fb089238aeb61c4, type: 3}
   m_Name: Test_GreyboxRelic
   m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Data.RelicData
-  _phases:
-  - _width: 7
-    _height: 8
-    _shapeCount: 3
-    _shapeCellTotal: 12
-    _threatTileCount: 5
-    _helperTileCount: 2
-    _reinforcedTileCount: 3
-    _destructiveToolLimit: 30
-    _scoutToolLimit: 2

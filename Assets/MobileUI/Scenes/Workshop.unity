@@ -786,8 +786,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a140ca62a3ca4d25840b0e0a78aaf798, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.MinigameSessionAdapter
-  _relicData: {fileID: 11400000, guid: 60345ac52918c45d28f647369233b0a0, type: 2}
-  _phaseIndex: 0
+  _difficultyTable: {fileID: 11400000, guid: 62ecbb1971b14772af749556f505d6e9, type: 2}
+  _difficulty: 2
   _tilePrefab: {fileID: 3177535578285974681, guid: ff5dff2956c8e99428e73d20f8ce37bd, type: 3}
   _gridContainer: {fileID: 569415861}
   _tileSize: 0.75

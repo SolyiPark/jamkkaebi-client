@@ -8,8 +8,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 {
     public class MinigameSessionAdapter : MonoBehaviour
     {
-        [SerializeField] private RelicData _relicData;
-        [SerializeField] [Range(0, 2)] private int _phaseIndex;
+        [Header("보드 설정")]
+        [SerializeField] private MinigameDifficultyTable _difficultyTable;   // TODO: 서버 PurificationStartResponse.board 연동 후 서버 값으로 교체
+        [SerializeField] private MinigameDifficulty _difficulty = MinigameDifficulty.Normal;
+        
         [SerializeField] private GameObject _tilePrefab;
         [SerializeField] private Transform _gridContainer;
         [SerializeField] private float _tileSize = 1f;
@@ -42,9 +44,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private void Start()
         {
-            if (_relicData == null)
+            if (_difficultyTable == null)
             {
-                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _relicData가 연결되지 않았습니다.", this);
+                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _difficultyTable이 연결되지 않았습니다.", this);
                 return;
             }
             if (_sealMediumCatalog == null)
@@ -91,7 +93,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _hasHandledEnd = false;
             
             // 2. 새 세션 생성
-            MinigameBoardConfig config = _relicData.GetPhaseConfig(_phaseIndex);
+            MinigameBoardConfig config = _difficultyTable.GetConfig(_difficulty);
             _session = new MinigameSession(config, seed);
             Debug.Log($"[Minigame] seed: {_session.Seed}");
             _tileViews = new Dictionary<Vector2Int, TileView>();
