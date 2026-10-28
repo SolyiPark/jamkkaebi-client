@@ -382,7 +382,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4b63f2a8a8b274d4e828c1b64ed72262, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.MirrorInput
+  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.Shell.MirrorInput
 --- !u!222 &758032028
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -465,7 +465,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 150ddc0ab670551438d6d96a3eddea9c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.IntegratedVerification
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Dev.IntegratedVerification
 --- !u!4 &980912563
 Transform:
   m_ObjectHideFlags: 0
@@ -1369,7 +1369,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cdaf2c66a20c780428acde868681e593, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.ProfileBar
+  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.Common.ProfileBar
   source: {fileID: 2096634579}
   nickname: {fileID: 536233681}
   streak: {fileID: 71618420}
@@ -1463,7 +1463,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 50fd21eb87805e941af756e7b0525422, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.SafeArea
+  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.Common.SafeArea
 --- !u!1 &2078044066
 GameObject:
   m_ObjectHideFlags: 0
@@ -1492,7 +1492,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 879c3ed62f7e2bb47a85c76d0e6f2189, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.TabHost
+  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.Shell.TabHost
   catalog: {fileID: 11400000, guid: 503ece970f43e8048a030f3c9254a867, type: 2}
   viewport: {fileID: 758032030}
   mirror: {fileID: 758032029}
@@ -1545,7 +1545,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 30b5cdb99f6f57f4880dd9b79cdff75f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.ProfileDataSource
+  m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.Common.ProfileDataSource
   profile:
     nickname: "\uB2C9\uB124\uC784"
     consecutiveDays: 12

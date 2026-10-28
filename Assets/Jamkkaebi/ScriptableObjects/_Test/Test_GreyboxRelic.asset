@@ -11,4 +11,4 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b0f8e9c20dc489b8fb089238aeb61c4, type: 3}
   m_Name: Test_GreyboxRelic
-  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Data.RelicData
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Data.RelicData

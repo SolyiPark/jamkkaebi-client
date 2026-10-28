@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using Jamkkaebi.Scripts.UI.Shell;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -31,7 +32,7 @@ public static class PrototypeEditor
         var game = EditorWindow.GetWindow(gameType);
         gameType.GetProperty("selectedSizeIndex",BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic).SetValue(game,index);
         game.Focus();
-        Selection.activeObject = UnityEngine.Object.FindFirstObjectByType<Jamkkaebi.Scripts.UI.TabHost>().gameObject;
+        Selection.activeObject = UnityEngine.Object.FindFirstObjectByType<Jamkkaebi.Scripts.UI.Shell.TabHost>().gameObject;
     }
     [MenuItem("Prototype/Save Preview Screenshot")]
     public static void Capture()

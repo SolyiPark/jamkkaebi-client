@@ -1,6 +1,6 @@
 using System;
-using Jamkkaebi.Scripts.UI;
 using Jamkkaebi.Scripts.UI.Friends;
+using Jamkkaebi.Scripts.UI.Shell;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;

@@ -1,8 +1,9 @@
+using Jamkkaebi.Scripts.UI.Common;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using UnityEngine;
 using UnityEngine.UI;
-using Jamkkaebi.Scripts.UI.Exhibition;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Shell
 {
     public sealed class TabTransition : MonoBehaviour
     {

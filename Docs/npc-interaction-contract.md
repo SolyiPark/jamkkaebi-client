@@ -8,7 +8,7 @@
 
 v1에서 **게임은 출력 분기·감정·동작·후속 선택지를 결정하고, SLM은 짧은 대사만 생성**한다. 기존 논의에서 아직 정하지 않은 모델의 행동 선택 범위를 확장하지 않기 위한 초기 개발 범위다. 감정/동작을 모델이 선택하게 하려면 허용 목록과 결과 검증을 포함하는 후속 계약 변경이 필요하다.
 
-소스는 `Assets/Jamkkaebi/Scripts/Gameplay/Npc/Interaction/`, 네임스페이스는 `Jamkkaebi.Scripts.Gameplay.Npc.Interaction`이다. 기존 `Jamkkaebi.Runtime`에 포함되며 `Jamkkaebi.UI → Jamkkaebi.Runtime` 의존 방향을 유지한다. Unity 객체·표시 자산·추론 플러그인·JSON 라이브러리를 공통 타입에서 참조하지 않는다. 모델과 통합 도구는 미선정이다.
+소스는 `Assets/Jamkkaebi/Scripts/Gameplay/Npc/Interaction/`, 네임스페이스는 `Jamkkaebi.Scripts.Gameplay.Npc.Interaction`이다. `Jamkkaebi.Gameplay` 어셈블리에 포함되며 `Jamkkaebi.UI → Jamkkaebi.Gameplay` 의존 방향을 유지한다. Unity 객체·표시 자산·추론 플러그인·JSON 라이브러리를 공통 타입에서 참조하지 않는다. 모델과 통합 도구는 미선정이다.
 
 ## 책임과 데이터 흐름
 

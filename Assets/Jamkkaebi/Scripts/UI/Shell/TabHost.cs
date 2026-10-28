@@ -1,13 +1,14 @@
 using System;
-using Jamkkaebi.Scripts.UI.Exhibition;
 using System.Collections;
 using System.Collections.Generic;
+using Jamkkaebi.Scripts.UI.Common;
+using Jamkkaebi.Scripts.UI.Exhibition;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace Jamkkaebi.Scripts.UI
+namespace Jamkkaebi.Scripts.UI.Shell
 {
     public class TabHost : MonoBehaviour
     {

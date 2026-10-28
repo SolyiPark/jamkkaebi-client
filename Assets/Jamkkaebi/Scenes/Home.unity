@@ -924,7 +924,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6af1510803bf26409cb08fa2e7c8313, type: 3}
   m_Name:
-  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.MirrorSceneRoot
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Shell.MirrorSceneRoot
   sceneCamera: {fileID: 339322683}
   uiRaycasters: []
 --- !u!114 &1191466252

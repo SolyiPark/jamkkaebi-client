@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8a1fb26222cf4faa9f4d6a7900af5059, type: 3}
   m_Name: LocalMinigameDifficultyTable
-  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Data.MinigameDifficultyTable
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Data.MinigameDifficultyTable
   _entries:
   - _difficulty: 0
     _board:

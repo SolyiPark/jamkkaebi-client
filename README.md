@@ -18,13 +18,28 @@
 
 | 경로 | 어셈블리 | 네임스페이스 | 내용 |
 | --- | --- | --- | --- |
-| `Scripts/Gameplay/` | `Jamkkaebi.Runtime` | `Jamkkaebi.Scripts.Gameplay.*` | 미니게임 규칙, 수집 규칙, 데이터, NPC 계약 |
+| `Scripts/Gameplay/` | `Jamkkaebi.Gameplay` | `Jamkkaebi.Scripts.Gameplay.*` | 미니게임 규칙, 수집 규칙, 데이터, NPC 계약 |
 | `Scripts/UI/` | `Jamkkaebi.UI` | `Jamkkaebi.Scripts.UI.*` | 탭 셸, SafeArea, 전시관·도감·친구·작업대 화면 |
 | `Editor/` | Assembly-CSharp-Editor | 전역 | 씬 이관·검증·인스펙터 도구 |
 | `Tests/EditMode/` | `Jamkkaebi.Gameplay.EditMode` | `Jamkkaebi.Tests.EditMode` | 게임 규칙 테스트 |
 | `Tests/UI/` | `Jamkkaebi.UI.EditMode`, `Jamkkaebi.UI.TestSupport` | `Jamkkaebi.Tests.UI.*` | UI 계약 테스트와 테스트 대역 |
 
-- 의존 방향은 `Jamkkaebi.UI → Jamkkaebi.Runtime` 한 방향입니다. 게임 규칙 코드에서 UI를 참조하지 않습니다.
+- 의존 방향은 `Jamkkaebi.UI → Jamkkaebi.Gameplay` 한 방향입니다. 게임 규칙 코드에서 UI를 참조하지 않습니다.
+
+### 코드 폴더와 어셈블리 규칙
+
+`Scripts/`의 최상위 폴더는 각자 자기 asmdef를 가지며, `Scripts/` 루트에는 asmdef를 두지 않습니다. 아래 표의 방향으로만 참조합니다.
+
+| 폴더 | 어셈블리 | 역할 | 참조 가능 |
+| --- | --- | --- | --- |
+| `Core/` | `Jamkkaebi.Core` | 공통 유틸리티, 확장 메서드 | 없음 |
+| `Gameplay/` | `Jamkkaebi.Gameplay` | 게임 로직 (기능별 폴더) | Core |
+| `Save/` | `Jamkkaebi.Save` | 로컬 캐시 저장·로드, 서버 동기화 클라이언트 | Core, Gameplay |
+| `UI/` | `Jamkkaebi.UI` | 화면 표현 (화면별 폴더) | Core, Gameplay |
+| `App/` | `Jamkkaebi.App` | 앱 흐름 제어, 부트스트랩 | 전부 |
+
+- 현재 존재하는 폴더는 `Gameplay/`와 `UI/`입니다. `Core/`, `Save/`, `App/`은 첫 코드를 추가할 때 **asmdef와 함께** 만듭니다. asmdef 없이 폴더를 만들면 그 코드는 `Assembly-CSharp`에 들어가고, asmdef 어셈블리에서는 `Assembly-CSharp`를 참조할 수 없어 "타입을 찾을 수 없음" 오류가 납니다.
+- 서버 통신 코드(`UI/Friends/`의 `JamkkaebiApiClient`, `ServerExhibitionBackend` 등)는 아직 UI에 있습니다. `App/` 부트스트랩을 설계할 때 `Save/`로 옮길 예정입니다.
 - `Art/`, `Configuration/`, `Fonts/`, `Materials/`, `Prefabs/`, `Scenes/`, `ScriptableObjects/`: 자산 폴더.
 - `Packages/`, `ProjectSettings/`: 프로젝트 전체에서 한 벌만 사용합니다. 기존 URP 및 Both 입력 설정을 유지합니다.
 - `Assets/Jamkkaebi/Configuration/MainTabs.asset`: 탭 목록과 배경 실행 정책.

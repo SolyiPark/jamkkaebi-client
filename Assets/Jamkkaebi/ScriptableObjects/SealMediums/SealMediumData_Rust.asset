@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 564e0a283a164f978f75d74096fbc18b, type: 3}
   m_Name: SealMediumData_Rust
-  m_EditorClassIdentifier: Jamkkaebi.Runtime::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.SealMediumData
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.SealMediumData
   _sealMedium: 0
   _tileColor: {r: 0.7264151, g: 0.66984254, b: 0.4968405, a: 1}
   _reinforcedTileColor: {r: 0.4339623, g: 0.38251615, b: 0.26406196, a: 1}
