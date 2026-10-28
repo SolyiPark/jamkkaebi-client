@@ -15,7 +15,8 @@ namespace Jamkkaebi.Tests.EditMode
             shapeCellTotal: 9,
             threatTileCount: 5,
             helperTileCount: 2,
-            reinforcedTileCount: 3,
+            reinforcedOnShapeCount: 2,
+            reinforcedOnFieldCount: 1,
             destructiveToolLimit: 19,
             scoutToolLimit: 3,
             allowedThreatHits: 3 
@@ -28,7 +29,8 @@ namespace Jamkkaebi.Tests.EditMode
             shapeCellTotal: 5,      // 풀에서 5칸짜리는 Line5뿐이다
             threatTileCount: 5,
             helperTileCount: 2,
-            reinforcedTileCount: 3,
+            reinforcedOnShapeCount: 2,
+            reinforcedOnFieldCount: 1,
             destructiveToolLimit: 19,
             scoutToolLimit: 3,
             allowedThreatHits: 3 
@@ -109,7 +111,7 @@ namespace Jamkkaebi.Tests.EditMode
             // Arrange
             long seed = 12345678;
             MinigameBoardConfig smallGridConfig =
-                new MinigameBoardConfig(3, 3, 2, 7, 5, 2, 3, 19, 3, 3);
+                new MinigameBoardConfig(3, 3, 2, 7, 5, 2, 2, 1, 19, 3, 3);
             
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(smallGridConfig, seed));
@@ -125,7 +127,7 @@ namespace Jamkkaebi.Tests.EditMode
             long seed = 12345678;
             MinigameBoardConfig invalidConfig = new MinigameBoardConfig(
                 _config.Width, _config.Height, shapeCount, shapeCellTotal,
-                _config.ThreatTileCount, _config.HelperTileCount, _config.ReinforcedTileCount,
+                _config.ThreatTileCount, _config.HelperTileCount, _config.ReinforcedOnShapeCount, _config.ReinforcedOnFieldCount,
                 _config.DestructiveToolLimit, _config.ScoutToolLimit, _config.AllowedThreatHits);
 
             // Act & Assert
@@ -137,7 +139,7 @@ namespace Jamkkaebi.Tests.EditMode
         {
             // Arrange: 서로 다른 모양 3개의 칸 합은 최소 2+3+4=9라서 6칸은 만들 수 없다(서버 수정 전 매우 쉬움 값)
             long seed = 12345678;
-            MinigameBoardConfig impossibleConfig = new MinigameBoardConfig(5, 6, 3, 6, 2, 1, 2, 12, 3, 3);
+            MinigameBoardConfig impossibleConfig = new MinigameBoardConfig(5, 6, 3, 6, 2, 1, 1, 1, 12, 3, 3);
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => MinigameGridGenerator.Generate(impossibleConfig, seed));
