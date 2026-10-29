@@ -33,6 +33,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [SerializeField] private Image _damageGaugeRider;
         [SerializeField] private Color _damageLabelOnFillColor = Color.white;
         [SerializeField] private Color _damageLabelOnEmptyColor = new Color(0.61f, 0.25f, 0.25f);
+        [Tooltip("손상도가 바뀐 뒤 게이지가 새 값을 따라잡는 데 걸리는 대략적인 시간(초). 0이면 바로 바뀐다.")]
+        [SerializeField] [Min(0f)] private float _damageGaugeSmoothTime = 0.25f;
 
         [Header("찾을 형상")]
         [Tooltip("형상 미리보기를 가로로 늘어놓을 영역.")]
@@ -62,6 +64,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         private readonly List<(PolyominoGroup Group, Image Image)> _shapePreviews = new List<(PolyominoGroup, Image)>();
         private MinigameSession _shownSession;
         private float _builtPreviewWidth = -1f;
+        private float _displayedDamage;          // 화면에 보이는 손상도. 실제 값을 부드럽게 따라간다
+        private float _displayedDamageVelocity;  // SmoothDamp가 프레임 사이에 이어 쓰는 속도
 
         private void Awake()
         {
@@ -103,15 +107,22 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             // 패널이 보드 폭에 맞춰 늘거나 줄면 미리보기 칸 크기도 다시 계산한다
             bool previewWidthChanged = _shapePreviewContainer != null
                 && Mathf.Abs(_shapePreviewContainer.rect.width - _builtPreviewWidth) > 0.5f;
-            if (session != _shownSession || previewWidthChanged)
+            bool isNewSession = session != _shownSession;
+            if (isNewSession || previewWidthChanged)
             {
                 _shownSession = session;
                 RebuildShapePreviews(session);
                 RefreshGaugeRiderSprite();
             }
+            if (isNewSession)
+            {
+                // 새 판은 이전 판의 손상도에서 내려오는 연출 없이 바로 시작 값으로 맞춘다
+                _displayedDamage = session.DamageGauge;
+                _displayedDamageVelocity = 0f;
+            }
 
             RefreshToolCounts(session);
-            RefreshDamageGauge(session.DamageGauge);
+            RefreshDamageGauge(SmoothDamage(session.DamageGauge));
             RefreshShapePreviews(session);
             RefreshToolButtons(session);
             RefreshResult(session);
@@ -126,6 +137,32 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         {
             if (_destructiveCountText != null) _destructiveCountText.text = session.RemainingDestructiveToolUses.ToString();
             if (_scoutCountText != null) _scoutCountText.text = session.RemainingScoutToolUses.ToString();
+        }
+
+        /// <summary>
+        /// 화면에 보이는 손상도를 실제 손상도 쪽으로 한 프레임만큼 움직이고 그 값을 돌려준다.
+        /// </summary>
+        /// <remarks>
+        /// SmoothDamp는 처음엔 빠르게, 목표에 가까울수록 느리게 움직여 게이지가 미끄러지듯 차오른다.
+        /// 결과 화면 등으로 시간이 멈춰도(timeScale 0) 마지막 손상도까지 채워지도록 unscaledDeltaTime을 쓴다.
+        /// </remarks>
+        private float SmoothDamage(float target)
+        {
+            if (_damageGaugeSmoothTime <= 0f)
+            {
+                _displayedDamage = target;
+                return target;
+            }
+
+            _displayedDamage = Mathf.SmoothDamp(_displayedDamage, target, ref _displayedDamageVelocity,
+                _damageGaugeSmoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
+            // 끝없이 아주 조금씩 다가가는 것을 막기 위해 충분히 가까우면 목표값에 붙인다
+            if (Mathf.Abs(_displayedDamage - target) < 0.0005f)
+            {
+                _displayedDamage = target;
+                _displayedDamageVelocity = 0f;
+            }
+            return _displayedDamage;
         }
 
         private void RefreshDamageGauge(float damage)
