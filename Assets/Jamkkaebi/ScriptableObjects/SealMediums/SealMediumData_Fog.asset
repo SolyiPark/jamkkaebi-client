@@ -15,4 +15,47 @@ MonoBehaviour:
   _sealMedium: 1
   _tileColor: {r: 0.6886792, g: 0.6886792, b: 0.6886792, a: 1}
   _reinforcedTileColor: {r: 0.4056604, g: 0.4056604, b: 0.4056604, a: 1}
+  _tileSprite: {fileID: 21300000, guid: 14ccba5e79a944a482a1811cd39da808, type: 3}
+  _reinforcedTileSprite: {fileID: 21300000, guid: 83e5c96628f04396993efc938be0fae6, type: 3}
   _backgroundColor: {r: 0.8490566, g: 0.8490566, b: 0.8490566, a: 1}
+  _polyominoSprites:
+  - _shape: 1
+    _preview: {fileID: 21300000, guid: 723d28078590447bb38fe0a55ca0ac95, type: 3}
+    _cells:
+    - {fileID: 21300000, guid: 4fd90c2d97b0463ebde25a24695ab626, type: 3}
+    - {fileID: 21300000, guid: f01b44f0327d4e84bac4005408ae0752, type: 3}
+  - _shape: 2
+    _preview: {fileID: 21300000, guid: ff9f94c51e354a8583d19fb7dfc001d5, type: 3}
+    _cells:
+    - {fileID: 21300000, guid: bb7db5bf57ae4a5aa082865d3b32dea0, type: 3}
+    - {fileID: 21300000, guid: 94eb363b1c964a0ba0c4724890d03bae, type: 3}
+    - {fileID: 21300000, guid: fb70c52ba1994b6c87351eb5c68bc4ce, type: 3}
+  - _shape: 3
+    _preview: {fileID: 21300000, guid: be52b4d4b3b740f58955d2271170327e, type: 3}
+    _cells:
+    - {fileID: 21300000, guid: 571cf5ea39fb4df98df880bfa8edf15b, type: 3}
+    - {fileID: 21300000, guid: d4fcfa75fe864c88a19088665af14b0a, type: 3}
+    - {fileID: 21300000, guid: c06ba19da3cb44cfaec9cd12343ce056, type: 3}
+    - {fileID: 21300000, guid: 225e2eb6de524ff99ed9a197bd2f39b1, type: 3}
+  - _shape: 4
+    _preview: {fileID: 21300000, guid: 30fbddbd903e41c8873064a92feac7e7, type: 3}
+    _cells:
+    - {fileID: 21300000, guid: 75073cab7d5d4d0796f2f2db5d6b3eb9, type: 3}
+    - {fileID: 21300000, guid: 5005fb93bbda4b5d8dcf643664bc0755, type: 3}
+    - {fileID: 21300000, guid: b1b5db4222514a7da63c9cd273a07cbb, type: 3}
+    - {fileID: 21300000, guid: 6816324d0c96430e89b16d7459cd9563, type: 3}
+  - _shape: 5
+    _preview: {fileID: 21300000, guid: ed119f58f6dd49b1ae3ac9088f928930, type: 3}
+    _cells:
+    - {fileID: 21300000, guid: e476055bae914e5494940ad809013c76, type: 3}
+    - {fileID: 21300000, guid: 281fb3485bcc481f82bdeedec3475da6, type: 3}
+    - {fileID: 21300000, guid: d768c893ed9848588a0cce798c4f30e6, type: 3}
+    - {fileID: 21300000, guid: e9f1b6ac4b724789b0e7c74e1303cb00, type: 3}
+  - _shape: 6
+    _preview: {fileID: 21300000, guid: 1b51b0cb72fa44d1b3b608a1d18cd521, type: 3}
+    _cells:
+    - {fileID: 21300000, guid: 2d72223478464dd688debe8d5b7b6052, type: 3}
+    - {fileID: 21300000, guid: e139501d26e143f8baacf84e5f3b2741, type: 3}
+    - {fileID: 21300000, guid: 53c5f62c391e4522a6e533c76c34b378, type: 3}
+    - {fileID: 21300000, guid: 752f80cb7be4466980ed6f5647a9ab1b, type: 3}
+    - {fileID: 21300000, guid: 8ee14c2013994228992e46b7a5295c9d, type: 3}
