@@ -83,14 +83,16 @@ public static class MinigameHudSetup
         // ── 상단: 도구 남은 횟수, 포기, 도움말 ─────────────────────────────
         Image destructiveCount = CreateImage("DestructiveCount", hud, "DestructiveCount");
         PlaceTopLeft(destructiveCount.rectTransform, 44f, 48f);
-        TMP_Text destructiveText = CreateText("Count", destructiveCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Center);
-        PlaceInside(destructiveText.rectTransform, 110f, 0f, 135f, 106f);
+        // 배지 이미지(106px)에서 회색 알약은 19~99px에 있어 이미지 중심보다 아래다. 숫자 칸을 알약에 맞추고,
+        // 글꼴 줄 높이 대신 글자 모양 기준(Midline)으로 세로 가운데 정렬한다
+        TMP_Text destructiveText = CreateText("Count", destructiveCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Midline);
+        PlaceInside(destructiveText.rectTransform, 110f, 19f, 135f, 81f);
         destructiveText.text = "0";
 
         Image scoutCount = CreateImage("ScoutCount", hud, "ScoutCount");
         PlaceTopLeft(scoutCount.rectTransform, 324f, 48f);
-        TMP_Text scoutText = CreateText("Count", scoutCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Center);
-        PlaceInside(scoutText.rectTransform, 95f, 0f, 115f, 106f);
+        TMP_Text scoutText = CreateText("Count", scoutCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Midline);
+        PlaceInside(scoutText.rectTransform, 95f, 19f, 115f, 81f);
         scoutText.text = "0";
 
         Button quitButton = CreateButton("QuitButton", hud, "QuitButton");
@@ -371,7 +373,7 @@ public static class MinigameHudSetup
         TMP_FontAsset font = GetOrCreateFontAsset(FindFontFile(SejongFolder, "Bold")) ?? numberFont;
         AddScoutPopup((RectTransform)presenter.transform, adapter, font, numberFont);
         EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
-        Debug.Log("[MinigameHudSetup] 정찰 결과 숫자와 말풍선을 추가했습니다. 씬을 저장해주세요.");
+        Debug.Log("[MinigameHudSetup] 정찰 결과 숫자·말풍선·범위 표시를 추가했습니다. 씬을 저장해주세요.");
     }
 
     /// <summary>
@@ -426,6 +428,30 @@ public static class MinigameHudSetup
         so.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
         so.FindProperty("_template").objectReferenceValue = bubbleRect;
         so.ApplyModifiedPropertiesWithoutUndo();
+
+        AddScoutAreaHighlighter(adapter);
+    }
+
+    /// <summary>
+    /// 정찰 범위(3×3)를 잠깐 밝게 덮는 컴포넌트를 어댑터 오브젝트에 붙인다. 이미 있으면 설정만 다시 연결한다.
+    /// </summary>
+    private static void AddScoutAreaHighlighter(MinigameSessionAdapter adapter)
+    {
+        var highlighter = adapter.GetComponent<ScoutAreaHighlighter>();
+        if (highlighter == null) highlighter = Undo.AddComponent<ScoutAreaHighlighter>(adapter.gameObject);
+
+        // 보드 컨테이너와 흰색 사각형은 이미 연결된 어댑터·격자 선 설정에서 가져온다
+        var adapterSo = new SerializedObject(adapter);
+        Object gridContainer = adapterSo.FindProperty("_gridContainer").objectReferenceValue;
+        var gridLineView = adapter.GetComponent<BoardGridLineView>();
+        Object sprite = gridLineView != null ? new SerializedObject(gridLineView).FindProperty("_lineSprite").objectReferenceValue : null;
+
+        var so = new SerializedObject(highlighter);
+        so.FindProperty("_adapter").objectReferenceValue = adapter;
+        so.FindProperty("_parent").objectReferenceValue = gridContainer;
+        so.FindProperty("_sprite").objectReferenceValue = sprite;
+        so.ApplyModifiedProperties();
+        if (sprite == null) Debug.LogWarning("[MinigameHudSetup] 흰색 사각형 스프라이트를 찾지 못했습니다. ScoutAreaHighlighter의 Sprite를 직접 넣어주세요.");
     }
 
     private static RectTransform Find(RectTransform root, string path)

@@ -236,7 +236,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 return ScoutResult.InvalidOrigin;
             }
 
-            List<Vector2Int> coordinates = GetScoutArea(origin);
+            IReadOnlyList<Vector2Int> coordinates = GetScoutArea(origin);
             
             threatCount = coordinates.Count(c => Grid.GetTile(c.x, c.y).Content == TileContent.Threat);
 
@@ -245,7 +245,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             return ScoutResult.Success;
         }
 
-        private List<Vector2Int> GetScoutArea(Vector2Int origin)
+        /// <summary>
+        /// 정찰 도구가 살피는 칸 목록. origin을 포함한 3×3 중 그리드 안에 있는 칸만 돌려준다.
+        /// </summary>
+        /// <remarks>화면에서 정찰 범위를 표시할 때도 같은 범위를 쓰도록 공개한다.</remarks>
+        public IReadOnlyList<Vector2Int> GetScoutArea(Vector2Int origin)
         {
             List<Vector2Int> candidates = new List<Vector2Int>();
             
