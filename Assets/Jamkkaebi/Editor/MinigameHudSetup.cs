@@ -253,7 +253,7 @@ public static class MinigameHudSetup
     /// - 손상도 바와 형상 패널은 실행 중 보드 폭에 맞춰 가로로 늘어난다(BoardWidthMatcher).
     /// - 도구 버튼은 화면 아래 가운데를 기준으로 모인다.
     /// - 캔버스 배율은 보드 영역을 먼저 확보하는 HudCanvasScaler가 정한다.
-    /// 결과 화면의 어두운 배경은 화면 전체를 덮도록 SafeArea 바로 아래에 둔다.
+    /// - 결과 화면의 어두운 배경은 화면 전체를 덮도록 캔버스 바로 아래로 옮긴다.
     /// </remarks>
     private static void ApplyResponsiveLayout(RectTransform hud, Canvas canvas)
     {
