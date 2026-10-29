@@ -16,6 +16,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private Transform _gridContainer;
         [SerializeField] private float _tileSize = 1f;
         [SerializeField] [Range(0.5f, 1f)] private float _tileFillRatio = 0.9f;
+        [Tooltip("비워 두면 격자 선을 그리지 않는다. (작업대 탭처럼 이 기능이 없는 씬)")]
+        [SerializeField] private BoardGridLineView _gridLineView;
         [SerializeField] private Camera _inputCamera;
         [SerializeField] private bool _usePointerEvents;
         
@@ -118,6 +120,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 _tileViews[coord] = view;
             }
             
+            if (_gridLineView != null)
+            {
+                _gridLineView.Build(_gridContainer, _session.Grid.Width, _session.Grid.Height, _tileSize, skin.GridLineColor);
+            }
+            
             _session.TileRevealAttempted += OnTileRevealAttempted;
             FeedbackChanged?.Invoke("타일을 선택해 발굴하세요.");
         }
@@ -208,7 +215,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     view.ShowCovered(false);
                     break;
                 case RevealOutcome.Revealed:
-                    view.ShowRevealed(result.Content);
+                    if (result.Content == TileContent.Target &&
+                        _session.Grid.TryGetPolyominoCell(result.Coordinate, out PolyominoGroup group, out int cellIndex))
+                    {
+                        view.ShowPolyominoCell(group.Shape, cellIndex, group.RotationCount);
+                    }
+                    else
+                    {
+                        view.ShowRevealed(result.Content);
+                    }
                     break;
             }
         }
