@@ -18,6 +18,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] [Range(0.5f, 1f)] private float _tileFillRatio = 0.9f;
         [Tooltip("비워 두면 격자 선을 그리지 않는다. (작업대 탭처럼 이 기능이 없는 씬)")]
         [SerializeField] private BoardGridLineView _gridLineView;
+        [Tooltip("비워 두면 카메라를 조정하지 않는다. (작업대 탭처럼 카메라를 따로 관리하는 씬)")]
+        [SerializeField] private BoardCameraFitter _cameraFitter;
         [SerializeField] private Camera _inputCamera;
         [SerializeField] private bool _usePointerEvents;
         
@@ -123,6 +125,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             if (_gridLineView != null)
             {
                 _gridLineView.Build(_gridContainer, _session.Grid.Width, _session.Grid.Height, _tileSize, skin.GridLineColor);
+            }
+
+            if (_cameraFitter != null)
+            {
+                _cameraFitter.Fit(_gridContainer, _session.Grid.Width, _session.Grid.Height, _tileSize);
             }
             
             _session.TileRevealAttempted += OnTileRevealAttempted;

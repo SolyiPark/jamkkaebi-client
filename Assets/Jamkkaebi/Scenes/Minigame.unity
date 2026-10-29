@@ -284,6 +284,7 @@ GameObject:
   - component: {fileID: 269342921}
   - component: {fileID: 269342920}
   - component: {fileID: 269342923}
+  - component: {fileID: 269342925}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -291,6 +292,21 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &269342925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 269342919}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68cbad583310438bb7e2f66955c4806b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.BoardCameraFitter
+  _topReservedRatio: 0.18
+  _bottomReservedRatio: 0.18
+  _marginInTiles: 0.3
 --- !u!81 &269342920
 AudioListener:
   m_ObjectHideFlags: 0
@@ -579,6 +595,7 @@ MonoBehaviour:
   _tileSize: 0.75
   _tileFillRatio: 1
   _gridLineView: {fileID: 1276415657}
+  _cameraFitter: {fileID: 269342925}
   _inputCamera: {fileID: 269342921}
   _usePointerEvents: 0
   _useFixedSeed: 0
