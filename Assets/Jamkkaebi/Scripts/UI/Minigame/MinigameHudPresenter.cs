@@ -61,6 +61,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
 
         private readonly List<(PolyominoGroup Group, Image Image)> _shapePreviews = new List<(PolyominoGroup, Image)>();
         private MinigameSession _shownSession;
+        private float _builtPreviewWidth = -1f;
 
         private void Awake()
         {
@@ -99,7 +100,10 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             MinigameSession session = _adapter.Session;
             if (session == null) return;
 
-            if (session != _shownSession)
+            // 패널이 보드 폭에 맞춰 늘거나 줄면 미리보기 칸 크기도 다시 계산한다
+            bool previewWidthChanged = _shapePreviewContainer != null
+                && Mathf.Abs(_shapePreviewContainer.rect.width - _builtPreviewWidth) > 0.5f;
+            if (session != _shownSession || previewWidthChanged)
             {
                 _shownSession = session;
                 RebuildShapePreviews(session);
@@ -149,6 +153,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         {
             _shapePreviews.Clear();
             if (_shapePreviewContainer == null) return;
+            _builtPreviewWidth = _shapePreviewContainer.rect.width;
 
             for (int i = _shapePreviewContainer.childCount - 1; i >= 0; i--)
             {
