@@ -576,7 +576,7 @@ MonoBehaviour:
   _tilePrefab: {fileID: 6224122067789507894, guid: 08efc0163c9a9428bb072080fb260a02, type: 3}
   _gridContainer: {fileID: 569415861}
   _tileSize: 0.75
-  _tileFillRatio: 0.9
+  _tileFillRatio: 1
   _inputCamera: {fileID: 269342921}
   _usePointerEvents: 0
   _useFixedSeed: 0

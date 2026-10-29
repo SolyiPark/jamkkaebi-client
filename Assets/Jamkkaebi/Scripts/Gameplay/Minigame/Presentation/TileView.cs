@@ -21,10 +21,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         
         private SpriteRenderer _renderer;
         private SealMediumData _sealMediumData;
+        // 프리팹에 지정된 기본 사각형. 매개체 스프라이트가 없을 때와 열린 타일에 쓴다.
+        private Sprite _defaultSprite;
 
         private void Awake()
         {
             _renderer = GetComponent<SpriteRenderer>();
+            _defaultSprite = _renderer.sprite;
         }
 
         public void Initialize(Vector2Int coordinate, SealMediumData sealMediumData)
@@ -51,11 +54,24 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         public void ShowCovered(bool isReinforced)
         {
+            Sprite sprite = isReinforced ? _sealMediumData.ReinforcedTileSprite : _sealMediumData.TileSprite;
+            if (sprite != null)
+            {
+                // 색이 남아 있으면 그림에 곱해지므로 흰색으로 되돌린다
+                _renderer.sprite = sprite;
+                _renderer.color = Color.white;
+                return;
+            }
+
+            // 스프라이트가 등록되지 않은 매개체는 기존처럼 색으로 표시
+            _renderer.sprite = _defaultSprite;
             _renderer.color = isReinforced ? _sealMediumData.ReinforcedTileColor : _sealMediumData.TileColor;
         }
 
         public void ShowRevealed(TileContent content)
         {
+            // 내용물은 아직 색으로만 구분하므로 덮개 그림을 걷어낸다
+            _renderer.sprite = _defaultSprite;
             _renderer.color = content switch
             {
                 TileContent.Empty => _emptyColor,
