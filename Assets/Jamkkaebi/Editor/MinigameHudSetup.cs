@@ -208,23 +208,6 @@ public static class MinigameHudSetup
     }
 
     /// <summary>
-    /// 이미 만든 HUD에 보드 영역 경계를 추가하고 카메라에 연결한다. HUD를 다시 만들지 않는다.
-    /// </summary>
-    [MenuItem("Jamkkaebi/Minigame/Connect Board Guides")]
-    public static void ConnectBoardGuidesMenu()
-    {
-        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
-        if (presenter == null)
-        {
-            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter를 찾지 못했습니다. Build HUD를 먼저 실행해주세요.", "확인");
-            return;
-        }
-        ConnectBoardGuides((RectTransform)presenter.transform);
-        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
-        Debug.Log("[MinigameHudSetup] 보드 영역 경계를 연결했습니다. 씬을 저장해주세요.");
-    }
-
-    /// <summary>
     /// 보드가 들어갈 영역의 위·아래 경계를 투명한 RectTransform으로 만들고 BoardCameraFitter에 연결한다.
     /// </summary>
     /// <remarks>
@@ -260,26 +243,6 @@ public static class MinigameHudSetup
         // 시안은 패널과 도구 버튼 사이를 보드가 꽉 채운다. 바깥 격자 선 두께만큼만 남긴다
         fitterSo.FindProperty("_marginInTiles").floatValue = 0.05f;
         fitterSo.ApplyModifiedProperties();
-    }
-
-    /// <summary>
-    /// 이미 만든 HUD를 화면 비율에 대응하도록 바꾼다. HUD를 다시 만들지 않는다.
-    /// </summary>
-    [MenuItem("Jamkkaebi/Minigame/Apply Responsive Layout")]
-    public static void ApplyResponsiveLayoutMenu()
-    {
-        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
-        var canvas = presenter != null ? presenter.GetComponentInParent<Canvas>() : null;
-        if (presenter == null || canvas == null)
-        {
-            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter와 Canvas를 찾지 못했습니다. Build HUD를 먼저 실행해주세요.", "확인");
-            return;
-        }
-        var hud = (RectTransform)presenter.transform;
-        ConnectBoardGuides(hud);
-        ApplyResponsiveLayout(hud, canvas);
-        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
-        Debug.Log("[MinigameHudSetup] 반응형 배치를 적용했습니다. 씬을 저장해주세요.");
     }
 
     /// <summary>
@@ -329,15 +292,7 @@ public static class MinigameHudSetup
             tool.anchoredPosition = new Vector2(toolCenters[i] - ReferenceResolution.x * 0.5f, 216f);
         }
 
-        var presenterSo = new SerializedObject(hud.GetComponent<MinigameHudPresenter>());
-        var resultRoot = presenterSo.FindProperty("_resultRoot").objectReferenceValue as GameObject;
-        if (resultRoot != null && resultRoot.transform.parent == hud)
-        {
-            Undo.SetTransformParent(resultRoot.transform, hud.parent, "Move Result Overlay");
-            var resultRect = (RectTransform)resultRoot.transform;
-            Stretch(resultRect);
-            resultRect.SetAsLastSibling();
-        }
+        MoveResultOverlayToCanvas(hud, canvas);
 
         var matcher = hud.GetComponent<BoardWidthMatcher>();
         if (matcher == null) matcher = Undo.AddComponent<BoardWidthMatcher>(hud.gameObject);
@@ -363,20 +318,28 @@ public static class MinigameHudSetup
     }
 
     /// <summary>
-    /// 이미 만든 HUD의 손상도 게이지 위에 유물 도깨비 그림을 추가한다. HUD를 다시 만들지 않는다.
+    /// 결과 화면(어두운 배경 + 패널)을 캔버스 바로 아래 맨 앞으로 옮기고 화면 전체로 늘린다.
     /// </summary>
-    [MenuItem("Jamkkaebi/Minigame/Add Gauge Rider")]
-    public static void AddGaugeRiderMenu()
+    /// <remarks>
+    /// SafeArea 안에 두면 노치·홈 표시줄 영역만큼 배경이 비어 보인다.
+    /// 가운데 패널은 화면 가운데 기준이라 노치에 걸리지 않으므로 SafeArea 밖으로 빼도 된다.
+    /// </remarks>
+    private static void MoveResultOverlayToCanvas(RectTransform hud, Canvas canvas)
     {
-        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
-        if (presenter == null)
+        var presenterSo = new SerializedObject(hud.GetComponent<MinigameHudPresenter>());
+        var resultRoot = presenterSo.FindProperty("_resultRoot").objectReferenceValue as GameObject;
+        if (resultRoot == null) return;
+
+        Canvas rootCanvas = canvas.rootCanvas;
+        if (resultRoot.transform.parent != rootCanvas.transform)
         {
-            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter를 찾지 못했습니다.", "확인");
-            return;
+            Undo.SetTransformParent(resultRoot.transform, rootCanvas.transform, "Move Result Overlay");
         }
-        AddGaugeRider((RectTransform)presenter.transform, presenter);
-        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
-        Debug.Log("[MinigameHudSetup] 손상도 게이지에 도깨비 그림 자리를 추가했습니다. 씬을 저장해주세요.");
+        var resultRect = (RectTransform)resultRoot.transform;
+        Undo.RecordObject(resultRect, "Stretch Result Overlay");
+        Stretch(resultRect);
+        resultRect.localScale = Vector3.one;
+        resultRect.SetAsLastSibling();   // HUD보다 위에 그려지도록 맨 뒤 형제로 둔다
     }
 
     /// <summary>
@@ -439,26 +402,6 @@ public static class MinigameHudSetup
         var so = new SerializedObject(presenter);
         so.FindProperty("_damageGaugeRider").objectReferenceValue = rider;
         so.ApplyModifiedPropertiesWithoutUndo();
-    }
-
-    /// <summary>
-    /// 이미 만든 HUD에 정찰 결과 말풍선을 추가한다. HUD를 다시 만들지 않는다.
-    /// </summary>
-    [MenuItem("Jamkkaebi/Minigame/Add Scout Result")]
-    public static void AddScoutPopupMenu()
-    {
-        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
-        var adapter = Object.FindFirstObjectByType<MinigameSessionAdapter>();
-        if (presenter == null || adapter == null)
-        {
-            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter와 MinigameSessionAdapter를 찾지 못했습니다.", "확인");
-            return;
-        }
-        TMP_FontAsset numberFont = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold"));
-        TMP_FontAsset font = GetOrCreateFontAsset(FindFontFile(SejongFolder, "Bold")) ?? numberFont;
-        AddScoutPopup((RectTransform)presenter.transform, adapter, font, numberFont);
-        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
-        Debug.Log("[MinigameHudSetup] 정찰 결과 숫자·말풍선·범위 표시를 추가했습니다. 씬을 저장해주세요.");
     }
 
     /// <summary>
