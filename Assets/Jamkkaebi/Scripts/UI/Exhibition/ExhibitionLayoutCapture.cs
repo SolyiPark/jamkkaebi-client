@@ -8,12 +8,12 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
     {
         /// <summary>소유권 확인 후 받은 ID 바인딩을 사용한다. 회수 후에도 바인딩 목록을 유지해야 한다.</summary>
         /// <param name="buildingIds">Owned building IDs keyed by local item kind; retain bindings after recall so unplaced buildings remain managed.</param>
-        /// <param name="artifactId">Owned artifact ID for the NPC, whose captured cell is its placement anchor rather than its current walking cell.</param>
+        /// <param name="relicId">Owned relic ID for the NPC, whose captured cell is its placement anchor rather than its current walking cell.</param>
         /// <returns>A draft containing placed buildings, unplaced bindings, and the NPC; missing building bindings use ID zero for later rejection.</returns>
         /// <exception cref="InvalidOperationException">The housing or its layout is unavailable.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="buildingIds"/> is null.</exception>
         public static ExhibitionLayoutDraft Capture(ExhibitionHousing housing,
-            IReadOnlyDictionary<string, int> buildingIds, int artifactId)
+            IReadOnlyDictionary<string, int> buildingIds, int relicId)
         {
             if (!housing || housing.Layout == null) throw new InvalidOperationException("홈 초기화가 필요합니다.");
             if (buildingIds == null) throw new ArgumentNullException(nameof(buildingIds));
@@ -30,7 +30,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 if (!placedKinds.Contains(binding.Key))
                     objects.Add(new ExhibitionBuildingData(binding.Key, binding.Value, false,
                         Vector2Int.zero, Vector2Int.one));
-            objects.Add(new ExhibitionNpcData("home-dokkaebi", artifactId, housing.Wanderer != null,
+            objects.Add(new ExhibitionNpcData("home-dokkaebi", relicId, housing.Wanderer != null,
                 housing.Wanderer ? housing.Wanderer.PlacementCell : Vector2Int.zero));
             return new ExhibitionLayoutDraft(housing.Surface.Grid.Size, objects);
         }

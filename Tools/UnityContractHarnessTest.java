@@ -18,12 +18,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import com.example.jamkkaebi.user.domain.UserActivityRecordedEvent;
 import com.example.jamkkaebi.user.service.UserRegistrationService;
-import com.example.jamkkaebi.artifact.domain.Era;
-import com.example.jamkkaebi.artifact.domain.AwakeningStage;
-import com.example.jamkkaebi.artifact.domain.UserArtifact;
-import com.example.jamkkaebi.artifact.domain.UserBuilding;
-import com.example.jamkkaebi.artifact.repository.UserArtifactRepository;
-import com.example.jamkkaebi.artifact.repository.UserBuildingRepository;
+import com.example.jamkkaebi.relic.domain.Era;
+import com.example.jamkkaebi.relic.domain.AwakeningStage;
+import com.example.jamkkaebi.relic.domain.UserRelic;
+import com.example.jamkkaebi.relic.domain.UserBuilding;
+import com.example.jamkkaebi.relic.repository.UserRelicRepository;
+import com.example.jamkkaebi.relic.repository.UserBuildingRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -57,7 +57,7 @@ class UnityContractHarnessTest {
     @Autowired FakeExhibitionViewReader view;
     @Autowired ExhibitionSnapshotService snapshots;
     @Autowired ObjectMapper mapper;
-    @Autowired UserArtifactRepository artifacts;
+    @Autowired UserRelicRepository relics;
     @Autowired UserBuildingRepository buildings;
     @Test void serveUnity() throws Exception {
         var a = registration.findOrRegister(AuthProvider.GOOGLE, "unity-a", "Unity검증자").user();
@@ -70,12 +70,12 @@ class UnityContractHarnessTest {
         friendships.save(Friendship.between(f.getId(), g.getId()));
         mockOwners.add(b.getId()); mockOwners.add(c.getId());
         for (int id : new int[] {2,8}) {
-            var owned = UserArtifact.acquired(f.getId(), id, LocalDateTime.now());
+            var owned = UserRelic.acquired(f.getId(), id, LocalDateTime.now());
             owned.clearFirstPhase(LocalDateTime.now());
             owned.clearFirstPhase(LocalDateTime.now());
             owned.clearFirstPhase(LocalDateTime.now());
             if (id == 8) owned.placeAt(4,4);
-            artifacts.save(owned);
+            relics.save(owned);
         }
         buildings.save(UserBuilding.awarded(f.getId(), 1, LocalDateTime.now()));
         friendships.save(Friendship.between(a.getId(), b.getId()));
