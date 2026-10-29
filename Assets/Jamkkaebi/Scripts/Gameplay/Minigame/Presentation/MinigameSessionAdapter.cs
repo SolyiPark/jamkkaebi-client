@@ -39,6 +39,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         
         public event Action<ToolMode> ToolSelectionChanged;
         public event Action<string> FeedbackChanged;
+        /// <summary>정찰에 성공했을 때. 정찰한 칸 좌표와 3×3 범위의 위협 타일 수를 전달한다.</summary>
+        public event Action<Vector2Int, int> ScoutRevealed;
         public MinigameSession Session => _session;
         /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
         public SealMediumData CurrentSkin { get; private set; }
@@ -166,6 +168,18 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             }
         }
 
+        /// <summary>
+        /// 타일의 월드 좌표를 구한다. 타일 위에 UI를 띄울 때 쓴다.
+        /// </summary>
+        /// <returns>현재 판에 그 좌표의 타일이 있으면 true.</returns>
+        public bool TryGetTileWorldPosition(Vector2Int coord, out Vector3 position)
+        {
+            position = Vector3.zero;
+            if (_tileViews == null || !_tileViews.TryGetValue(coord, out TileView view) || view == null) return false;
+            position = view.transform.position;
+            return true;
+        }
+
         private Vector2 GridToWorldPosition(Vector2Int coord)
         {
             float offsetX = (_session.Grid.Width - 1) * _tileSize * 0.5f;
@@ -206,6 +220,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     ScoutResult result = _session.UseScoutTool(coord, out int threatCount);
                     Debug.Log($"({coord.x}, {coord.y}) 정찰 결과: {result}, 위협 타일 {threatCount}개");
                     FeedbackChanged?.Invoke($"정찰: {result} · 주변 위협 {threatCount}개");
+                    if (result == ScoutResult.Success) ScoutRevealed?.Invoke(coord, threatCount);
                     break;
                 }
             }

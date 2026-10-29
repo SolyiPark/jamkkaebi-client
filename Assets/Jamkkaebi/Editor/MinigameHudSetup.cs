@@ -195,6 +195,7 @@ public static class MinigameHudSetup
 
         ConnectBoardGuides(hud);
         ApplyResponsiveLayout(hud, canvas);
+        AddScoutPopup(hud, adapter, titleFont, GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")) ?? numberFont);
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
         Selection.activeGameObject = hud.gameObject;
@@ -351,6 +352,80 @@ public static class MinigameHudSetup
         responsiveSo.FindProperty("_boardAreaHeight").floatValue = 1951f - 811f;
         responsiveSo.FindProperty("_hudHeight").floatValue = 811f + (ReferenceResolution.y - 1951f);
         responsiveSo.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// 이미 만든 HUD에 정찰 결과 말풍선을 추가한다. HUD를 다시 만들지 않는다.
+    /// </summary>
+    [MenuItem("Jamkkaebi/Minigame/Add Scout Result")]
+    public static void AddScoutPopupMenu()
+    {
+        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
+        var adapter = Object.FindFirstObjectByType<MinigameSessionAdapter>();
+        if (presenter == null || adapter == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter와 MinigameSessionAdapter를 찾지 못했습니다.", "확인");
+            return;
+        }
+        TMP_FontAsset numberFont = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold"));
+        TMP_FontAsset font = GetOrCreateFontAsset(FindFontFile(SejongFolder, "Bold")) ?? numberFont;
+        AddScoutPopup((RectTransform)presenter.transform, adapter, font, numberFont);
+        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
+        Debug.Log("[MinigameHudSetup] 정찰 결과 숫자와 말풍선을 추가했습니다. 씬을 저장해주세요.");
+    }
+
+    /// <summary>
+    /// 정찰 결과(칸 위에 남는 숫자, 잠깐 떠오르는 말풍선)를 HUD에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// </summary>
+    private static void AddScoutPopup(RectTransform hud, MinigameSessionAdapter adapter, TMP_FontAsset font, TMP_FontAsset numberFont)
+    {
+        foreach (string areaName in new[] { "ScoutNumbers", "ScoutPopups" })
+        {
+            Transform existing = hud.Find(areaName);
+            if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+        }
+        var fitter = Object.FindFirstObjectByType<BoardCameraFitter>();
+        Camera boardCamera = fitter != null ? fitter.GetComponent<Camera>() : Camera.main;
+
+        // 칸 위에 남는 숫자. 말풍선보다 먼저 만들어 아래에 그려지게 한다
+        RectTransform numbers = CreateRect("ScoutNumbers", hud);
+        Stretch(numbers);
+        Undo.RegisterCreatedObjectUndo(numbers.gameObject, "Add Scout Numbers");
+        TMP_Text numberTemplate = CreateText("NumberTemplate", numbers, numberFont, 60f, DarkText, TextAlignmentOptions.Center);
+        numberTemplate.text = "0";
+        numberTemplate.gameObject.SetActive(false);
+        var overlay = numbers.gameObject.AddComponent<ScoutNumberOverlay>();
+        var overlaySo = new SerializedObject(overlay);
+        overlaySo.FindProperty("_adapter").objectReferenceValue = adapter;
+        overlaySo.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
+        overlaySo.FindProperty("_template").objectReferenceValue = numberTemplate;
+        overlaySo.ApplyModifiedPropertiesWithoutUndo();
+
+        // 화면 전체를 덮는 투명한 영역. 말풍선은 이 안에서 타일 위치를 따라 놓인다
+        RectTransform area = CreateRect("ScoutPopups", hud);
+        Stretch(area);
+        Undo.RegisterCreatedObjectUndo(area.gameObject, "Add Scout Popup");
+
+        Image bubble = CreateImage("PopupTemplate", area, "panel");
+        bubble.type = Image.Type.Sliced;
+        bubble.raycastTarget = false;
+        RectTransform bubbleRect = bubble.rectTransform;
+        bubbleRect.anchorMin = bubbleRect.anchorMax = new Vector2(0.5f, 0.5f);
+        bubbleRect.pivot = new Vector2(0.5f, 0f);   // 아래쪽 가운데가 타일 위에 오도록
+        bubbleRect.sizeDelta = new Vector2(440f, 110f);
+        bubble.gameObject.AddComponent<CanvasGroup>();
+
+        TMP_Text label = CreateText("Text", bubbleRect, font, 40f, DarkText, TextAlignmentOptions.Center);
+        Stretch(label.rectTransform);
+        label.text = "주변 위협 0개";
+        bubble.gameObject.SetActive(false);
+
+        var popup = area.gameObject.AddComponent<ScoutResultPopup>();
+        var so = new SerializedObject(popup);
+        so.FindProperty("_adapter").objectReferenceValue = adapter;
+        so.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
+        so.FindProperty("_template").objectReferenceValue = bubbleRect;
+        so.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static RectTransform Find(RectTransform root, string path)
