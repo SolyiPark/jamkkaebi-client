@@ -1,9 +1,10 @@
+using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 {
     /// <summary>
-    /// 타일 덮개가 깨진 순간의 정보. 깨짐 연출이 덮개 그림을 조각내는 데 쓴다.
+    /// 타일 덮개가 깨진 순간의 정보. 깨짐 연출과 타일 종류별 연출이 쓴다.
     /// </summary>
     public readonly struct TileBreakInfo
     {
@@ -17,14 +18,21 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public bool IsFullBreak { get; }
         /// <summary>타일을 깬 도구.</summary>
         public ToolMode Tool { get; }
+        /// <summary>타일 내용물. 강화만 벗겨졌을 때는 아직 보이지 않으므로 연출에 쓰지 않는다.</summary>
+        public TileContent Content { get; }
+        /// <summary>판이 끝난 뒤 정답 공개로 깨졌으면 true. 플레이어 행동이 아니므로 위협·보너스 연출을 하지 않는다.</summary>
+        public bool IsEndReveal { get; }
 
-        public TileBreakInfo(TileView view, Sprite coverSprite, Color coverColor, bool isFullBreak, ToolMode tool)
+        public TileBreakInfo(TileView view, Sprite coverSprite, Color coverColor, bool isFullBreak, ToolMode tool,
+            TileContent content, bool isEndReveal)
         {
             View = view;
             CoverSprite = coverSprite;
             CoverColor = coverColor;
             IsFullBreak = isFullBreak;
             Tool = tool;
+            Content = content;
+            IsEndReveal = isEndReveal;
         }
     }
 }

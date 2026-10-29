@@ -201,6 +201,7 @@ public static class MinigameHudSetup
         ApplyResponsiveLayout(hud, canvas);
         AddGaugeRider(hud, presenter);
         AddScoutPopup(hud, adapter, titleFont, GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")) ?? numberFont);
+        AddTileFeedbackEffects(hud, adapter, canvas);
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
         Selection.activeGameObject = hud.gameObject;
@@ -480,6 +481,51 @@ public static class MinigameHudSetup
         so.FindProperty("_sprite").objectReferenceValue = sprite;
         so.ApplyModifiedProperties();
         if (sprite == null) Debug.LogWarning("[MinigameHudSetup] 흰색 사각형 스프라이트를 찾지 못했습니다. ScoutAreaHighlighter의 Sprite를 직접 넣어주세요.");
+    }
+
+    /// <summary>
+    /// 타일 종류별 연출 컴포넌트를 붙이고 연결한다. 이미 있으면 연결만 다시 한다.
+    /// </summary>
+    /// <remarks>
+    /// - 보드 흔들림·도움 빛줄기: 어댑터 오브젝트(보드 컨테이너를 움직인다)
+    /// - 화면 가장자리 빛: 캔버스 루트(SafeArea 밖 노치 영역까지 덮는다)
+    /// - 정성 아이콘: HUD 루트(화면 전체 좌표를 쓴다)
+    /// </remarks>
+    private static void AddTileFeedbackEffects(RectTransform hud, MinigameSessionAdapter adapter, Canvas canvas)
+    {
+        var adapterSo = new SerializedObject(adapter);
+        Object gridContainer = adapterSo.FindProperty("_gridContainer").objectReferenceValue;
+        var fitter = Object.FindFirstObjectByType<BoardCameraFitter>();
+        Camera boardCamera = fitter != null ? fitter.GetComponent<Camera>() : Camera.main;
+
+        var shaker = GetOrAddComponent<BoardShaker>(adapter.gameObject);
+        var shakerSo = new SerializedObject(shaker);
+        shakerSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        shakerSo.FindProperty("_target").objectReferenceValue = gridContainer;
+        shakerSo.ApplyModifiedProperties();
+
+        var sweep = GetOrAddComponent<HelperSweepEffect>(adapter.gameObject);
+        var sweepSo = new SerializedObject(sweep);
+        sweepSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        sweepSo.FindProperty("_parent").objectReferenceValue = gridContainer;
+        sweepSo.ApplyModifiedProperties();
+
+        var flash = GetOrAddComponent<ScreenEdgeFlash>(canvas.rootCanvas.gameObject);
+        var flashSo = new SerializedObject(flash);
+        flashSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        flashSo.ApplyModifiedProperties();
+
+        var flyer = GetOrAddComponent<BonusCurrencyFlyer>(hud.gameObject);
+        var flyerSo = new SerializedObject(flyer);
+        flyerSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        flyerSo.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
+        flyerSo.ApplyModifiedProperties();
+    }
+
+    private static T GetOrAddComponent<T>(GameObject target) where T : Component
+    {
+        var component = target.GetComponent<T>();
+        return component != null ? component : Undo.AddComponent<T>(target);
     }
 
     private static RectTransform Find(RectTransform root, string path)

@@ -26,9 +26,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         [Header("움직임 (타일 한 칸 = 1)")]
         [Tooltip("가운데에서 바깥쪽으로 튀어 나가는 속도 범위(칸/초).")]
-        [SerializeField] private Vector2 _outwardSpeed = new Vector2(1.5f, 3f);
+        [SerializeField] private FloatRange _outwardSpeed = new FloatRange(1.5f, 3f);
         [Tooltip("처음에 위로 더해 주는 속도 범위(칸/초). 포물선을 그리며 떨어지게 한다.")]
-        [SerializeField] private Vector2 _upwardSpeed = new Vector2(1f, 2f);
+        [SerializeField] private FloatRange _upwardSpeed = new FloatRange(1f, 2f);
         [SerializeField] private float _gravity = 9f;
         [Tooltip("조각 회전 속도의 최댓값(도/초).")]
         [SerializeField] private float _maxSpinSpeed = 540f;
@@ -123,8 +123,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
             // 가운데 조각은 방향이 없으므로 아무 방향으로나 보낸다
             Vector2 outward = direction.sqrMagnitude > 0.0001f ? direction.normalized : Random.insideUnitCircle.normalized;
-            Vector2 velocity = outward * Random.Range(_outwardSpeed.x, _outwardSpeed.y)
-                               + Vector2.up * Random.Range(_upwardSpeed.x, _upwardSpeed.y);
+            Vector2 velocity = outward * _outwardSpeed.RandomValue()
+                               + Vector2.up * _upwardSpeed.RandomValue();
 
             Fragment fragment = GetFragment();
             fragment.Renderer.sprite = pieces[index];

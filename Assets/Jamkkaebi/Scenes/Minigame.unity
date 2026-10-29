@@ -1238,6 +1238,7 @@ GameObject:
   - component: {fileID: 551489680}
   - component: {fileID: 551489681}
   - component: {fileID: 551489682}
+  - component: {fileID: 551489683}
   m_Layer: 0
   m_Name: MinigameHud
   m_TagString: Untagged
@@ -1301,6 +1302,8 @@ MonoBehaviour:
   _damageLabelOnFillColor: {r: 1, g: 1, b: 1, a: 1}
   _damageLabelOnEmptyColor: {r: 0.61, g: 0.25, b: 0.25, a: 1}
   _damageGaugeFillSpeed: 0.5
+  _riderFlinchDistance: 14
+  _riderFlinchDuration: 0.3
   _shapePreviewContainer: {fileID: 844943106}
   _previewCellSize: 94
   _previewSpacing: 100
@@ -1335,6 +1338,35 @@ MonoBehaviour:
   - {fileID: 469258853}
   - {fileID: 742431510}
   - {fileID: 512353208}
+--- !u!114 &551489683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 551489679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98a1c127241541e69504747b5f4d556a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Minigame.BonusCurrencyFlyer
+  _adapter: {fileID: 1276415655}
+  _boardCamera: {fileID: 269342921}
+  _iconSprite: {fileID: 0}
+  _iconColor: {r: 1, g: 0.82, b: 0.32, a: 1}
+  _iconSize: 72
+  _iconsPerTile: 4
+  _target: {fileID: 0}
+  _counterText: {fileID: 0}
+  _burstSpeed:
+    _min: 350
+    _max: 650
+  _gravity: 2200
+  _burstDuration: 0.3
+  _flyStagger: 0.05
+  _flyDuration: 0.45
+  _floatDistance: 140
+  _floatDuration: 0.6
 --- !u!1 &569415860
 GameObject:
   m_ObjectHideFlags: 0
@@ -2334,6 +2366,7 @@ GameObject:
   - component: {fileID: 1180359767}
   - component: {fileID: 1180359766}
   - component: {fileID: 1180359770}
+  - component: {fileID: 1180359771}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -2441,6 +2474,24 @@ MonoBehaviour:
   _boardAreaHeight: 1140
   _hudHeight: 1260
   _minHudScale: 0.7
+--- !u!114 &1180359771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1180359765}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26bf634757da4b85bacd206338570caa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Minigame.ScreenEdgeFlash
+  _adapter: {fileID: 1276415655}
+  _damageColor: {r: 1, g: 0.38, b: 0.3, a: 0.55}
+  _helperColor: {r: 1, g: 0.84, b: 0.3, a: 0.45}
+  _edgeThickness: 260
+  _riseDuration: 0.08
+  _fadeDuration: 0.45
 --- !u!1 &1215740894
 GameObject:
   m_ObjectHideFlags: 0
@@ -2609,6 +2660,8 @@ GameObject:
   - component: {fileID: 1276415657}
   - component: {fileID: 1276415658}
   - component: {fileID: 1276415659}
+  - component: {fileID: 1276415660}
+  - component: {fileID: 1276415661}
   m_Layer: 0
   m_Name: Minigame
   m_TagString: Untagged
@@ -2638,9 +2691,10 @@ MonoBehaviour:
   _cameraFitter: {fileID: 269342925}
   _inputCamera: {fileID: 269342921}
   _usePointerEvents: 0
-  _useFixedSeed: 0
-  _fixedSeed: 0
+  _useFixedSeed: 1
+  _fixedSeed: 639289018459305650
   _relic: {fileID: 11400000, guid: 5675c4978f85444aa772511d5b05ad55, type: 2}
+  _chainStepDelay: 0.02
   _endRevealDelay: 0.4
   _endRevealInterval: 0.03
   _resultDelay: 1
@@ -2715,8 +2769,12 @@ MonoBehaviour:
   _piecesPerSide: 3
   _sortingOrder: 20
   _lifetime: 0.45
-  _outwardSpeed: {x: 1.5, y: 3}
-  _upwardSpeed: {x: 1, y: 2}
+  _outwardSpeed:
+    _min: 1.5
+    _max: 3
+  _upwardSpeed:
+    _min: 1
+    _max: 2
   _gravity: 9
   _maxSpinSpeed: 540
   _endScale: 0.6
@@ -2724,6 +2782,64 @@ MonoBehaviour:
   _attackSpeedMultiplier: 1.35
   _reinforcementChipCount: 3
   _reinforcementChipScale: 0.6
+--- !u!114 &1276415660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276415654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a1f0ddcc36c416cb9b4e189ba123fa7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.BoardShaker
+  _adapter: {fileID: 1276415655}
+  _target: {fileID: 569415861}
+  _amplitude: 0.06
+  _duration: 0.18
+  _frequency: 30
+--- !u!114 &1276415661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276415654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43f0c4329ab64770938bab904c38e885, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.HelperSweepEffect
+  _adapter: {fileID: 1276415655}
+  _parent: {fileID: 569415861}
+  _glowColor: {r: 1, g: 0.9013014, b: 0.48584908, a: 0.95}
+  _coreColor: {r: 1, g: 0.992047, b: 0.9292453, a: 1}
+  _flareColor: {r: 1, g: 0.97, b: 0.85, a: 1}
+  _glowWidth: 0.8
+  _coreWidth: 0.15
+  _tailLength: 1
+  _tipFlareSize: 1
+  _originFlareSize: 2
+  _minExtendDuration: 0.12
+  _holdDuration: 0.2
+  _fadeDuration: 0.2
+  _originFlareDuration: 0.4
+  _sparkleColor: {r: 1, g: 0.93, b: 0.6, a: 1}
+  _sparklesPerTile: 2
+  _originSparkleCount: 4
+  _sparkleSize:
+    _min: 0.28
+    _max: 0.5
+  _sparkleLifetime:
+    _min: 1
+    _max: 1.5
+  _sparkleSpread:
+    _min: 0.3
+    _max: 0.5
+  _sparkleDrift: 0.3
+  _sparkleTwinkleSpeed: 3
+  _sortingOrder: 16
 --- !u!1 &1443456377
 GameObject:
   m_ObjectHideFlags: 0

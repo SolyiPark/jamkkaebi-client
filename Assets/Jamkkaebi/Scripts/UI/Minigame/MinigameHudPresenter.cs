@@ -35,6 +35,9 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [SerializeField] private Color _damageLabelOnEmptyColor = new Color(0.61f, 0.25f, 0.25f);
         [Tooltip("게이지가 1초에 움직이는 양(1 = 게이지 전체). 매 프레임 같은 속도로 차오른다. 0이면 바로 바뀐다.")]
         [SerializeField] [Min(0f)] private float _damageGaugeFillSpeed = 0.5f;
+        [Tooltip("손상도가 오를 때 게이지 위 도깨비가 움찔하는 폭(캔버스 단위)과 시간(초).")]
+        [SerializeField] private float _riderFlinchDistance = 14f;
+        [SerializeField] [Min(0.01f)] private float _riderFlinchDuration = 0.3f;
 
         [Header("찾을 형상")]
         [Tooltip("형상 미리보기를 가로로 늘어놓을 영역.")]
@@ -65,6 +68,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         private MinigameSession _shownSession;
         private float _builtPreviewWidth = -1f;
         private float _displayedDamage;   // 화면에 보이는 손상도. 실제 값을 일정한 속도로 따라간다
+        private float _riderFlinchTime;   // 도깨비 움찔임이 남은 시간
 
         private void Awake()
         {
@@ -87,6 +91,19 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             if (_restartButton != null) _restartButton.onClick.AddListener(RestartSession);
             if (_resultRoot != null) _resultRoot.SetActive(false);
         }
+
+        private void OnEnable()
+        {
+            if (_adapter != null) _adapter.DamageTaken += OnDamageTaken;
+        }
+
+        private void OnDisable()
+        {
+            if (_adapter != null) _adapter.DamageTaken -= OnDamageTaken;
+            _riderFlinchTime = 0f;
+        }
+
+        private void OnDamageTaken(float damage) => _riderFlinchTime = _riderFlinchDuration;
 
         private void OnDestroy()
         {
@@ -179,8 +196,19 @@ namespace Jamkkaebi.Scripts.UI.Minigame
                 float minX = rider.rect.width * rider.pivot.x;
                 float maxX = _damageGaugeBackground.rect.width - rider.rect.width * (1f - rider.pivot.x);
                 float x = Mathf.Clamp(width, minX, Mathf.Max(minX, maxX));
-                rider.anchoredPosition = new Vector2(x, rider.anchoredPosition.y);
+                rider.anchoredPosition = new Vector2(x + GetRiderFlinchOffset(), rider.anchoredPosition.y);
             }
+        }
+
+        /// <summary>
+        /// 손상도가 오른 직후 도깨비를 좌우로 빠르게 흔든다. 흔들림은 남은 시간에 비례해 줄어든다.
+        /// </summary>
+        private float GetRiderFlinchOffset()
+        {
+            if (_riderFlinchTime <= 0f) return 0f;
+            _riderFlinchTime = Mathf.Max(0f, _riderFlinchTime - Time.unscaledDeltaTime);
+            float strength = _riderFlinchTime / _riderFlinchDuration;
+            return Mathf.Sin(_riderFlinchTime * 60f) * _riderFlinchDistance * strength;
         }
 
         private void RefreshGaugeRiderSprite()
