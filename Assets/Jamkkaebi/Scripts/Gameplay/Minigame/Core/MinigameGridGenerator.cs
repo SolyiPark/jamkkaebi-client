@@ -7,13 +7,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public static class MinigameGridGenerator
     {
-        private static bool TryPlacePolyomino(PolyominoShape shape, Tile[,] tiles, List<Vector2Int> emptyCells, Random rng, out List<Vector2Int> placedCoordinates)
+        private static bool TryPlacePolyomino(PolyominoShape shape, Tile[,] tiles, List<Vector2Int> emptyCells, Random rng, out List<Vector2Int> placedCoordinates, out int rotationCount)
         {
             // 모양 가져오고 회전하기
             // 회전 방향은 그리드 범위 안에서 가능한 후보를 뽑고 그 안에서 무작위 선택
             IReadOnlyList<Vector2Int> polyShape = PolyominoShapes.Definitions[shape];
 
             List<Vector2Int[]> rotatedShapeCandidates = new List<Vector2Int[]>();
+            // 후보와 같은 인덱스에 회전 횟수를 기록해 둔다. 고른 뒤 표시용으로 돌려준다.
+            List<int> rotationCountCandidates = new List<int>();
             
             for (int n = 0; n < 4; n++)
             {
@@ -22,10 +24,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 if (polyBoxCandidate.x <= tiles.GetLength(0) && polyBoxCandidate.y <= tiles.GetLength(1))
                 {
                     rotatedShapeCandidates.Add(rotatedShapeCandidate);
+                    rotationCountCandidates.Add(n);
                 }
             }
             
-            Vector2Int[] rotatedShape = rotatedShapeCandidates[rng.Next(0, rotatedShapeCandidates.Count)];
+            // rng 호출 순서와 횟수는 바꾸지 않는다. 바뀌면 같은 시드의 보드가 달라진다.
+            int candidateIndex = rng.Next(0, rotatedShapeCandidates.Count);
+            Vector2Int[] rotatedShape = rotatedShapeCandidates[candidateIndex];
+            rotationCount = rotationCountCandidates[candidateIndex];
             
             // 오프셋 범위 계산하기
             Vector2Int polyBox = GetBoundingBox(rotatedShape);
@@ -236,9 +242,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 bool placed = false;
 
                 for (int attempt = 0; attempt < MaxAttempts; attempt++) {
-                    if (TryPlacePolyomino(shapes[i], tiles, emptyCells, rng, out var polyCoordinates))
+                    if (TryPlacePolyomino(shapes[i], tiles, emptyCells, rng, out var polyCoordinates, out int rotationCount))
                     {
-                        groups[i] = new PolyominoGroup(shapes[i], polyCoordinates);
+                        groups[i] = new PolyominoGroup(shapes[i], polyCoordinates, rotationCount);
                         placed = true;
                         break;
                     }
