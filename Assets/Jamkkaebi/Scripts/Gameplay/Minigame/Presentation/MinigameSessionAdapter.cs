@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Jamkkaebi.Scripts.Gameplay.Data;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
@@ -31,6 +32,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Tooltip("선택. 정화할 유물. 연결하면 유물의 봉인 매개체를 쓰고, 비우면 아래 Seal Medium 값을 쓴다.")]
         [SerializeField] private RelicData _relic;          // TODO: 작업대·전시관에서 진입할 때 넘겨받도록 교체
 
+        [Header("종료 연출")]
+        [Tooltip("판이 끝난 뒤 남은 타일을 열기 시작할 때까지 기다리는 시간(초). 마지막으로 깬 조각이 흩어질 시간을 준다.")]
+        [SerializeField] [Min(0f)] private float _endRevealDelay = 0.4f;
+        [Tooltip("남은 타일을 왼쪽 위부터 하나씩 여는 간격(초). 0이면 한 번에 모두 연다.")]
+        [SerializeField] [Min(0f)] private float _endRevealInterval = 0.04f;
+        [Tooltip("마지막 타일이 열린 뒤 결과 화면을 띄우기까지 기다리는 시간(초).")]
+        [SerializeField] [Min(0f)] private float _resultDelay = 0.8f;
+
         [Header("봉인 매개체 스킨")]
         [SerializeField] private SealMediumCatalog _sealMediumCatalog;
         [SerializeField] private BackgroundView _backgroundView;
@@ -40,6 +49,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         private Dictionary<Vector2Int, TileView> _tileViews;
         private ToolMode _selectedTool = ToolMode.SafeDestroy;
         private bool _hasHandledEnd;
+        private Coroutine _endRevealRoutine;
         
         public event Action<ToolMode> ToolSelectionChanged;
         public event Action<string> FeedbackChanged;
@@ -50,6 +60,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public MinigameSession Session => _session;
         /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
         public SealMediumData CurrentSkin { get; private set; }
+        /// <summary>판이 끝나고 정답 공개 연출까지 마쳐 결과 화면을 띄워도 되면 true.</summary>
+        public bool IsResultReady { get; private set; }
         /// <summary>현재 판에서 정화하는 유물. 연결되지 않았으면 null.</summary>
         public RelicData CurrentRelic => _relic;
         public IReadOnlyDictionary<Vector2Int, TileView> TileViews => _tileViews;
@@ -117,6 +129,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             }
             
             _hasHandledEnd = false;
+            IsResultReady = false;
+            if (_endRevealRoutine != null)
+            {
+                StopCoroutine(_endRevealRoutine);
+                _endRevealRoutine = null;
+            }
             
             // 2. 새 세션 생성
             MinigameBoardConfig config = _difficultyTable.GetConfig(_difficulty);
@@ -182,6 +200,18 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             if (_session != null)
             {
                 _session.TileRevealAttempted -= OnTileRevealAttempted;
+            }
+
+            // 오브젝트가 꺼지면 코루틴도 멈춘다. 공개 연출 도중이었다면 남은 칸을 바로 열고 결과를 띄울 수 있게 한다
+            if (_endRevealRoutine != null)
+            {
+                _endRevealRoutine = null;
+                foreach (Vector2Int coord in GetEndRevealOrder())
+                {
+                    // 씬을 닫는 중이면 타일이 이미 지워졌을 수 있다
+                    if (_tileViews[coord] != null) ShowTileContent(_tileViews[coord], coord);
+                }
+                IsResultReady = true;
             }
         }
 
@@ -262,20 +292,38 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, false, _selectedTool));
                     break;
                 case RevealOutcome.Revealed:
-                    if (result.Content == TileContent.Target &&
-                        _session.Grid.TryGetPolyominoCell(result.Coordinate, out PolyominoGroup group, out int cellIndex))
-                    {
-                        view.ShowPolyominoCell(group.Shape, cellIndex, group.RotationCount);
-                    }
-                    else
-                    {
-                        view.ShowRevealed(result.Content);
-                    }
-                    // 덮개 조각이 흩어지는 동안 아래 내용물이 톡 튀어나오듯 보이게 한다
-                    view.PlayPunch(0.8f, 0.15f);
-                    TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, true, _selectedTool));
+                    BreakTile(view, result.Coordinate, _selectedTool);
                     break;
             }
+        }
+
+        /// <summary>
+        /// 타일 덮개를 깨고 내용물을 보여 준다. 깨짐 연출에 쓸 수 있도록 깨지기 전 덮개 그림을 이벤트로 알린다.
+        /// </summary>
+        private void BreakTile(TileView view, Vector2Int coord, ToolMode tool)
+        {
+            Sprite coverSprite = view.CurrentSprite;
+            Color coverColor = view.CurrentColor;
+
+            ShowTileContent(view, coord);
+            // 덮개 조각이 흩어지는 동안 아래 내용물이 톡 튀어나오듯 보이게 한다
+            view.PlayPunch(0.8f, 0.15f);
+            TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, true, tool));
+        }
+
+        /// <summary>
+        /// 타일 내용물을 그린다. 목표 칸은 폴리오미노 조각 그림으로, 나머지는 내용물 색으로 표시한다.
+        /// </summary>
+        private void ShowTileContent(TileView view, Vector2Int coord)
+        {
+            TileContent content = _session.Grid.GetTile(coord.x, coord.y).Content;
+            if (content == TileContent.Target &&
+                _session.Grid.TryGetPolyominoCell(coord, out PolyominoGroup group, out int cellIndex))
+            {
+                view.ShowPolyominoCell(group.Shape, cellIndex, group.RotationCount);
+                return;
+            }
+            view.ShowRevealed(content);
         }
 
         private void HandleSessionEndIfNeeded()
@@ -283,7 +331,48 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             if (_hasHandledEnd || _session.State == SessionState.InProgress) return;
             _hasHandledEnd = true;
             Debug.Log($"세션 종료: {_session.State} (손상도: {_session.DamageGauge:P0}, 정성 보너스: {_session.RevealedBonusTileCount})");
-            // TODO: 세션 종료 결과 화면 처리
+            _endRevealRoutine = StartCoroutine(RevealRemainingTiles());
+        }
+
+        /// <summary>
+        /// 판이 끝나면 아직 깨지지 않은 타일을 왼쪽 위부터 차례로 깨서 정답을 보여 준 뒤 결과 화면을 허락한다.
+        /// </summary>
+        /// <remarks>
+        /// 화면에만 보여 주는 연출이라 세션의 타일 상태(IsRevealed)는 바꾸지 않는다. 판이 이미 끝나 점수에는 영향이 없다.
+        /// </remarks>
+        private IEnumerator RevealRemainingTiles()
+        {
+            if (_endRevealDelay > 0f) yield return new WaitForSeconds(_endRevealDelay);
+
+            // 목록을 미리 만들어 두어야, 기다리는 동안 상태가 바뀌어도 순서가 흔들리지 않는다
+            List<Vector2Int> order = GetEndRevealOrder();
+            var interval = _endRevealInterval > 0f ? new WaitForSeconds(_endRevealInterval) : null;
+            foreach (Vector2Int coord in order)
+            {
+                BreakTile(_tileViews[coord], coord, ToolMode.SafeDestroy);
+                if (interval != null) yield return interval;
+            }
+
+            if (_resultDelay > 0f) yield return new WaitForSeconds(_resultDelay);
+            _endRevealRoutine = null;
+            IsResultReady = true;
+        }
+
+        /// <summary>
+        /// 아직 열리지 않은 칸을 왼쪽 위부터 오른쪽으로, 한 줄씩 아래로 내려가는 순서로 돌려준다.
+        /// </summary>
+        /// <remarks>그리드 좌표는 y가 클수록 위쪽(<see cref="GridToWorldPosition"/>)이므로 y를 큰 값부터 돈다.</remarks>
+        private List<Vector2Int> GetEndRevealOrder()
+        {
+            var order = new List<Vector2Int>();
+            for (int y = _session.Grid.Height - 1; y >= 0; y--)
+            {
+                for (int x = 0; x < _session.Grid.Width; x++)
+                {
+                    if (!_session.Grid.GetTile(x, y).IsRevealed) order.Add(new Vector2Int(x, y));
+                }
+            }
+            return order;
         }
 
         private long ResolveSeed(bool isUsingFixedSeed, long fixedSeed)

@@ -1300,6 +1300,7 @@ MonoBehaviour:
   _damageGaugeRider: {fileID: 1807763169}
   _damageLabelOnFillColor: {r: 1, g: 1, b: 1, a: 1}
   _damageLabelOnEmptyColor: {r: 0.61, g: 0.25, b: 0.25, a: 1}
+  _damageGaugeFillSpeed: 0.5
   _shapePreviewContainer: {fileID: 844943106}
   _previewCellSize: 94
   _previewSpacing: 100
@@ -2371,7 +2372,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
   m_UiScaleMode: 0
   m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 0.7
+  m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1080, y: 2400}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
@@ -2640,6 +2641,9 @@ MonoBehaviour:
   _useFixedSeed: 0
   _fixedSeed: 0
   _relic: {fileID: 11400000, guid: 5675c4978f85444aa772511d5b05ad55, type: 2}
+  _endRevealDelay: 0.4
+  _endRevealInterval: 0.03
+  _resultDelay: 1
   _sealMediumCatalog: {fileID: 11400000, guid: d4d36a2ec02a9409bba0818e256cf6db, type: 2}
   _backgroundView: {fileID: 190990737}
   _sealMedium: 1

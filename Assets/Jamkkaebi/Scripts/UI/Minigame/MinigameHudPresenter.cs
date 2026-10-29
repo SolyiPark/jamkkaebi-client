@@ -290,7 +290,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         {
             if (_resultRoot == null) return;
 
-            bool ended = session.State != SessionState.InProgress;
+            // 판이 끝나도 정답 공개 연출이 끝날 때까지는 결과 화면을 띄우지 않는다
+            bool ended = session.State != SessionState.InProgress && _adapter.IsResultReady;
             if (_resultRoot.activeSelf != ended) _resultRoot.SetActive(ended);
             if (!ended) return;
 
