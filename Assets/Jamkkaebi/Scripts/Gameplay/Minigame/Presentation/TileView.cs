@@ -21,9 +21,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private Sprite _helperIcon;
         [SerializeField] private Sprite _threatIcon;
         [SerializeField] private Sprite _bonusIcon;
-        [Tooltip("타일 한 칸 대비 아이콘 크기. 아이콘의 긴 변을 이 비율에 맞춘다.")]
+        [Tooltip("타일 한 칸 대비 아이콘 크기. 아이콘의 긴 변을 이 비율에 맞춘다. 1을 넘지 않으므로 칸을 벗어나지 않는다.")]
         // using System이 있어 Range만 쓰면 System.Range(C# 범위 타입)와 헷갈리므로 UnityEngine을 붙인다
         [SerializeField] [UnityEngine.Range(0.2f, 1f)] private float _iconSizeRatio = 0.72f;
+        [Tooltip("도움 아이콘만 따로 쓰는 크기 비율.")]
+        [SerializeField] [UnityEngine.Range(0.2f, 1f)] private float _helperIconSizeRatio = 0.92f;
         [Tooltip("아이콘을 타일 위에 그리는 순서. 타일(0)보다 위, 정찰 범위(5)·격자 선(10)보다 아래.")]
         [SerializeField] private int _iconSortingOrder = 1;
 
@@ -143,7 +145,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             if (icon != null)
             {
                 _renderer.color = _emptyColor;
-                ShowIcon(icon);
+                ShowIcon(icon, content == TileContent.Helper ? _helperIconSizeRatio : _iconSizeRatio);
                 return;
             }
 
@@ -184,7 +186,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         /// <summary>
         /// 칸 가운데에 아이콘을 띄운다. 아이콘 그림 크기와 상관없이 칸 크기의 일정 비율로 맞춘다.
         /// </summary>
-        private void ShowIcon(Sprite icon)
+        private void ShowIcon(Sprite icon, float sizeRatio)
         {
             if (_iconRenderer == null)
             {
@@ -201,7 +203,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             // 그래서 아이콘의 긴 변이 기본 사각형 크기 × 비율이 되도록 자식 크기를 정한다
             Vector2 cellSize = _defaultSprite != null ? (Vector2)_defaultSprite.bounds.size : Vector2.one;
             Vector2 iconSize = icon.bounds.size;
-            float scale = Mathf.Min(cellSize.x, cellSize.y) * _iconSizeRatio / Mathf.Max(iconSize.x, iconSize.y);
+            // 비율을 1 이하로 묶어 두어 어떤 아이콘도 칸 밖으로 나가지 않게 한다
+            float ratio = Mathf.Min(sizeRatio, 1f);
+            float scale = Mathf.Min(cellSize.x, cellSize.y) * ratio / Mathf.Max(iconSize.x, iconSize.y);
             _iconRenderer.transform.localScale = new Vector3(scale, scale, 1f);
             _iconRenderer.gameObject.SetActive(true);
         }
