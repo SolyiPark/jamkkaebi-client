@@ -309,7 +309,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             {
                 _resultBodyText.text = succeeded
                     ? $"손상도 {Mathf.RoundToInt(session.DamageGauge * 100f)}% · 정성 {session.RevealedBonusTileCount}\n화면을 눌러 다시 하기"
-                    : "유물이 더 상하기 전에 손을 멈췄어요.\n화면을 눌러 다시 하기";
+                    : "유물이 더 상하기 전에 작업을 멈췄어요.\n화면을 눌러 다시 하기";
             }
         }
 
