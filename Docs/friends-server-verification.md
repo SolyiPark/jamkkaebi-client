@@ -4,6 +4,18 @@
 
 기존 친구 탭은 실제 서버에 통신하지 않는 모의 구현이었다. 이번 변경으로 HTTP·인증·응답 변환 계층을 추가하고 친구 탭의 조회와 변경 버튼을 연결했다. 인증 토큰을 주입한 클라이언트와 로컬 Spring 서버 사이의 통신을 검증했다. 배포 서버에 바로 접속해 사용할 수 있는 완성된 계정 클라이언트로 해석하면 안 된다. 배포 주소, 실제 소셜 로그인 왕복과 격자 계약이 아직 남아 있다.
 
+## 2026-10-29 서버 변경 반영
+
+서버 main [`57dc54c`](https://github.com/SolyiPark/jamkkaebi-server/tree/57dc54c) 기준으로 위 기록 이후의 변경을 확인했다. 아래 기록의 서버 링크는 당시 기준 커밋을 그대로 가리킨다.
+
+| 서버 변경 | 클라이언트 영향 |
+| --- | --- |
+| [`8b050b9`](https://github.com/SolyiPark/jamkkaebi-server/commit/8b050b9) (10-12) 전시관 격자를 7×7로 변경. 설정이 없어도 기본값 7. | 20×20 불일치는 해소됐다. 클라이언트 변경 없음. 기존에 20×20으로 저장된 스냅샷이 남아 있다면 방문 화면은 여전히 크기 오류를 표시한다. |
+| [`e3f5d10`](https://github.com/SolyiPark/jamkkaebi-server/commit/e3f5d10) (10-14) 유물 표기를 `artifact`에서 `relic`으로 변경. 응답의 `artifactId`가 `relicId`로 바뀜. | 친구 전시 응답(`ServerExhibitionBackend`)과 내 전시 응답(`ExhibitionLayoutPackage`)에서 `relicId`를 읽도록 수정했다. 오류 코드 값(`W001`, `W002`)은 그대로다. |
+| [`1060d35`](https://github.com/SolyiPark/jamkkaebi-server/commit/1060d35) (10-14) 친구 전시 응답의 `grid`, `capturedAt`을 항상 포함. | 클라이언트는 두 경우를 모두 처리하므로 변경 없음. |
+
+이번 반영은 서버 소스 비교로 확인했고 로컬 서버 HTTP 검증(`Tools/VerifyServerContract.ps1`)은 다시 실행하지 않았다.
+
 ## 전시관 방문에 대한 판단
 
 친구의 전시관을 서버에서 한 번 조회해 별도의 방문 장면으로 재현하는 방식은 가능하다. 서버가 이미 `GET /api/friends/{friendCode}/exhibition`으로 주인 프로필, 공개 도깨비·건물의 ID와 좌표, 각성 단계·레벨, 스냅샷 시각과 방문·선물 상태를 제공한다. 클라이언트는 이 정보를 읽고 해당 ID의 표현물을 만들어 배치하면 된다. 실제 도깨비·건물 아트워크가 미정이어도 임시 표현물로 데이터 흐름을 먼저 검증할 수 있다. [응답 정의](https://github.com/SolyiPark/jamkkaebi-server/blob/9006089109169b59842b3c4dd807554e53166254/src/main/java/com/example/jamkkaebi/friend/dto/response/FriendExhibitionResponse.java), [전시 객체 정의](https://github.com/SolyiPark/jamkkaebi-server/blob/9006089109169b59842b3c4dd807554e53166254/src/main/java/com/example/jamkkaebi/friend/spi/ExhibitionView.java).
@@ -79,8 +91,8 @@ Java 21과 서버 Gradle 의존성 다운로드가 필요하다. 이 스크립�
 
 1. 실제 배포 서버의 기본 주소와 접속 가능한 테스트 환경. 소스 저장소 URL은 API 서버 주소가 아니다.
 2. Google/Kakao 클라이언트와 redirect URI, 앱 복귀용 딥링크에 관한 서버 담당자 설정. 비밀 키는 서버 환경에서 관리한다.
-3. 7×7 격자 설정 및 기존 20×20 데이터 처리 방침. 현재 사용자 확정 격자를 클라이언트가 임의로 바꾸지 않았다.
-4. 서버 `artifactId`·`buildingId`와 클라이언트 아트워크·기본 이름의 대응표. 완성된 NPC AI는 통신 검증의 선행 조건이 아니다.
+3. ~~7×7 격자 설정~~ (2026-10-12 서버 반영 완료) 및 기존 20×20 데이터 처리 방침. 현재 사용자 확정 격자를 클라이언트가 임의로 바꾸지 않았다.
+4. 서버 `relicId`(구 `artifactId`)·`buildingId`와 클라이언트 아트워크·기본 이름의 대응표. 완성된 NPC AI는 통신 검증의 선행 조건이 아니다.
 
 친구 탭 외의 계정 화면·홈 하우징 저장·도감·발굴 보상은 이번에 서버와 연결하지 않았다. 방문 중 도깨비 움직임은 클라이언트의 연출이며 저장된 스냅샷 좌표나 내 홈을 수정하지 않는다.
 

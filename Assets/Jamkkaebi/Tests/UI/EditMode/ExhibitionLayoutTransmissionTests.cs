@@ -15,8 +15,8 @@ namespace Jamkkaebi.Tests.UI
         /// <summary>숨긴 NPC와 표시 중인 건물을 포함한 서버 보유 목록 검증 fixture를 만듭니다.</summary>
         private static JObject Baseline() => JObject.Parse(@"{
             'grid':{'width':7,'height':7},
-            'spirits':[{'artifactId':2,'displayed':false,'hidden':false},
-                {'artifactId':8,'displayed':true,'hidden':true,'position':{'x':4,'y':4}}],
+            'spirits':[{'relicId':2,'displayed':false,'hidden':false},
+                {'relicId':8,'displayed':true,'hidden':true,'position':{'x':4,'y':4}}],
             'buildings':[{'buildingId':1,'displayed':true,'position':{'x':2,'y':2}}]}");
 
         /// <summary>일괄 요청의 허용 필드와 관리하지 않는 숨김 NPC의 배치 보존을 검증합니다.</summary>
