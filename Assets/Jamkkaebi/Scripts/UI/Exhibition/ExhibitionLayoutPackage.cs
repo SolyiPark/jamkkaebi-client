@@ -26,7 +26,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 throw new InvalidOperationException($"격자 불일치: 클라이언트 {draft.GridSize.x}×{draft.GridSize.y}, 서버 {size.x}×{size.y}");
             var owned = new HashSet<string>();
             var preserved = new Dictionary<string, JObject>();
-            ReadOwned(serverExhibition["spirits"], "SPIRIT", "artifactId", owned, preserved);
+            ReadOwned(serverExhibition["spirits"], "SPIRIT", "relicId", owned, preserved);
             ReadOwned(serverExhibition["buildings"], "BUILDING", "buildingId", owned, preserved);
             var managed = new HashSet<string>();
             var items = new JArray();

@@ -126,4 +126,4 @@
 
 ### 서버 송신 객체와 wrapper (2026-10-11 후속 변경)
 
-NPC·건물의 불변 배치 데이터와 전체 교체 PUT wrapper를 구현했다. 로컬 ItemId·배치 Id와 서버 artifactId·buildingId를 분리하며, 현재 더미에는 서버 ID를 지정하지 않는다. NPC는 이동 애니메이션 좌표 대신 고정 PlacementCell을 캡처한다. 홈 자동 저장과 자산·보유 ID 매핑은 아직 연결되지 않았다. 7×7 홈과 기본 20×20 서버의 격자 불일치, 서버 미지원 회전·다칸 배치는 송신 전에 거부한다. 상세 계약과 실제 HTTP 검증은 [exhibition-layout-transmission.md](exhibition-layout-transmission.md)에 기록했다.
+NPC·건물의 불변 배치 데이터와 전체 교체 PUT wrapper를 구현했다. 로컬 ItemId·배치 Id와 서버 relicId·buildingId를 분리하며, 현재 더미에는 서버 ID를 지정하지 않는다. NPC는 이동 애니메이션 좌표 대신 고정 PlacementCell을 캡처한다. 홈 자동 저장과 자산·보유 ID 매핑은 아직 연결되지 않았다. 7×7 홈과 기본 20×20 서버의 격자 불일치, 서버 미지원 회전·다칸 배치는 송신 전에 거부한다. 상세 계약과 실제 HTTP 검증은 [exhibition-layout-transmission.md](exhibition-layout-transmission.md)에 기록했다.

@@ -41,7 +41,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
             if (!FriendsPreviewState.IsValidCode(code) || data?["spirits"] is not JArray spirits || data?["buildings"] is not JArray buildings)
                 throw new FormatException("잘못된 스냅샷입니다.");
             var rows = new List<SnapshotPlacement>();
-            foreach (var row in spirits) rows.Add(new SnapshotPlacement(false, (int)row["artifactId"],
+            foreach (var row in spirits) rows.Add(new SnapshotPlacement(false, (int)row["relicId"],
                 (string)row["spiritName"] ?? (string)row["realName"], Position(row), (string)row["awakeningStage"], placeholder: true));
             foreach (var row in buildings) rows.Add(new SnapshotPlacement(true, (int)row["buildingId"],
                 (string)row["name"], Position(row), level: (int)row["level"], placeholder: true));

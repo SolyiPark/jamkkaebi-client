@@ -1147,7 +1147,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             var profile = friends.State.Friends.First(p => p.Code == (string)config["friendCode"]);
             friends.Visit(profile);
             while (friends.VisitSession.Loading) yield return null;
-            Check(friends.VisitSession.Scene?.Objects.Count == 2 && friends.VisitSession.Scene.Snapshot.OwnerCode == profile.Code, "server snapshot renders actual DTO artifact and building IDs");
+            Check(friends.VisitSession.Scene?.Objects.Count == 2 && friends.VisitSession.Scene.Snapshot.OwnerCode == profile.Code, "server snapshot renders actual DTO relic and building IDs");
             Check(friends.VisitSession.Scene.Objects.All(o => o.Unknown), "server objects use placeholders until artwork mapping is defined");
             Check(!friends.Buttons["VisitReward"].interactable && !friends.Buttons["VisitGift"].interactable, "server claimed reward and sent gift disable visit actions");
             yield return new WaitForEndOfFrame(); Capture("Server_Visit.png");

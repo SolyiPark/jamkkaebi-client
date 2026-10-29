@@ -6,7 +6,7 @@
 
 | 객체 | 현재 프로젝트에서 읽는 값 | 서버 식별자 | 저장 대상 |
 | --- | --- | --- | --- |
-| `ExhibitionNpcData` | 홈 도깨비의 고정 `PlacementCell` | 보유한 완성 유물의 `artifactId` | `SPIRIT`, ID, 배치 여부, 논리 좌표 |
+| `ExhibitionNpcData` | 홈 도깨비의 고정 `PlacementCell` | 보유한 완성 유물의 `relicId` | `SPIRIT`, ID, 배치 여부, 논리 좌표 |
 | `ExhibitionBuildingData` | `HousingPlacement`의 ItemId·로컬 배치 번호·Cell·BaseSize·QuarterTurns | 보유 건물의 `buildingId` | `BUILDING`, ID, 배치 여부, 논리 좌표 |
 
 공통 `ExhibitionObjectData`는 불변 데이터이다. `LocalId`는 클라이언트의 디버깅·식별용이며 송신 JSON에는 들어가지 않는다. 서버 ID는 로컬 배치 번호나 이름으로 추정하지 않는다. 실제 보유 목록과 로컬 정의 사이의 명시적인 바인딩이 필요하다. NPC 이름·각성·선명도, 건물 이름·레벨은 서버 소유 상태로, 배치 요청에서 변경하지 않는다.
@@ -38,7 +38,7 @@ NPC의 `PlacementCell`은 `Configure` 때 지정한 기준점이다. `CurrentCel
 ```csharp
 var bindings = new Dictionary<string, int> { [housing.DefaultItem.ItemId] = ownedBuildingId };
 var wrapper = new ExhibitionLayoutWrapper(authenticatedApiClient);
-var draft = ExhibitionLayoutCapture.Capture(housing, bindings, ownedArtifactId);
+var draft = ExhibitionLayoutCapture.Capture(housing, bindings, ownedRelicId);
 yield return wrapper.Save(draft, result => HandleSaveResult(result));
 ```
 
@@ -49,7 +49,7 @@ yield return wrapper.Save(draft, result => HandleSaveResult(result));
 - 실제 HTTP 송신 계층과 현재 홈을 읽는 어댑터를 구현했다. 홈에 자동 저장·저장 버튼·로그인 연결을 추가하지는 않았다. 현재 더미 정의에 서버 ID를 임의로 지정하지 않았다.
 - 현재 홈은 7×7, 서버 기본 설정은 20×20이다. 이 상태의 홈 저장은 거부된다. 7×7로 서버 계약을 확정하거나 클라이언트 격자 설계를 변경하는 합의가 먼저 필요하다. 이번 구현에서는 어느 쪽도 임의로 변경하지 않았다.
 - 보유 건물·완성 유물을 조회해 로컬 자산과 매핑하는 인벤토리/카탈로그, 계정 세션 연결, 자신의 서버 배치를 홈에 복원하는 과정은 후속 작업이다. 친구 방문 수신 기능과는 별개이다.
-- 같은 객체의 숨김 변경은 `PATCH /api/exhibition/spirits/{artifactId}/visibility`의 별도 기능이다. wrapper는 숨김 상태를 수정하지 않는다.
+- 같은 객체의 숨김 변경은 `PATCH /api/exhibition/spirits/{relicId}/visibility`의 별도 기능이다. wrapper는 숨김 상태를 수정하지 않는다.
 - GET과 PUT 사이 다른 기기에서 발생한 편집을 감지하는 버전/ETag 계약은 서버에 없다. 관리하지 않는 배치를 보존하더라도 동시 편집의 손실을 완전히 방지할 수 없다. 자동 재시도는 하지 않는다.
 - 서버 배치 PUT는 새 NPC·건물을 생성하거나 획득시키지 않는다. 이미 보유한 객체를 배치·이동·회수한다.
 
