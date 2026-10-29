@@ -21,6 +21,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Header("배경")]
         [SerializeField] private Color _backgroundColor;
 
+        [Header("격자")]
+        [Tooltip("보드 격자 선 색. 알파가 0이면 선이 보이지 않는다.")]
+        [SerializeField] private Color _gridLineColor = Color.gray;
+
         [Header("폴리오미노")]
         [Tooltip("목표 형상으로 쓰는 폴리오미노마다 하나씩 등록한다.")]
         [SerializeField] private PolyominoSpriteSet[] _polyominoSprites;
@@ -33,6 +37,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public Sprite TileSprite => _tileSprite;
         public Sprite ReinforcedTileSprite => _reinforcedTileSprite;
         public Color BackgroundColor => _backgroundColor;
+        public Color GridLineColor => _gridLineColor;
 
         /// <summary>
         /// 형상의 칸 인덱스에 해당하는 조각 스프라이트를 찾는다.

@@ -18,6 +18,7 @@ MonoBehaviour:
   _tileSprite: {fileID: 21300000, guid: a7212837e4624ecca6449a01d6ac26cd, type: 3}
   _reinforcedTileSprite: {fileID: 21300000, guid: f713a6e235864b0699300f6a99a6138b, type: 3}
   _backgroundColor: {r: 0.9716981, g: 0.928311, b: 0.85711104, a: 1}
+  _gridLineColor: {r: 0.6117647, g: 0.5411765, b: 0.3882353, a: 1}
   _polyominoSprites:
   - _shape: 1
     _preview: {fileID: 21300000, guid: 32018829a4a149b1b248cfc8a8559eee, type: 3}

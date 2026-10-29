@@ -552,6 +552,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1276415656}
   - component: {fileID: 1276415655}
+  - component: {fileID: 1276415657}
   m_Layer: 0
   m_Name: Minigame
   m_TagString: Untagged
@@ -577,6 +578,7 @@ MonoBehaviour:
   _gridContainer: {fileID: 569415861}
   _tileSize: 0.75
   _tileFillRatio: 1
+  _gridLineView: {fileID: 1276415657}
   _inputCamera: {fileID: 269342921}
   _usePointerEvents: 0
   _useFixedSeed: 0
@@ -584,6 +586,21 @@ MonoBehaviour:
   _sealMediumCatalog: {fileID: 11400000, guid: d4d36a2ec02a9409bba0818e256cf6db, type: 2}
   _backgroundView: {fileID: 190990737}
   _sealMedium: 0
+--- !u!114 &1276415657
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276415654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 221c9da5dd664cda9c4deda5e46b316c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.BoardGridLineView
+  _lineSprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  _lineWidthRatio: 0.047
+  _sortingOrder: 10
 --- !u!4 &1276415656
 Transform:
   m_ObjectHideFlags: 0
