@@ -45,6 +45,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public event Action<string> FeedbackChanged;
         /// <summary>정찰에 성공했을 때. 정찰한 칸 좌표와 3×3 범위의 위협 타일 수를 전달한다.</summary>
         public event Action<Vector2Int, int> ScoutRevealed;
+        /// <summary>타일 덮개가 깨지거나 강화가 벗겨졌을 때. 깨짐 연출이 쓴다.</summary>
+        public event Action<TileBreakInfo> TileBroken;
         public MinigameSession Session => _session;
         /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
         public SealMediumData CurrentSkin { get; private set; }
@@ -246,6 +248,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             Debug.Log($"({result.Coordinate.x}, {result.Coordinate.y}) {result.Content} / {result.Outcome}");
             
             TileView view = _tileViews[result.Coordinate];
+            // 그림을 바꾸기 전에 덮개 그림을 기억해 두어야 깨짐 연출이 그 그림을 조각낼 수 있다
+            Sprite coverSprite = view.CurrentSprite;
+            Color coverColor = view.CurrentColor;
 
             switch (result.Outcome)
             {
@@ -253,6 +258,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     break;
                 case RevealOutcome.ReinforcementConsumed:
                     view.ShowCovered(false);
+                    view.PlayPunch(0.9f, 0.12f);
+                    TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, false, _selectedTool));
                     break;
                 case RevealOutcome.Revealed:
                     if (result.Content == TileContent.Target &&
@@ -264,6 +271,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     {
                         view.ShowRevealed(result.Content);
                     }
+                    // 덮개 조각이 흩어지는 동안 아래 내용물이 톡 튀어나오듯 보이게 한다
+                    view.PlayPunch(0.8f, 0.15f);
+                    TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, true, _selectedTool));
                     break;
             }
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -18,11 +19,19 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public Vector2Int Coordinate { get; private set; }
         public bool UsesPointerEvents { get; set; }
         public event Action<Vector2Int> Clicked;
+        /// <summary>지금 표시 중인 그림. 깨짐 연출이 덮개 그림을 조각낼 때 쓴다.</summary>
+        public Sprite CurrentSprite => _renderer.sprite;
+        /// <summary>지금 그림에 곱해지는 색.</summary>
+        public Color CurrentColor => _renderer.color;
+        /// <summary>보드에 배치될 때의 크기. 튕김 연출은 이 크기로 돌아온다.</summary>
+        public Vector3 BaseScale => _baseScale;
         
         private SpriteRenderer _renderer;
         private SealMediumData _sealMediumData;
         // 프리팹에 지정된 기본 사각형. 매개체 스프라이트가 없을 때와 열린 타일에 쓴다.
         private Sprite _defaultSprite;
+        private Vector3 _baseScale = Vector3.one;
+        private Coroutine _punchRoutine;
 
         private void Awake()
         {
@@ -39,6 +48,41 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             
             Coordinate = coordinate;
             _sealMediumData = sealMediumData;
+            // 어댑터가 Initialize 전에 칸 크기를 정해 두므로 지금 크기를 기준 크기로 기억한다
+            _baseScale = transform.localScale;
+        }
+
+        private void OnDisable()
+        {
+            // 튕기는 도중 꺼지면 코루틴이 멈춰 크기가 어중간하게 남으므로 기준 크기로 되돌린다
+            _punchRoutine = null;
+            transform.localScale = _baseScale;
+        }
+
+        /// <summary>
+        /// 타일을 잠깐 작게 했다가 원래 크기로 튕기듯 되돌린다.
+        /// </summary>
+        /// <param name="startRatio">시작 크기 비율(1보다 작을수록 크게 튕긴다).</param>
+        /// <param name="duration">원래 크기로 돌아오는 데 걸리는 시간(초).</param>
+        public void PlayPunch(float startRatio, float duration)
+        {
+            if (!isActiveAndEnabled) return;
+            if (_punchRoutine != null) StopCoroutine(_punchRoutine);
+            _punchRoutine = StartCoroutine(PunchRoutine(startRatio, duration));
+        }
+
+        private IEnumerator PunchRoutine(float startRatio, float duration)
+        {
+            for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                float t = elapsed / duration;
+                // 1 - (1 - t)^2: 처음에 빨리 커지고 끝에서 천천히 멈춘다
+                float eased = 1f - (1f - t) * (1f - t);
+                transform.localScale = _baseScale * Mathf.Lerp(startRatio, 1f, eased);
+                yield return null;
+            }
+            transform.localScale = _baseScale;
+            _punchRoutine = null;
         }
 
         private void OnMouseDown()

@@ -2607,6 +2607,7 @@ GameObject:
   - component: {fileID: 1276415655}
   - component: {fileID: 1276415657}
   - component: {fileID: 1276415658}
+  - component: {fileID: 1276415659}
   m_Layer: 0
   m_Name: Minigame
   m_TagString: Untagged
@@ -2693,6 +2694,32 @@ MonoBehaviour:
   _fadeInDuration: 0.1
   _holdDuration: 0.35
   _fadeOutDuration: 0.6
+--- !u!114 &1276415659
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276415654}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da7f3fed7f7d40c2bebb192427dd09a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.TileBreakEffect
+  _adapter: {fileID: 1276415655}
+  _parent: {fileID: 569415861}
+  _piecesPerSide: 3
+  _sortingOrder: 20
+  _lifetime: 0.45
+  _outwardSpeed: {x: 1.5, y: 3}
+  _upwardSpeed: {x: 1, y: 2}
+  _gravity: 9
+  _maxSpinSpeed: 540
+  _endScale: 0.6
+  _fadeStart: 0.4
+  _attackSpeedMultiplier: 1.35
+  _reinforcementChipCount: 3
+  _reinforcementChipScale: 0.6
 --- !u!1 &1443456377
 GameObject:
   m_ObjectHideFlags: 0
