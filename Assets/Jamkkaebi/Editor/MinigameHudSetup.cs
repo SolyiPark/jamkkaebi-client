@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
@@ -25,6 +26,7 @@ public static class MinigameHudSetup
     private const string SejongFolder = "Assets/Jamkkaebi/Fonts/KingSejongInstitute";
     private const string FontAssetFolder = "Assets/Jamkkaebi/Fonts/TMP";
     private const string HudName = "MinigameHud";
+    private const string RiderTrackName = "DamageGaugeRiderTrack";
 
     private static readonly Vector2 ReferenceResolution = new Vector2(1080f, 2400f);
     private static readonly Color DarkText = new Color(0.2f, 0.2f, 0.2f);
@@ -342,9 +344,12 @@ public static class MinigameHudSetup
         var matcherSo = new SerializedObject(matcher);
         matcherSo.FindProperty("_fitter").objectReferenceValue = Object.FindFirstObjectByType<BoardCameraFitter>();
         SerializedProperty targets = matcherSo.FindProperty("_targets");
-        targets.arraySize = 2;
+        // 손상도 도깨비 트랙이 이미 있으면 함께 맞춘다
+        var riderTrack = hud.Find(RiderTrackName) as RectTransform;
+        targets.arraySize = riderTrack != null ? 3 : 2;
         targets.GetArrayElementAtIndex(0).objectReferenceValue = gauge;
         targets.GetArrayElementAtIndex(1).objectReferenceValue = panel;
+        if (riderTrack != null) targets.GetArrayElementAtIndex(2).objectReferenceValue = riderTrack;
         matcherSo.ApplyModifiedProperties();
 
         var responsive = canvas.GetComponent<HudCanvasScaler>();
@@ -375,26 +380,61 @@ public static class MinigameHudSetup
     }
 
     /// <summary>
-    /// 손상도 채움 끝을 따라 움직이는 도깨비 그림 자리를 게이지 위에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// 손상도 채움 끝을 따라 움직이는 도깨비 그림 자리를 만든다. 이미 있으면 지우고 다시 만든다.
     /// </summary>
-    /// <remarks>그림은 실행 중에 프레젠터가 현재 유물의 도깨비로 넣는다. 유물이 없으면 숨긴다.</remarks>
+    /// <remarks>
+    /// 도깨비가 게이지 뒤에서 위로 빼꼼 나온 것처럼 보이도록, 게이지 바로 앞 형제로 게이지와 같은 영역(RiderTrack)을 두고
+    /// 그 안에 그림을 넣는다. 게이지의 자식으로 두면 항상 게이지 위에 그려진다.
+    /// 그림은 실행 중에 프레젠터가 현재 유물의 도깨비로 넣는다. 유물이 없으면 숨긴다.
+    /// </remarks>
     private static void AddGaugeRider(RectTransform hud, MinigameHudPresenter presenter)
     {
         RectTransform gauge = Find(hud, "DamageGauge");
         if (gauge == null) return;
 
-        Transform existing = gauge.Find("Rider");
-        if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+        // 이전 방식(게이지 자식)으로 만든 것과 기존 트랙을 모두 지운다
+        Transform oldRider = gauge.Find("Rider");
+        if (oldRider != null) Undo.DestroyObjectImmediate(oldRider.gameObject);
+        Transform oldTrack = hud.Find(RiderTrackName);
+        if (oldTrack != null) Undo.DestroyObjectImmediate(oldTrack.gameObject);
 
-        Image rider = CreateImage("Rider", gauge, null);
-        Undo.RegisterCreatedObjectUndo(rider.gameObject, "Add Gauge Rider");
+        // 게이지와 같은 위치·크기의 빈 영역. 형제 순서상 게이지보다 앞이라 먼저(뒤에) 그려진다
+        RectTransform track = CreateRect(RiderTrackName, hud);
+        Undo.RegisterCreatedObjectUndo(track.gameObject, "Add Gauge Rider");
+        track.anchorMin = gauge.anchorMin;
+        track.anchorMax = gauge.anchorMax;
+        track.pivot = gauge.pivot;
+        track.anchoredPosition = gauge.anchoredPosition;
+        track.sizeDelta = gauge.sizeDelta;
+        track.SetSiblingIndex(gauge.GetSiblingIndex());
+
+        Image rider = CreateImage("Rider", track, null);
         rider.raycastTarget = false;
         rider.preserveAspect = true;
         RectTransform rect = rider.rectTransform;
-        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);   // 게이지 왼쪽 위
-        rect.pivot = new Vector2(0.5f, 0f);                      // 발밑 가운데가 채움 끝에 오도록
-        rect.anchoredPosition = new Vector2(0f, -14f);           // 게이지 윗변에 살짝 걸치게
-        rect.sizeDelta = new Vector2(140f, 140f);
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);   // 트랙 왼쪽 위
+        rect.pivot = new Vector2(0.9f, 0f);                      // 시안처럼 그림 오른쪽 부분이 채움 끝에 오도록
+        rect.anchoredPosition = new Vector2(0f, -58f);           // 아랫부분은 게이지(높이 66) 뒤에 가려진다
+        rect.sizeDelta = new Vector2(195f, 190f);
+
+        // 게이지와 함께 보드 폭을 따라가도록 맞춤 대상에 넣는다
+        var matcher = hud.GetComponent<BoardWidthMatcher>();
+        if (matcher != null)
+        {
+            var matcherSo = new SerializedObject(matcher);
+            SerializedProperty targets = matcherSo.FindProperty("_targets");
+            // 지운 이전 트랙이 남긴 빈 슬롯을 정리한 뒤 새 트랙을 넣는다
+            var kept = new List<Object>();
+            for (int i = 0; i < targets.arraySize; i++)
+            {
+                Object target = targets.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (target != null) kept.Add(target);
+            }
+            kept.Add(track);
+            targets.arraySize = kept.Count;
+            for (int i = 0; i < kept.Count; i++) targets.GetArrayElementAtIndex(i).objectReferenceValue = kept[i];
+            matcherSo.ApplyModifiedProperties();
+        }
 
         var so = new SerializedObject(presenter);
         so.FindProperty("_damageGaugeRider").objectReferenceValue = rider;
