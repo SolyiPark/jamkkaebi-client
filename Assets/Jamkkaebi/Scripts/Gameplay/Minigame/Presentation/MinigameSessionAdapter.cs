@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Data;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using UnityEngine;
@@ -32,6 +33,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Tooltip("선택. 정화할 유물. 연결하면 유물의 봉인 매개체를 쓰고, 비우면 아래 Seal Medium 값을 쓴다.")]
         [SerializeField] private RelicData _relic;          // TODO: 작업대·전시관에서 진입할 때 넘겨받도록 교체
 
+        [Header("연쇄 연출")]
+        [Tooltip("도움 타일이 한 줄을 열 때, 도움 타일에서 한 칸 멀어질 때마다 늦게 깨지는 시간(초). 0이면 한 번에 깨진다.")]
+        [SerializeField] [Min(0f)] private float _chainStepDelay = 0.05f;
+
         [Header("종료 연출")]
         [Tooltip("판이 끝난 뒤 남은 타일을 열기 시작할 때까지 기다리는 시간(초). 마지막으로 깬 조각이 흩어질 시간을 준다.")]
         [SerializeField] [Min(0f)] private float _endRevealDelay = 0.4f;
@@ -50,6 +55,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         private ToolMode _selectedTool = ToolMode.SafeDestroy;
         private bool _hasHandledEnd;
         private Coroutine _endRevealRoutine;
+        // 도구 한 번에 열린 타일들. 바로 그리지 않고 모았다가 연쇄 순서대로 그린다
+        private readonly List<TileRevealResult> _pendingResults = new List<TileRevealResult>();
+        private bool _isCollectingResults;
+        // 연쇄로 늦게 깨지는 타일이 모두 깨지는 시각(Time.time 기준)
+        private float _chainVisualsEndTime;
         
         public event Action<ToolMode> ToolSelectionChanged;
         public event Action<string> FeedbackChanged;
@@ -57,6 +67,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public event Action<Vector2Int, int> ScoutRevealed;
         /// <summary>타일 덮개가 깨지거나 강화가 벗겨졌을 때. 깨짐 연출이 쓴다.</summary>
         public event Action<TileBreakInfo> TileBroken;
+        /// <summary>도구를 써서 손상도가 올랐을 때. 오른 양(0~1)을 전달한다.</summary>
+        public event Action<float> DamageTaken;
+        /// <summary>
+        /// 도움 타일이 깨져 한 줄을 열기 시작할 때. 도움 타일 좌표와 가로 방향인지(false면 세로)를 전달한다.
+        /// 줄의 타일은 <see cref="ChainStepDelay"/> 간격으로 도움 타일에서 가까운 칸부터 깨진다.
+        /// </summary>
+        public event Action<Vector2Int, bool> HelperChainStarted;
         public MinigameSession Session => _session;
         /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
         public SealMediumData CurrentSkin { get; private set; }
@@ -67,6 +84,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public IReadOnlyDictionary<Vector2Int, TileView> TileViews => _tileViews;
         public ToolMode SelectedTool => _selectedTool;
         public float TileSize => _tileSize;
+        public float ChainStepDelay => _chainStepDelay;
         public bool CanAcceptInput => isActiveAndEnabled && Time.timeScale > 0f &&
             (!_inputCamera || _inputCamera.isActiveAndEnabled);
 
@@ -130,11 +148,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             
             _hasHandledEnd = false;
             IsResultReady = false;
-            if (_endRevealRoutine != null)
-            {
-                StopCoroutine(_endRevealRoutine);
-                _endRevealRoutine = null;
-            }
+            // 이전 판의 연쇄·정답 공개 연출이 새 판 타일을 건드리지 않도록 모두 멈춘다
+            StopAllCoroutines();
+            _endRevealRoutine = null;
+            _pendingResults.Clear();
+            _isCollectingResults = false;
+            _chainVisualsEndTime = 0f;
             
             // 2. 새 세션 생성
             MinigameBoardConfig config = _difficultyTable.GetConfig(_difficulty);
@@ -202,16 +221,37 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 _session.TileRevealAttempted -= OnTileRevealAttempted;
             }
 
-            // 오브젝트가 꺼지면 코루틴도 멈춘다. 공개 연출 도중이었다면 남은 칸을 바로 열고 결과를 띄울 수 있게 한다
+            // 컴포넌트만 꺼져도 코루틴이 돌지 않도록 직접 멈춘다
+            StopAllCoroutines();
+            _chainVisualsEndTime = 0f;
+            if (_session == null || _tileViews == null) return;
+
+            // 연쇄 연출을 기다리던 타일은 세션 상태대로 바로 맞춘다
+            SyncAllViews();
+            // 정답 공개 도중이었다면 남은 칸을 바로 열고 결과를 띄울 수 있게 한다
             if (_endRevealRoutine != null)
             {
                 _endRevealRoutine = null;
                 foreach (Vector2Int coord in GetEndRevealOrder())
                 {
-                    // 씬을 닫는 중이면 타일이 이미 지워졌을 수 있다
                     if (_tileViews[coord] != null) ShowTileContent(_tileViews[coord], coord);
                 }
                 IsResultReady = true;
+            }
+        }
+
+        /// <summary>
+        /// 모든 타일 그림을 세션의 현재 상태(열림·강화)에 맞춘다. 연출 없이 바로 바꾼다.
+        /// </summary>
+        private void SyncAllViews()
+        {
+            foreach (KeyValuePair<Vector2Int, TileView> pair in _tileViews)
+            {
+                // 씬을 닫는 중이면 타일이 이미 지워졌을 수 있다
+                if (pair.Value == null) continue;
+                Tile tile = _session.Grid.GetTile(pair.Key.x, pair.Key.y);
+                if (tile.IsRevealed) ShowTileContent(pair.Value, pair.Key);
+                else pair.Value.ShowCovered(tile.IsReinforced);
             }
         }
 
@@ -249,16 +289,28 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             switch (_selectedTool)
             {
                 case ToolMode.SafeDestroy:
-                {
-                    DestroyResult result = _session.UseDestructiveTool(coord, DestructiveToolType.Safe);
-                    Debug.Log($"({coord.x}, {coord.y}) 안전 파괴 결과: {result}");
-                    HandleSessionEndIfNeeded();
-                    break;
-                }
                 case ToolMode.AttackDestroy:
                 {
-                    DestroyResult result = _session.UseDestructiveTool(coord, DestructiveToolType.Attack);
-                    Debug.Log($"({coord.x}, {coord.y}) 공격 파괴 결과: {result}");
+                    DestructiveToolType type = _selectedTool == ToolMode.SafeDestroy ? DestructiveToolType.Safe : DestructiveToolType.Attack;
+                    float damageBefore = _session.DamageGauge;
+
+                    // 세션이 열린 타일을 이벤트로 하나씩 알려 주면 모아 두었다가, 다 끝난 뒤 연쇄 순서를 계산해 그린다
+                    _isCollectingResults = true;
+                    DestroyResult result;
+                    try
+                    {
+                        result = _session.UseDestructiveTool(coord, type);
+                    }
+                    finally
+                    {
+                        // 예외가 나도 모으기 상태가 남지 않게 한다
+                        _isCollectingResults = false;
+                    }
+                    Debug.Log($"({coord.x}, {coord.y}) {type} 파괴 결과: {result}");
+
+                    PlayRevealBatch(_selectedTool);
+                    float damage = _session.DamageGauge - damageBefore;
+                    if (damage > 0f) DamageTaken?.Invoke(damage);
                     HandleSessionEndIfNeeded();
                     break;
                 }
@@ -276,31 +328,137 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         private void OnTileRevealAttempted(TileRevealResult result)
         {
             Debug.Log($"({result.Coordinate.x}, {result.Coordinate.y}) {result.Content} / {result.Outcome}");
-            
-            TileView view = _tileViews[result.Coordinate];
-            // 그림을 바꾸기 전에 덮개 그림을 기억해 두어야 깨짐 연출이 그 그림을 조각낼 수 있다
-            Sprite coverSprite = view.CurrentSprite;
-            Color coverColor = view.CurrentColor;
+            if (result.Outcome == RevealOutcome.AlreadyRevealed) return;
 
-            switch (result.Outcome)
+            _pendingResults.Add(result);
+            // 도구 사용 밖에서 열린 경우(앞으로 다른 경로가 생길 때)는 모으지 않고 바로 그린다
+            if (!_isCollectingResults) PlayRevealBatch(_selectedTool);
+        }
+
+        /// <summary>도구 한 번으로 열린 타일 하나와, 그 타일을 그릴 때까지 기다릴 시간.</summary>
+        private readonly struct RevealStep
+        {
+            public readonly TileRevealResult Result;
+            public readonly float Delay;
+            /// <summary>도움 타일일 때 연쇄 방향. 가로면 true.</summary>
+            public readonly bool IsHorizontalChain;
+
+            public RevealStep(TileRevealResult result, float delay, bool isHorizontalChain)
             {
-                case RevealOutcome.AlreadyRevealed:
-                    break;
-                case RevealOutcome.ReinforcementConsumed:
-                    view.ShowCovered(false);
-                    view.PlayPunch(0.9f, 0.12f);
-                    TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, false, _selectedTool));
-                    break;
-                case RevealOutcome.Revealed:
-                    BreakTile(view, result.Coordinate, _selectedTool);
-                    break;
+                Result = result;
+                Delay = delay;
+                IsHorizontalChain = isHorizontalChain;
             }
+        }
+
+        /// <summary>
+        /// 모아 둔 결과를 연쇄 순서대로 그린다. 도움 타일과 같은 줄의 타일은 도움 타일에서 먼 칸일수록 늦게 깨진다.
+        /// </summary>
+        /// <remarks>
+        /// 세션 상태는 이미 모두 바뀌었고, 여기서는 화면에 보이는 순서만 늦춘다. 기다리는 동안 그 칸을 다시 눌러도 이미 열린 칸으로 처리된다.
+        /// </remarks>
+        private void PlayRevealBatch(ToolMode tool)
+        {
+            if (_pendingResults.Count == 0) return;
+            List<RevealStep> steps = BuildRevealSteps(_pendingResults);
+            _pendingResults.Clear();
+
+            // 늦출 타일이 없으면 이번 프레임에 바로 그린다
+            float lastDelay = steps.Max(step => step.Delay);
+            if (lastDelay <= 0f)
+            {
+                foreach (RevealStep step in steps) ApplyRevealStep(step, tool);
+                return;
+            }
+
+            _chainVisualsEndTime = Mathf.Max(_chainVisualsEndTime, Time.time + lastDelay);
+            StartCoroutine(PlayRevealSteps(steps, tool));
+        }
+
+        private IEnumerator PlayRevealSteps(List<RevealStep> steps, ToolMode tool)
+        {
+            float elapsed = 0f;
+            foreach (RevealStep step in steps)   // Delay 순서로 정렬되어 있다
+            {
+                while (elapsed < step.Delay)
+                {
+                    yield return null;
+                    elapsed += Time.deltaTime;
+                }
+                ApplyRevealStep(step, tool);
+            }
+        }
+
+        /// <summary>
+        /// 각 결과가 언제 깨질지 정한다.
+        /// </summary>
+        /// <remarks>
+        /// 세션은 도구로 친 칸을 먼저, 그다음 도움 타일 연쇄로 추가된 칸을 알려 준다.
+        /// 앞서 열린 도움 타일과 같은 줄에 있으면 (그 도움 타일이 깨진 시각 + 거리 × 간격)에 깨지게 한다.
+        /// 연쇄 방향은 같은 줄에서 함께 열린 칸이 더 많은 쪽으로 본다(세션 규칙과 같은 기준).
+        /// </remarks>
+        private List<RevealStep> BuildRevealSteps(List<TileRevealResult> results)
+        {
+            var helperDelays = new List<(Vector2Int Coord, float Delay)>();
+            var steps = new List<RevealStep>();
+
+            foreach (TileRevealResult result in results)
+            {
+                Vector2Int coord = result.Coordinate;
+                float delay = 0f;
+                bool hasSource = false;
+                foreach ((Vector2Int helper, float helperDelay) in helperDelays)
+                {
+                    if (helper.x != coord.x && helper.y != coord.y) continue;
+                    int distance = Mathf.Abs(helper.x - coord.x) + Mathf.Abs(helper.y - coord.y);
+                    float candidate = helperDelay + distance * _chainStepDelay;
+                    if (!hasSource || candidate < delay)
+                    {
+                        delay = candidate;
+                        hasSource = true;
+                    }
+                }
+
+                bool isHelper = result.Outcome == RevealOutcome.Revealed && result.Content == TileContent.Helper;
+                bool isHorizontal = false;
+                if (isHelper)
+                {
+                    int rowCount = results.Count(r => r.Coordinate.y == coord.y && r.Coordinate != coord);
+                    int columnCount = results.Count(r => r.Coordinate.x == coord.x && r.Coordinate != coord);
+                    isHorizontal = rowCount >= columnCount;
+                    helperDelays.Add((coord, delay));
+                }
+                steps.Add(new RevealStep(result, delay, isHorizontal));
+            }
+
+            // OrderBy는 같은 값끼리 원래 순서를 지키므로, 같은 칸의 강화 벗김 → 열림 순서가 뒤집히지 않는다
+            return steps.OrderBy(step => step.Delay).ToList();
+        }
+
+        private void ApplyRevealStep(RevealStep step, ToolMode tool)
+        {
+            TileRevealResult result = step.Result;
+            if (!_tileViews.TryGetValue(result.Coordinate, out TileView view) || view == null) return;
+
+            if (result.Outcome == RevealOutcome.ReinforcementConsumed)
+            {
+                // 그림을 바꾸기 전에 덮개 그림을 기억해 두어야 깨짐 연출이 그 그림을 조각낼 수 있다
+                Sprite coverSprite = view.CurrentSprite;
+                Color coverColor = view.CurrentColor;
+                view.ShowCovered(false);
+                view.PlayPunch(0.9f, 0.12f);
+                TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, false, tool, result.Content, false));
+                return;
+            }
+
+            BreakTile(view, result.Coordinate, tool, false);
+            if (result.Content == TileContent.Helper) HelperChainStarted?.Invoke(result.Coordinate, step.IsHorizontalChain);
         }
 
         /// <summary>
         /// 타일 덮개를 깨고 내용물을 보여 준다. 깨짐 연출에 쓸 수 있도록 깨지기 전 덮개 그림을 이벤트로 알린다.
         /// </summary>
-        private void BreakTile(TileView view, Vector2Int coord, ToolMode tool)
+        private void BreakTile(TileView view, Vector2Int coord, ToolMode tool, bool isEndReveal)
         {
             Sprite coverSprite = view.CurrentSprite;
             Color coverColor = view.CurrentColor;
@@ -308,7 +466,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             ShowTileContent(view, coord);
             // 덮개 조각이 흩어지는 동안 아래 내용물이 톡 튀어나오듯 보이게 한다
             view.PlayPunch(0.8f, 0.15f);
-            TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, true, tool));
+            TileContent content = _session.Grid.GetTile(coord.x, coord.y).Content;
+            TileBroken?.Invoke(new TileBreakInfo(view, coverSprite, coverColor, true, tool, content, isEndReveal));
         }
 
         /// <summary>
@@ -342,6 +501,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         /// </remarks>
         private IEnumerator RevealRemainingTiles()
         {
+            // 마지막 도구의 연쇄 연출이 끝난 뒤에 시작한다
+            while (Time.time < _chainVisualsEndTime) yield return null;
             if (_endRevealDelay > 0f) yield return new WaitForSeconds(_endRevealDelay);
 
             // 목록을 미리 만들어 두어야, 기다리는 동안 상태가 바뀌어도 순서가 흔들리지 않는다
@@ -349,7 +510,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             var interval = _endRevealInterval > 0f ? new WaitForSeconds(_endRevealInterval) : null;
             foreach (Vector2Int coord in order)
             {
-                BreakTile(_tileViews[coord], coord, ToolMode.SafeDestroy);
+                BreakTile(_tileViews[coord], coord, ToolMode.SafeDestroy, true);
                 if (interval != null) yield return interval;
             }
 
