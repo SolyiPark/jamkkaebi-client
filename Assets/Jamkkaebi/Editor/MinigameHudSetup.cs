@@ -22,6 +22,7 @@ public static class MinigameHudSetup
 {
     private const string ScenePath = "Assets/Jamkkaebi/Scenes/Minigame.unity";
     private const string SpriteFolder = "Assets/Jamkkaebi/Art/Minigame/UI";
+    private const string BonusIconPath = "Assets/Jamkkaebi/Art/Minigame/TileContents/TileIcon_Bonus.png";
     private const string PretendardFolder = "Assets/Jamkkaebi/Fonts/Pretendard";
     private const string SejongFolder = "Assets/Jamkkaebi/Fonts/KingSejongInstitute";
     private const string FontAssetFolder = "Assets/Jamkkaebi/Fonts/TMP";
@@ -82,20 +83,31 @@ public static class MinigameHudSetup
         var so = new SerializedObject(presenter);
         so.FindProperty("_adapter").objectReferenceValue = adapter;
 
-        // ── 상단: 도구 남은 횟수, 포기, 도움말 ─────────────────────────────
-        Image destructiveCount = CreateImage("DestructiveCount", hud, "DestructiveCount");
-        PlaceTopLeft(destructiveCount.rectTransform, 44f, 48f);
-        // 배지 이미지(106px)에서 회색 알약은 19~99px에 있어 이미지 중심보다 아래다. 숫자 칸을 알약에 맞추고,
+        // ── 상단: 도구 남은 횟수, 정성, 포기, 도움말 ────────────────────────
+        // 도구 배지 이미지(106px)에서 회색 알약은 19~99px에 있어 이미지 중심보다 아래다.
+        // 이미지 위쪽을 47px에 두면 알약 위쪽이 정성 알약(66px)과 맞는다. 숫자 칸을 알약에 맞추고,
         // 글꼴 줄 높이 대신 글자 모양 기준(Midline)으로 세로 가운데 정렬한다
+        Image destructiveCount = CreateImage("DestructiveCount", hud, "DestructiveCount");
+        PlaceTopLeft(destructiveCount.rectTransform, 44f, 47f);
         TMP_Text destructiveText = CreateText("Count", destructiveCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Midline);
-        PlaceInside(destructiveText.rectTransform, 110f, 19f, 135f, 81f);
+        PlaceInside(destructiveText.rectTransform, 115f, 19f, 105f, 81f);
         destructiveText.text = "0";
 
         Image scoutCount = CreateImage("ScoutCount", hud, "ScoutCount");
-        PlaceTopLeft(scoutCount.rectTransform, 324f, 48f);
+        PlaceTopLeft(scoutCount.rectTransform, 283f, 47f);
         TMP_Text scoutText = CreateText("Count", scoutCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Midline);
-        PlaceInside(scoutText.rectTransform, 95f, 19f, 115f, 81f);
+        PlaceInside(scoutText.rectTransform, 85f, 19f, 92f, 81f);
         scoutText.text = "0";
+
+        // 정성 알약은 이미지 전체가 알약이다. 아이콘이 날아와 닿을 때 가운데 기준으로 튕기도록 기준점을 가운데에 둔다
+        Image jeongseongCount = CreateImage("JeongseongCount", hud, "JeongseongCount");
+        RectTransform jeongseongRect = jeongseongCount.rectTransform;
+        jeongseongRect.anchorMin = jeongseongRect.anchorMax = new Vector2(0f, 1f);
+        jeongseongRect.pivot = new Vector2(0.5f, 0.5f);
+        jeongseongRect.anchoredPosition = new Vector2(480f + jeongseongRect.sizeDelta.x * 0.5f, -(66f + jeongseongRect.sizeDelta.y * 0.5f));
+        TMP_Text jeongseongText = CreateText("Count", jeongseongRect, numberFont, 44f, DarkText, TextAlignmentOptions.Midline);
+        PlaceInside(jeongseongText.rectTransform, 88f, 0f, 76f, 81f);
+        jeongseongText.text = "0";
 
         Button quitButton = CreateButton("QuitButton", hud, "QuitButton");
         PlaceTopLeft((RectTransform)quitButton.transform, 698f, 66f);
@@ -201,7 +213,7 @@ public static class MinigameHudSetup
         ApplyResponsiveLayout(hud, canvas);
         AddGaugeRider(hud, presenter);
         AddScoutPopup(hud, adapter, titleFont, GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")) ?? numberFont);
-        AddTileFeedbackEffects(hud, adapter, canvas);
+        AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText);
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
         Selection.activeGameObject = hud.gameObject;
@@ -491,7 +503,8 @@ public static class MinigameHudSetup
     /// - 화면 가장자리 빛: 캔버스 루트(SafeArea 밖 노치 영역까지 덮는다)
     /// - 정성 아이콘: HUD 루트(화면 전체 좌표를 쓴다)
     /// </remarks>
-    private static void AddTileFeedbackEffects(RectTransform hud, MinigameSessionAdapter adapter, Canvas canvas)
+    private static void AddTileFeedbackEffects(RectTransform hud, MinigameSessionAdapter adapter, Canvas canvas,
+        RectTransform jeongseongCount, TMP_Text jeongseongText)
     {
         var adapterSo = new SerializedObject(adapter);
         Object gridContainer = adapterSo.FindProperty("_gridContainer").objectReferenceValue;
@@ -519,6 +532,12 @@ public static class MinigameHudSetup
         var flyerSo = new SerializedObject(flyer);
         flyerSo.FindProperty("_adapter").objectReferenceValue = adapter;
         flyerSo.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
+        flyerSo.FindProperty("_iconSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(BonusIconPath);
+        flyerSo.FindProperty("_iconColor").colorValue = Color.white;
+        flyerSo.FindProperty("_target").objectReferenceValue = jeongseongCount;
+        // 알약 가운데에서 하트 아이콘(알약 왼쪽에서 약 52px)까지의 거리
+        flyerSo.FindProperty("_targetOffset").vector2Value = new Vector2(-35f, 0f);
+        flyerSo.FindProperty("_counterText").objectReferenceValue = jeongseongText;
         flyerSo.ApplyModifiedProperties();
     }
 

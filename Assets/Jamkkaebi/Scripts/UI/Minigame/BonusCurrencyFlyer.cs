@@ -33,6 +33,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [Header("도착지 (선택)")]
         [Tooltip("아이콘이 날아갈 재화 표시. 비우면 제자리에서 떠올랐다가 사라진다.")]
         [SerializeField] private RectTransform _target;
+        [Tooltip("도착 지점을 재화 표시의 기준점(pivot)에서 얼마나 옮길지(캔버스 단위). 표시 안 아이콘 위치에 맞춘다.")]
+        [SerializeField] private Vector2 _targetOffset;
         [Tooltip("이번 판에서 모은 정성 수를 보여 줄 글자. 아이콘이 도착할 때 하나씩 오른다.")]
         [SerializeField] private TMP_Text _counterText;
 
@@ -135,6 +137,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             {
                 Vector2 targetScreen = RectTransformUtility.WorldToScreenPoint(GetUiCamera(), _target.position);
                 hasTarget = TryScreenToArea(targetScreen, out targetPosition);
+                targetPosition += _targetOffset;
             }
 
             foreach (Icon icon in _icons)
