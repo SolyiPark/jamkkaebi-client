@@ -26,6 +26,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] [UnityEngine.Range(0.2f, 1f)] private float _iconSizeRatio = 0.72f;
         [Tooltip("도움 아이콘만 따로 쓰는 크기 비율.")]
         [SerializeField] [UnityEngine.Range(0.2f, 1f)] private float _helperIconSizeRatio = 0.92f;
+        [Tooltip("아이콘이 위아래로 떠다니는 폭(칸 크기 대비). 아이콘이 칸을 벗어나지 않도록 작게 둔다.")]
+        [SerializeField] [UnityEngine.Range(0f, 0.1f)] private float _iconFloatAmplitude = 0.035f;
+        [Tooltip("아이콘이 한 번 오르내리는 데 걸리는 시간(초).")]
+        [SerializeField] [Min(0.1f)] private float _iconFloatPeriod = 2.2f;
         [Tooltip("아이콘을 타일 위에 그리는 순서. 타일(0)보다 위, 정찰 범위(5)·격자 선(10)보다 아래.")]
         [SerializeField] private int _iconSortingOrder = 1;
 
@@ -47,6 +51,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         private Coroutine _punchRoutine;
         // 내용물 아이콘을 그리는 자식 렌더러. 처음 필요할 때 만든다
         private SpriteRenderer _iconRenderer;
+        // 칸마다 떠다니는 박자를 다르게 해서 모든 아이콘이 한꺼번에 오르내리지 않게 한다
+        private float _iconFloatPhase;
 
         private void Awake()
         {
@@ -207,7 +213,26 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             float ratio = Mathf.Min(sizeRatio, 1f);
             float scale = Mathf.Min(cellSize.x, cellSize.y) * ratio / Mathf.Max(iconSize.x, iconSize.y);
             _iconRenderer.transform.localScale = new Vector3(scale, scale, 1f);
+            _iconRenderer.transform.localPosition = Vector3.zero;
+            _iconFloatPhase = UnityEngine.Random.value * Mathf.PI * 2f;
             _iconRenderer.gameObject.SetActive(true);
+        }
+
+        /// <summary>
+        /// 아이콘을 사인 곡선으로 위아래로 천천히 움직여 둥실둥실 떠 있는 것처럼 보이게 한다.
+        /// </summary>
+        /// <remarks>
+        /// 아이콘이 있는 칸에서만 계산한다. Time.time을 쓰므로 일시정지(timeScale 0) 중에는 멈춘다.
+        /// 위치는 타일 기준 로컬 좌표라, 타일이 튕기거나 보드가 흔들려도 함께 움직인다.
+        /// </remarks>
+        private void Update()
+        {
+            if (_iconRenderer == null || !_iconRenderer.gameObject.activeSelf || _iconFloatAmplitude <= 0f) return;
+
+            Vector2 cellSize = _defaultSprite != null ? (Vector2)_defaultSprite.bounds.size : Vector2.one;
+            float angle = Time.time * (Mathf.PI * 2f / _iconFloatPeriod) + _iconFloatPhase;
+            float offset = Mathf.Sin(angle) * _iconFloatAmplitude * cellSize.y;
+            _iconRenderer.transform.localPosition = new Vector3(0f, offset, 0f);
         }
 
         private void HideIcon()
