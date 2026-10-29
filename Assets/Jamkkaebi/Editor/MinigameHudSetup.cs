@@ -197,6 +197,7 @@ public static class MinigameHudSetup
 
         ConnectBoardGuides(hud);
         ApplyResponsiveLayout(hud, canvas);
+        AddGaugeRider(hud, presenter);
         AddScoutPopup(hud, adapter, titleFont, GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")) ?? numberFont);
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
@@ -354,6 +355,50 @@ public static class MinigameHudSetup
         responsiveSo.FindProperty("_boardAreaHeight").floatValue = 1951f - 811f;
         responsiveSo.FindProperty("_hudHeight").floatValue = 811f + (ReferenceResolution.y - 1951f);
         responsiveSo.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// 이미 만든 HUD의 손상도 게이지 위에 유물 도깨비 그림을 추가한다. HUD를 다시 만들지 않는다.
+    /// </summary>
+    [MenuItem("Jamkkaebi/Minigame/Add Gauge Rider")]
+    public static void AddGaugeRiderMenu()
+    {
+        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
+        if (presenter == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter를 찾지 못했습니다.", "확인");
+            return;
+        }
+        AddGaugeRider((RectTransform)presenter.transform, presenter);
+        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
+        Debug.Log("[MinigameHudSetup] 손상도 게이지에 도깨비 그림 자리를 추가했습니다. 씬을 저장해주세요.");
+    }
+
+    /// <summary>
+    /// 손상도 채움 끝을 따라 움직이는 도깨비 그림 자리를 게이지 위에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// </summary>
+    /// <remarks>그림은 실행 중에 프레젠터가 현재 유물의 도깨비로 넣는다. 유물이 없으면 숨긴다.</remarks>
+    private static void AddGaugeRider(RectTransform hud, MinigameHudPresenter presenter)
+    {
+        RectTransform gauge = Find(hud, "DamageGauge");
+        if (gauge == null) return;
+
+        Transform existing = gauge.Find("Rider");
+        if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+
+        Image rider = CreateImage("Rider", gauge, null);
+        Undo.RegisterCreatedObjectUndo(rider.gameObject, "Add Gauge Rider");
+        rider.raycastTarget = false;
+        rider.preserveAspect = true;
+        RectTransform rect = rider.rectTransform;
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);   // 게이지 왼쪽 위
+        rect.pivot = new Vector2(0.5f, 0f);                      // 발밑 가운데가 채움 끝에 오도록
+        rect.anchoredPosition = new Vector2(0f, -14f);           // 게이지 윗변에 살짝 걸치게
+        rect.sizeDelta = new Vector2(140f, 140f);
+
+        var so = new SerializedObject(presenter);
+        so.FindProperty("_damageGaugeRider").objectReferenceValue = rider;
+        so.ApplyModifiedPropertiesWithoutUndo();
     }
 
     /// <summary>

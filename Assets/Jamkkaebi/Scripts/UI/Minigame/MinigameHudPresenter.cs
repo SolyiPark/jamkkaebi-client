@@ -29,8 +29,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [SerializeField] private RectTransform _damageGaugeFill;
         [SerializeField] private TMP_Text _damageLabelText;
         [SerializeField] private TMP_Text _damagePercentText;
-        [Tooltip("선택. 게이지 끝을 따라 움직이는 캐릭터 등.")]
-        [SerializeField] private RectTransform _damageGaugeRider;
+        [Tooltip("선택. 게이지 끝을 따라 움직이는 유물 도깨비 그림. 유물이 없으면 숨긴다.")]
+        [SerializeField] private Image _damageGaugeRider;
         [SerializeField] private Color _damageLabelOnFillColor = Color.white;
         [SerializeField] private Color _damageLabelOnEmptyColor = new Color(0.61f, 0.25f, 0.25f);
 
@@ -107,6 +107,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             {
                 _shownSession = session;
                 RebuildShapePreviews(session);
+                RefreshGaugeRiderSprite();
             }
 
             RefreshToolCounts(session);
@@ -145,8 +146,25 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             }
             if (_damageGaugeRider != null)
             {
-                _damageGaugeRider.anchoredPosition = new Vector2(width, _damageGaugeRider.anchoredPosition.y);
+                // 손상도가 0이나 100%에 가까워도 그림이 게이지 양 끝 밖으로 나가지 않게 한다
+                RectTransform rider = _damageGaugeRider.rectTransform;
+                float minX = rider.rect.width * rider.pivot.x;
+                float maxX = _damageGaugeBackground.rect.width - rider.rect.width * (1f - rider.pivot.x);
+                float x = Mathf.Clamp(width, minX, Mathf.Max(minX, maxX));
+                rider.anchoredPosition = new Vector2(x, rider.anchoredPosition.y);
             }
+        }
+
+        private void RefreshGaugeRiderSprite()
+        {
+            if (_damageGaugeRider == null) return;
+
+            Sprite portrait = _adapter.CurrentRelic != null ? _adapter.CurrentRelic.SpiritPortrait : null;
+            _damageGaugeRider.gameObject.SetActive(portrait != null);
+            if (portrait == null) return;
+
+            _damageGaugeRider.sprite = portrait;
+            _damageGaugeRider.preserveAspect = true;
         }
 
         private void RebuildShapePreviews(MinigameSession session)
