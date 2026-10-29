@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace Jamkkaebi.Scripts.UI.Minigame
 {
     /// <summary>
-    /// 보너스(정성) 타일이 열리면 재화 아이콘이 튀어 올랐다가 재화 표시 쪽으로 날아가게 한다.
+    /// 보너스(정성) 타일이 열리면 재화 아이콘 하나가 튀어 올랐다가 재화 표시 쪽으로 날아가게 한다.
     /// </summary>
     /// <remarks>
     /// 화면 전체를 덮는 HUD 루트에 붙인다. 아이콘은 이 오브젝트의 자식으로 만들고, 다 쓰면 꺼 두었다가 다시 쓴다.
@@ -27,8 +27,6 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [Tooltip("아이콘 그림에 곱할 색. 금색 원을 쓸 때는 이 색이 원 색이 된다.")]
         [SerializeField] private Color _iconColor = new Color(1f, 0.82f, 0.32f);
         [SerializeField] [Min(8f)] private float _iconSize = 72f;
-        [Tooltip("보너스 타일 하나에서 나오는 아이콘 수.")]
-        [SerializeField] [Range(1, 10)] private int _iconsPerTile = 4;
 
         [Header("도착지 (선택)")]
         [Tooltip("아이콘이 날아갈 재화 표시. 비우면 제자리에서 떠올랐다가 사라진다.")]
@@ -43,8 +41,6 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [SerializeField] private float _gravity = 2200f;
         [Tooltip("튀어 오른 뒤 날아가기 시작할 때까지의 시간(초).")]
         [SerializeField] [Min(0.05f)] private float _burstDuration = 0.3f;
-        [Tooltip("아이콘마다 출발을 조금씩 늦춰 줄지어 날아가게 하는 간격(초).")]
-        [SerializeField] [Min(0f)] private float _flyStagger = 0.05f;
         [SerializeField] [Min(0.05f)] private float _flyDuration = 0.45f;
         [Tooltip("도착지가 없을 때 떠오르는 거리와 시간.")]
         [SerializeField] private float _floatDistance = 140f;
@@ -60,7 +56,6 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             public Vector2 FlyStart;
             public float Age;
             public float FlyDelay;
-            public bool CountsOnArrival;   // 타일 하나당 마지막 아이콘이 도착할 때 숫자를 1 올린다
         }
 
         private readonly List<Icon> _icons = new List<Icon>();
@@ -106,24 +101,21 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             Vector2 screenPoint = _boardCamera.WorldToScreenPoint(info.View.transform.position);
             if (!TryScreenToArea(screenPoint, out Vector2 start)) return;
 
-            for (int i = 0; i < _iconsPerTile; i++)
-            {
-                // 위쪽 반원 방향으로 흩어져 튀어 오른다
-                float angle = Random.Range(30f, 150f) * Mathf.Deg2Rad;
-                var direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            // 보너스 타일 하나 = 정성 1. 받은 개수와 화면에 보이는 하트 수가 같도록 하트도 하나만 띄운다
+            // 거의 위쪽으로, 좌우로 조금만 기울여 튀어 오른다
+            float angle = Random.Range(70f, 110f) * Mathf.Deg2Rad;
+            var direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
 
-                Icon icon = GetIcon();
-                icon.Position = start;
-                icon.Velocity = direction * _burstSpeed.RandomValue();
-                icon.Age = 0f;
-                icon.FlyDelay = _burstDuration + i * _flyStagger;
-                icon.CountsOnArrival = i == _iconsPerTile - 1;
-                icon.Rect.anchoredPosition = start;
-                icon.Rect.localScale = Vector3.one;
-                icon.Image.color = _iconColor;
-                icon.Rect.SetAsLastSibling();
-                icon.Rect.gameObject.SetActive(true);
-            }
+            Icon icon = GetIcon();
+            icon.Position = start;
+            icon.Velocity = direction * _burstSpeed.RandomValue();
+            icon.Age = 0f;
+            icon.FlyDelay = _burstDuration;
+            icon.Rect.anchoredPosition = start;
+            icon.Rect.localScale = Vector3.one;
+            icon.Image.color = _iconColor;
+            icon.Rect.SetAsLastSibling();
+            icon.Rect.gameObject.SetActive(true);
         }
 
         private void Update()
@@ -186,7 +178,6 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         private void OnIconArrived(Icon icon)
         {
             _targetPunchTime = 0.15f;
-            if (!icon.CountsOnArrival) return;
             _count++;
             if (_counterText != null) _counterText.text = _count.ToString();
         }

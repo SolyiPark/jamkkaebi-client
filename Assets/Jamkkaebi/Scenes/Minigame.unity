@@ -1356,7 +1356,6 @@ MonoBehaviour:
   _iconSprite: {fileID: 21300000, guid: 30ef463b728c47adae944337517922cd, type: 3}
   _iconColor: {r: 1, g: 1, b: 1, a: 1}
   _iconSize: 72
-  _iconsPerTile: 4
   _target: {fileID: 1702968113}
   _targetOffset: {x: -35, y: 0}
   _counterText: {fileID: 1018377394}
@@ -1365,7 +1364,6 @@ MonoBehaviour:
     _max: 650
   _gravity: 2200
   _burstDuration: 0.3
-  _flyStagger: 0.05
   _flyDuration: 0.45
   _floatDistance: 140
   _floatDuration: 0.6
