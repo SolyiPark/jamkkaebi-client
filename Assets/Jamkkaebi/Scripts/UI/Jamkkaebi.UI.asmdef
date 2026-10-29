@@ -1,6 +1,6 @@
 {
   "name": "Jamkkaebi.UI",
-  "references": ["Unity.ugui", "Jamkkaebi.Gameplay", "Unity.Newtonsoft.Json"],
+  "references": ["Unity.ugui", "Unity.TextMeshPro", "Jamkkaebi.Gameplay", "Unity.Newtonsoft.Json"],
   "versionDefines": [
     {
       "name": "com.unity.2d.animation",

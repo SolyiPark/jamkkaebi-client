@@ -40,6 +40,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public event Action<ToolMode> ToolSelectionChanged;
         public event Action<string> FeedbackChanged;
         public MinigameSession Session => _session;
+        /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
+        public SealMediumData CurrentSkin { get; private set; }
         public IReadOnlyDictionary<Vector2Int, TileView> TileViews => _tileViews;
         public ToolMode SelectedTool => _selectedTool;
         public float TileSize => _tileSize;
@@ -77,6 +79,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public void BeginSession(long seed)
         {
             SealMediumData skin = _sealMediumCatalog.GetSealMediumData(_sealMedium);
+            CurrentSkin = skin;
             
             // 1. 이전 세션 정리
             if (_session != null)
