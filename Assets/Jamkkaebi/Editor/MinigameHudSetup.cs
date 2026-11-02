@@ -65,13 +65,20 @@ public static class MinigameHudSetup
             Undo.DestroyObjectImmediate(existing.gameObject);
         }
 
-        // 시안 기준: 숫자는 프리텐다드 Medium, 제목·라벨은 세종학당체(굵기별), 결과 설명은 프리텐다드 Regular
-        TMP_FontAsset numberFont = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
-        TMP_FontAsset bodyFont = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Regular")) ?? numberFont;
+        // 글꼴은 가족마다 대표 에셋 하나만 텍스트에 지정하고, 굵게는 Font Weight(Bold)로 고른다.
+        // 대표 에셋의 Font Weights 표에 Bold 에셋을 연결해 두면 TMP가 진짜 Bold 글꼴로 그린다.
+        // - 프리텐다드: Medium이 대표(숫자·설명). Regular는 Medium과 차이가 작아 합쳤다
+        // - 세종학당체: Regular가 대표(패널 제목), Bold는 손상도·결과 제목·정찰 말풍선
+        TMP_FontAsset pretendard = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
+        LinkBoldWeight(pretendard, GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")));
+        TMP_FontAsset sejong = GetOrCreateFontAsset(FindFontFile(SejongFolder, "Regular"));
+        LinkBoldWeight(sejong, GetOrCreateFontAsset(FindFontFile(SejongFolder, "Bold")));
+
+        TMP_FontAsset numberFont = pretendard;
+        TMP_FontAsset bodyFont = pretendard;
         // 세종학당체가 없으면 프리텐다드로 대신한다
-        TMP_FontAsset titleFont = GetOrCreateFontAsset(FindFontFile(SejongFolder, "Bold"))
-            ?? GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")) ?? numberFont;
-        TMP_FontAsset captionFont = GetOrCreateFontAsset(FindFontFile(SejongFolder, "Regular")) ?? bodyFont;
+        TMP_FontAsset titleFont = sejong != null ? sejong : pretendard;
+        TMP_FontAsset captionFont = titleFont;
 
         ConfigureCanvasScaler(canvas);
 
@@ -128,7 +135,7 @@ public static class MinigameHudSetup
         fillRect.anchoredPosition = Vector2.zero;
         fillRect.sizeDelta = new Vector2(0f, gaugeBackground.rectTransform.sizeDelta.y);
 
-        TMP_Text damageLabel = CreateText("Label", gaugeBackground.rectTransform, titleFont, 36f, Color.white, TextAlignmentOptions.Left);
+        TMP_Text damageLabel = CreateText("Label", gaugeBackground.rectTransform, titleFont, 36f, Color.white, TextAlignmentOptions.Left, FontWeight.Bold);
         PlaceInside(damageLabel.rectTransform, 32f, 0f, 200f, 66f);
         damageLabel.text = "손상도";
 
@@ -184,7 +191,7 @@ public static class MinigameHudSetup
         resultRect.anchoredPosition = Vector2.zero;
         resultPanel.raycastTarget = false;
 
-        TMP_Text resultTitle = CreateText("Title", resultRect, titleFont, 64f, DarkText, TextAlignmentOptions.Center);
+        TMP_Text resultTitle = CreateText("Title", resultRect, titleFont, 64f, DarkText, TextAlignmentOptions.Center, FontWeight.Bold);
         PlaceInside(resultTitle.rectTransform, 0f, 50f, 987f, 100f);
         resultTitle.text = "정화 성공";
         TMP_Text resultBody = CreateText("Body", resultRect, bodyFont, 36f, DarkText, TextAlignmentOptions.Center);
@@ -212,7 +219,7 @@ public static class MinigameHudSetup
         ConnectBoardGuides(hud);
         ApplyResponsiveLayout(hud, canvas);
         AddGaugeRider(hud, presenter);
-        AddScoutPopup(hud, adapter, titleFont, GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")) ?? numberFont);
+        AddScoutPopup(hud, adapter, titleFont, numberFont);
         AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText);
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
@@ -434,7 +441,7 @@ public static class MinigameHudSetup
         RectTransform numbers = CreateRect("ScoutNumbers", hud);
         Stretch(numbers);
         Undo.RegisterCreatedObjectUndo(numbers.gameObject, "Add Scout Numbers");
-        TMP_Text numberTemplate = CreateText("NumberTemplate", numbers, numberFont, 60f, DarkText, TextAlignmentOptions.Center);
+        TMP_Text numberTemplate = CreateText("NumberTemplate", numbers, numberFont, 60f, DarkText, TextAlignmentOptions.Center, FontWeight.Bold);
         numberTemplate.text = "0";
         numberTemplate.gameObject.SetActive(false);
         var overlay = numbers.gameObject.AddComponent<ScoutNumberOverlay>();
@@ -458,7 +465,7 @@ public static class MinigameHudSetup
         bubbleRect.sizeDelta = new Vector2(440f, 110f);
         bubble.gameObject.AddComponent<CanvasGroup>();
 
-        TMP_Text label = CreateText("Text", bubbleRect, font, 40f, DarkText, TextAlignmentOptions.Center);
+        TMP_Text label = CreateText("Text", bubbleRect, font, 40f, DarkText, TextAlignmentOptions.Center, FontWeight.Bold);
         Stretch(label.rectTransform);
         label.text = "주변 위협 0개";
         bubble.gameObject.SetActive(false);
@@ -633,11 +640,13 @@ public static class MinigameHudSetup
         return button;
     }
 
-    private static TMP_Text CreateText(string name, Transform parent, TMP_FontAsset font, float size, Color color, TextAlignmentOptions alignment)
+    private static TMP_Text CreateText(string name, Transform parent, TMP_FontAsset font, float size, Color color,
+        TextAlignmentOptions alignment, FontWeight weight = FontWeight.Regular)
     {
         RectTransform rect = CreateRect(name, parent);
         var text = rect.gameObject.AddComponent<TextMeshProUGUI>();
         if (font != null) text.font = font;
+        text.fontWeight = weight;   // 대표 에셋의 Font Weights 표에서 이 굵기의 에셋을 찾아 그린다
         text.fontSize = size;
         text.color = color;
         text.alignment = alignment;
@@ -683,6 +692,19 @@ public static class MinigameHudSetup
 
     /// <summary>글꼴 파일로 동적 TMP 글꼴 에셋을 만든다. 이미 있으면 그것을 쓴다.</summary>
     /// <remarks>동적 모드라 쓰는 글자만 실행 중에 아틀라스에 추가되어 한글 전체를 미리 굽지 않아도 된다.</remarks>
+    /// <summary>
+    /// 대표 폰트 에셋의 Font Weights 표 700(Bold) 칸에 Bold 에셋을 연결한다.
+    /// </summary>
+    /// <remarks>표의 칸 번호는 굵기 ÷ 100이다(400 = Regular, 700 = Bold). 배열 원소를 직접 바꾸므로 대표 에셋에 바로 반영된다.</remarks>
+    private static void LinkBoldWeight(TMP_FontAsset main, TMP_FontAsset bold)
+    {
+        if (main == null || bold == null || main == bold) return;
+        TMP_FontWeightPair[] table = main.fontWeightTable;
+        if (table == null || table.Length <= 7 || table[7].regularTypeface == bold) return;
+        table[7].regularTypeface = bold;
+        EditorUtility.SetDirty(main);
+    }
+
     private static TMP_FontAsset GetOrCreateFontAsset(string fontPath)
     {
         if (string.IsNullOrEmpty(fontPath)) return null;
@@ -699,7 +721,9 @@ public static class MinigameHudSetup
             AssetDatabase.CreateFolder(Path.GetDirectoryName(FontAssetFolder).Replace('\\', '/'), Path.GetFileName(FontAssetFolder));
         }
 
-        TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(font, 90, 9, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic);
+        // 크기는 정적 굽기 도구(StaticFontBaker)와 맞춘다. 만든 뒤 그 메뉴로 한글 2,350자를 구워야 정적 폰트가 된다
+        TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(font, StaticFontBaker.SamplingPointSize, StaticFontBaker.AtlasPadding,
+            GlyphRenderMode.SDFAA, StaticFontBaker.AtlasSize, StaticFontBaker.AtlasSize, AtlasPopulationMode.Dynamic);
         if (fontAsset == null) return null;
 
         AssetDatabase.CreateAsset(fontAsset, assetPath);
