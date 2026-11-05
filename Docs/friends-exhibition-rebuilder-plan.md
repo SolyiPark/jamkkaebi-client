@@ -1,8 +1,8 @@
 # 친구 전시관 재구축기 개선 계획
 
-작성일: 2026-11-05 (같은 날 사용자 결정 반영). 상태: **계획만 작성, 구현 시작 전**. 이 문서만 읽고 이전 대화 없이 작업을 시작할 수 있도록 썼다.
+작성일: 2026-11-05 (같은 날 사용자 결정 반영, 방문 종료 경로 보완). 상태: **계획만 작성, 구현 시작 전**. 이 문서만 읽고 이전 대화 없이 작업을 시작할 수 있도록 썼다.
 
-기준: 클라이언트 `1fb8e1e` + 미커밋 작업 트리, 서버 `be72ae8`. 아래 내용은 코드와 자산을 읽어 확인했으며 **Unity에서 실행해 본 결과가 아니다**. 줄 번호는 작성 시점 값이므로 구현 전에 다시 확인한다.
+기준: 클라이언트 `main` `c5cbe57`(PR #22), 서버 `be72ae8`. 아래 내용은 코드와 자산을 읽어 확인했으며 **Unity에서 실행해 본 결과가 아니다**. 줄 번호는 작성 시점 값이므로 구현 전에 다시 확인한다.
 
 ## 1. 목표
 
@@ -19,7 +19,7 @@
 - 앞뒤 가려짐이 바닥 접점 기준으로 맞고, 도깨비는 칸 사이를 부드럽게 걷는다.
 - 객체를 누르면 정보가 표시되고, 편집은 불가능하다.
 - 방문 중에는 나가기 전까지 다른 탭으로 이동할 수 없다. 스와이프와 하단 탭 모두 막히고, 로딩·오류 상태에서도 나가기 버튼은 항상 동작한다.
-- 방문 보상·선물 후에도 방문 화면이 유지된다.
+- 방문 보상·선물 후에도 방문 화면이 유지된다. 요청이 실패해도 유지되며, 4.1절의 경로만 방문을 끝낸다.
 - 기존 예외 시나리오(빈 전시, 미지원, 잘못된 좌표, 중복, 격자 불일치, 거부, 오류, 지연)가 새 화면에서 올바르게 표시된다.
 - 내 홈의 배치와 최초 등장 연출이 영향받지 않는다.
 - `FriendsPresenter`에 격자 좌표 계산, 스프라이트 생성, 이동 보간 코드가 남지 않는다.
@@ -86,7 +86,7 @@ FriendsPresenter.Visit (FriendsPresenter.cs:225)
 
 | # | 문제 | 위치 | 상태 | 조치 |
 | --- | --- | --- | --- | --- |
-| P1 | 서버 모드에서 방문 보상·선물을 받으면 방문 화면이 닫힌다 | `FriendsPresenter.cs:137`, `:258`, `:586` | 코드 확인 | `ChangeServer`에 화면 유지 옵션 추가. 차단은 기존처럼 나감 |
+| P1 | 서버 모드에서 방문 보상·선물 **성공** 시 방문 화면이 닫힌다. 실패 분기(`:142`)는 닫지 않으므로 대상이 아니다 | `FriendsPresenter.cs:137`, `:258`, `:586` | 코드 확인 | 4.1절. 성공 시 동작을 호출 측에서 지정하고, 차단만 나감 |
 | P2 | 재구축물이 Canvas UI라서 배경·정렬을 쓸 수 없다. `Paper`와 전체 크기 스크롤 영역이 월드 표현과 입력을 가린다 | `FriendsPresenter.cs:75`, `:284`, `:308` | 코드 확인 | 월드 스테이지로 분리, 방문 HUD는 스크롤 없이 구성 |
 | P3 | 좌표를 하드코딩한 배율로 UI에 옮겨 실제 상판과 무관하다 | `FriendsPresenter.cs:556` | 코드 확인 | `CellWorldPosition` 사용 |
 | P4 | 서버 객체는 전부 Unknown이고, 모의는 `Id > 3`이 Unknown이라 유물 4~9가 미지원이 된다 | `VisitObject.cs:13`, `ServerExhibitionBackend.cs:45-47` | 코드 확인 | 카탈로그 등록 여부로 판정 |
@@ -98,6 +98,42 @@ FriendsPresenter.Visit (FriendsPresenter.cs:225)
 | P10 | 모의 데이터의 ID·이름이 서버 시드와 다르다 (건물 불국사 다보탑 등) | `MockExhibitionBackend.cs:37-41` | 코드 확인 | 서버 시드 이름·ID로 교체해 아트 확인에 사용 |
 | P11 | 10월 29일 대규모 이동 이후 Unity 실행 기록이 없다 | `project-context/VALIDATION.md` | 실행 확인 | 0단계에서 기준선 확보 |
 | P12 | `VerifyServerContract.ps1`의 Java 실행기가 현재 서버와 컴파일되는지 모른다 (`relic` 이름 변경 등) | `Tools/UnityContractHarnessTest.java` | 실행 확인 | 실패 시 실행기 수정 여부를 사용자에게 보고 |
+| P13 | **P1을 고치면 드러나는 문제.** POST 성공 후 재조회가 실패하면 `State`와 스냅샷의 `VisitRewardAvailable`·`GiftState`가 이전 값이라 보상·선물 버튼이 다시 켜진다. 재조회 실패 알림도 `:140`의 성공 알림에 덮인다 | `FriendsPresenter.cs:115`, `:139-140`, `:538`, `:540` | 코드 확인 | 재조회 전에 성공을 `State`에 표시. 알림은 두 결과를 함께 표시 |
+| P14 | 차단 POST 중 뒤로 나가 다른 친구를 방문하면, 늦은 성공 응답이 `Page == "Visit"`만 보고 새 방문을 닫는다. `Visit`은 소셜 코루틴을 취소하지 않고, 확인 창도 응답 전까지 남아 있어 이 조작이 가능하다 | `FriendsPresenter.cs:137`, `:225-235`, `:599` | 코드 확인 | 차단 대상과 현재 방문 소유자의 코드가 같을 때만 나감 |
+
+### 4.1 방문 종료·전환·유지 경로
+
+실패는 이탈이 아니다. 현재 코드도 `ChangeServerRoutine`의 실패 분기(`:142`)에서는 화면을 유지하며, 닫는 것은 성공 분기(`:137`)뿐이다. 구현 단계에서는 아래 표를 기준으로 삼고, 방문 관련 호출을 추가하면 표에도 추가한다.
+
+| 경로 | 위치 | 현재 | 목표 | 탭 잠금 |
+| --- | --- | --- | --- | --- |
+| `VisitBack` | `:496` | 종료 | 종료 (`Leave`) | 해제 |
+| 차단 성공, 현재 방문 소유자가 대상 | `:165` → `:137` | 종료 | 종료 (`Leave`) | 해제 |
+| 차단 성공, 다른 친구를 방문 중 (늦은 응답) | `:165` → `:137` | **새 방문 종료 (P14)** | 유지 | 유지 |
+| 모의 차단 | `:166` | 종료 | 종료 (`Leave`) | 해제 |
+| `ConnectServer` | `:87`, `:91` | 종료 | 종료 (`Leave`) | 해제 |
+| `OnDestroy` | `:222` | 취소 | 취소 (`Leave`). 새 루트는 잠기지 않은 상태로 시작 | 해당 없음 |
+| 서버 보상·선물 성공 | `:258`, `:586` → `:137` | **종료 (P1)** | 유지 | 유지 |
+| 서버 보상·선물 성공 후 재조회 실패 | `:139`, `:115` | 종료 후 목록에 이전 값 표시 | 유지, 버튼 비활성 (P13) | 유지 |
+| 서버 보상·선물·차단 실패 | `:142` | 유지, 오류 알림 | 같음. 자동 재시도 없음 | 유지 |
+| 모의 보상·선물 | `:259`, `:587` | 유지 | 같음 | 유지 |
+| 전시 GET 실패, 격자 불일치 | `:250`, `ExhibitionVisitSession.Complete` | 유지, 재시도 표시 | 같음. `VisitBack`과 `VisitRetry` 사용 가능 | 유지 |
+| `VisitRetry`, 방문 중 `Visit` 재호출 | `:529`, `:225` | 전환 (세대 증가) | 전환. `Leave`를 지나지 않으므로 이전 표현물을 재구축기가 직접 파괴 | 유지 |
+
+구현 규칙:
+
+1. **잠금 해제는 `Leave` 한 곳에서 한다.** `Page`가 `Visit`에서 벗어나는 경로는 `Show`와 `ConnectServer`뿐이고 둘 다 `CancelVisit`을 지나므로, 1단계에서는 이 함수를 유지하고 3단계에서 재구축기의 `Leave`를 호출하게 한다. `Visit` 재호출의 잠금은 카운터가 아닌 bool로 둔다.
+2. **성공 시 동작은 호출 측이 정한다.** `ChangeServer(method, path, body, Action succeeded = null)`로 바꾸고 `:137`을 제거한다. `succeeded`는 재조회 **전에** 실행한다.
+   - 보상: `State.MarkServerVisitClaimed()` 후 `Render()`.
+   - 선물: `State.MarkServerGiftSent()` 후 `Render()`. `GiftRecipient`를 기존 값 `"SERVER_SENT"`로 둔다.
+   - 차단: 현재 페이지가 `Visit`이고 `NormalizeCode(_visitor.Code)`가 대상과 같을 때만 `Show("Friends")`.
+   - 방문 세대가 아니라 **코드**로 비교한다. 차단 응답 전에 같은 친구를 다시 방문한 경우에도 그 방문은 닫혀야 한다.
+3. **표시 값은 임시 값이다.** 두 표시 메서드는 `ServerOwned`일 때만 쓰고, 재조회가 성공하면 `ApplyServerSummary` 값으로 교체된다. `VisitClaimed`와 `GiftRecipient`는 하루 전체의 값이므로 친구별로 두지 않는다. 다른 친구의 방문 중에 늦은 응답이 와도 그 화면의 버튼이 함께 꺼지는 것이 맞다.
+4. **스냅샷을 수정하거나 다시 받지 않는다.** 보상·선물 후 전시 GET을 추가하지 않는다. 전시 GET과 보상 POST 분리 계약을 유지하고, `VisitRewardAvailable`·`GiftState`는 방문 시작 시점 값으로 둔다.
+5. **`:140`의 알림은 재조회 결과를 반영한다.** `ReloadServer`가 실패를 알 수 있게 하고, 실패 시 "요청은 완료됐지만 목록을 갱신하지 못했어요" 형식으로 알린다. 변경 요청은 다시 보내지 않는다.
+6. **재조회 후 프로필을 코드로 다시 찾는다.** `FriendProfile`은 값 비교가 없고 `FriendsServerMapper`가 재조회 때 새 객체를 만들어서, `:227`의 `State.Friends.Contains(_visitor)`가 거짓이 되고 `VisitRetry`가 아무 표시 없이 무시된다. 재조회 성공 시 `_visitor`를 코드로 다시 잡고, 목록에서 사라졌으면 기존 객체로 표시만 유지한다. 재시도는 코드 기준으로 판정하고, 친구가 아니면 알림을 표시한다.
+7. **처리 중 입력을 조용히 버리지 않는다.** `:126`의 `_serverBusy` 반환 때문에 재조회 중 누른 선물·차단이 아무 반응 없이 사라진다. 이 경로는 방문을 유지하면서 처음 도달할 수 있게 되므로, 반환 전에 "이전 요청을 처리 중이에요."를 알린다. `_serverBusy`는 `RunSocialRequest`의 `finally`에서 풀리므로 버튼 `interactable`에 묶지 않는다. 마지막 `Render` 뒤에 풀려 버튼이 꺼진 채 남기 때문이다.
+8. **`VisitBack`은 POST를 취소하지 않는다.** 이미 보낸 변경 요청의 결과는 소셜 코루틴에서 끝까지 반영한다. `ConnectServer`의 취소와 세대 처리는 그대로 둔다.
 
 ## 5. 목표 구조
 
@@ -181,6 +217,12 @@ buildings[] : buildingId, prefab, scale, footOffset
 git checkout origin/art/dokkaebi-rig-animation -- Assets/Jamkkaebi/Art/Characters Assets/Jamkkaebi/Art/Characters.meta Assets/Jamkkaebi/Prefabs/Characters Assets/Jamkkaebi/Prefabs/Characters.meta
 ```
 
+`remote.origin.fetch`가 `main`만 받도록 설정된 클론에는 이 원격 참조가 없다. 먼저 아래 명령으로 해당 브랜치만 받는다.
+
+```bash
+git fetch origin refs/heads/art/dokkaebi-rig-animation:refs/remotes/origin/art/dokkaebi-rig-animation
+```
+
 - `Assets/Jamkkaebi/Art.meta`는 GUID가 main(`d2c746…`)과 다르므로(`ce4f58…`) **가져오지 않는다.**
 - `Scenes/Sandbox_Dokkaebi.unity`는 가져오지 않는다. 다른 파일이 이 씬에 의존하지 않는다.
 - 분기 시점이 2026-09-23으로 오래되었으므로, Unity에서 열어 참조가 살아 있는지 확인한다.
@@ -196,34 +238,36 @@ git checkout origin/art/dokkaebi-rig-animation -- Assets/Jamkkaebi/Art/Character
 | D2 | 건물 아트 | **아직 완성되지 않아 올라오지 않았다. 더미로 처리한다.** 홈과 같은 더미 전시대로 표시하고, 아트가 올라오면 카탈로그만 교체 |
 | D3 | 방문 화면 형태 | 전체 화면 전시관 + 위쪽 정보, 아래쪽 상세·보상·선물 HUD |
 | D4 | 방문 중 탭 이동 | **불가능.** 나가기 전까지 전시관과 소셜 기능(나가기, 친구 보상·선물, 차단, NPC 상호작용)만 사용. 시차 연출도 없음 |
-| D5 | 커밋 | **사용자가 전부 한 번에 커밋한다.** 도감 이름 변경을 포함해 어떤 변경도 커밋하지 않고, 새 브랜치도 만들지 않는다. 현재 브랜치 `fix/collection-server-names`의 작업 트리에서 이어 간다 |
+| D5 | 커밋 | **사용자가 요청할 때만 커밋한다.** 처음의 "전부 한 번에 커밋" 결정은 이전 작업을 PR #22로 먼저 올리면서 대체됐다. 구현은 `main` 기준의 별도 작업 브랜치에서 진행한다 |
 
 ## 8. 작업 단계
 
-커밋·푸시·PR·병합은 사용자가 요청할 때만 한다 (D5). 새 코드와 자산의 `.meta`를 함께 만든다. 미커밋 `AGENTS.md`, `Docs/npc-*.md` 3개는 건드리지 않는다.
+커밋·푸시·PR·병합은 사용자가 요청할 때만 한다 (D5). 새 코드와 자산의 `.meta`를 함께 만든다. 작업 트리에 이 계획과 무관한 미커밋 파일이 있으면 건드리지 않고 커밋에도 넣지 않는다.
 
 ### 0단계: 환경과 기준선
 
-1. `project-context/README.md`, `CURRENT-STATE.md`, `SESSION-LOG.md` 최신 항목, `jamkkaebi-client/AGENTS.md`, `Docs/csharp-convention.md`, `Docs/mobile-ui-scene-contract.md`를 읽는다.
-2. `git status`와 브랜치를 확인한다. 이름 변경 등 미커밋 변경이 그대로 있어야 한다.
-3. Unity 6000.3.23f1 경로를 찾는다. 작성 시점에 `C:\Program Files\Unity\Hub\Editor`에는 설치된 버전이 없었다. 실제 경로를 사용자에게 묻거나 Hub 설정 경로를 확인한다.
+1. 맥락 저장소의 `project-context/README.md`, `CURRENT-STATE.md`, `SESSION-LOG.md` 최신 항목과 클라이언트 `AGENTS.md`, `Docs/csharp-convention.md`, `Docs/mobile-ui-scene-contract.md`를 읽는다.
+2. `git status`와 브랜치를 확인한다. 기존 미커밋 변경을 보존한다.
+3. Unity 6000.3.23f1 경로를 찾는다. PC마다 다르다. `C:\Program Files\Unity\Hub\Editor`에 없을 수 있고, `D:\UnityEditors\6000.3.23f1\Editor\Unity.exe`에 설치된 PC도 있다. 2026-10-28에 그 PC에서 라이선스 오류(종료 코드 198)로 EditMode 전에 중단된 기록이 있으므로 라이선스 활성화 여부도 확인한다.
 4. **변경 전 기준선:** `Tools/VerifyIntegration.ps1 -EditorPath <Unity.exe>`를 실행하고 XML과 Player 로그까지 확인한다. 프로세스의 `JAMKKAEBI_SERVER_URL`은 비운다. 기존 실패는 이 작업의 실패와 구분해 기록한다.
 
 Unity 없이는 프리팹 생성과 화면 확인이 불가능하다. 1·2단계 코드까지만 작성하고 미검증임을 밝힌다.
 
-### 1단계: 모델·흐름 디버깅 (P1, P4~P10)
+### 1단계: 모델·흐름 디버깅 (P1, P4~P10, P13, P14)
 
-수정: `ExhibitionVisitScene`, `VisitObject`, `SnapshotPlacement`, `ServerExhibitionBackend`, `MockExhibitionBackend`, `FriendsPresenter`.
+수정: `ExhibitionVisitScene`, `VisitObject`, `SnapshotPlacement`, `ServerExhibitionBackend`, `MockExhibitionBackend`, `FriendsPreviewState`, `JamkkaebiApiClient`(응답 주입 지점), `FriendsPresenter`.
 
 - `isKnown` 주입, `Placeholder` 제거 (P4)
 - 시드 난수 방향, 객체별 점유 계산, 겹침 경고 (P5, P8)
 - 행 단위 파싱 실패 처리, `capturedAt` 형식 (P6, P9)
 - 모의 데이터를 서버 시드 기준으로 교체 (P10)
-- `_selectedObject` 초기값 (P7), 보상·선물 후 화면 유지 (P1)
+- `_selectedObject` 초기값 (P7)
+- 4.1절의 구현 규칙 전체: 보상·선물 후 화면 유지 (P1), 재조회 실패 처리 (P13), 차단 대상 비교 (P14), 프로필 재연결, 처리 중 알림
+- `JamkkaebiApiClient`의 응답 주입 지점 (10장)
 
-테스트: `ExhibitionVisitTests`, `ServerContractTests`에 추가·수정한다. 추가할 경우: 겹침 입력에서 이동 후에도 다른 객체 칸에 들어가지 않음, 한 행 누락 시 나머지 표시, 같은 시드의 이동 재현, 미등록 ID만 Unknown, Anchor 불변. `IntegratedVerification.cs:1151`의 "서버 객체 전부 Unknown" 기대값을 바꾼다.
+테스트: `ExhibitionVisitTests`, `ServerContractTests`에 추가·수정한다. 추가할 경우: 겹침 입력에서 이동 후에도 다른 객체 칸에 들어가지 않음, 한 행 누락 시 나머지 표시, 같은 시드의 이동 재현, 미등록 ID만 Unknown, Anchor 불변. `FriendsPreviewState`의 두 표시 메서드가 `ApplyServerSummary`로 덮이는지도 검사한다. `IntegratedVerification.cs:1151`의 "서버 객체 전부 Unknown" 기대값을 바꾼다. 4.1절의 경로 검사는 10장의 Player 검사로 추가한다.
 
-완료: EditMode 통과.
+완료: EditMode 통과. 경로 검사는 Player에서만 돌아가므로 `Tools/VerifyIntegration.ps1`까지 통과해야 P1, P13, P14를 완료로 보고한다.
 
 ### 2단계: `ExhibitionVisualCatalog`
 
@@ -246,7 +290,7 @@ Unity 없이는 프리팹 생성과 화면 확인이 불가능하다. 1·2단계
 **탭 잠금.** 콘텐츠가 호스트를 직접 참조하지 않도록 `MirrorSceneRoot`에 상태를 두고 호스트가 읽는다.
 
 - `MirrorSceneRoot`: `public bool NavigationLocked { get; private set; }`, `SetNavigationLocked(bool)`. 친구 씬 단독 실행에서도 안전하다.
-- `FriendExhibitionRebuilder`: `Visit`에서 잠그고 `Leave`에서 푼다. `ConnectServer`·차단·보상 실패 등 모든 이탈 경로가 `Leave`를 지나는지 확인한다.
+- `FriendExhibitionRebuilder`: `Visit`에서 잠그고 `Leave`에서 푼다. 4.1절 표의 종료 경로(`VisitBack`, 현재 소유자 차단 성공, 모의 차단, `ConnectServer`, `OnDestroy`)가 모두 `Leave`를 지나는지 확인한다. 보상·선물·차단 **실패**와 늦은 차단 응답은 종료 경로가 아니므로 잠금을 유지한다.
 - `TabHost.SelectTab`, `BeginSwipe`: 활성 탭이 잠겨 있으면 거부한다. `SelectTab`은 `IsBusy` 검사 **전에** 거부해 `pendingTab`에 쌓이지 않게 한다.
 - `TabHost.LateUpdate`: 잠금 상태가 바뀌면 하단 탭을 숨기고 `Layout`에서 `viewport.offsetMin`을 0으로 해 전시관을 전체 화면으로 쓴다. 나가면 복구한다.
 - 뷰포트가 바뀌면 `LateUpdate`가 모든 탭의 RT를 다시 만든다. 진입·이탈마다 한 번씩 발생하므로 끊김과, 일시정지된 작업대 미리보기를 확인한다. 문제가 크면 하단 탭을 숨기지 않고 비활성화만 한다.
@@ -284,7 +328,7 @@ Unity 없이는 프리팹 생성과 화면 확인이 불가능하다. 1·2단계
 
 ## 9. 함정
 
-- **탭 잠금이 풀리지 않으면 앱이 방문 화면에 갇힌다.** 잠금 해제를 `Leave` 한 곳에 모으고, 씬 재시작 시에는 새 루트가 잠기지 않은 상태로 시작한다. 기존 검증이 방문 중에 `SelectTab`을 호출하면 실패하므로 나간 뒤 호출하도록 고친다.
+- **탭 잠금이 풀리지 않으면 앱이 방문 화면에 갇힌다.** 반대로 실패를 이탈로 처리하면 재시도할 화면이 사라진다. 경로는 4.1절 표를 따른다. 잠금 해제를 `Leave` 한 곳에 모으고, 씬 재시작 시에는 새 루트가 잠기지 않은 상태로 시작한다. 기존 검증이 방문 중에 `SelectTab`을 호출하면 실패하므로 나간 뒤 호출하도록 고친다.
 - **`ExhibitionIntro`를 방문 스테이지에 넣지 않는다.** `_sessionShown`이 static이라 Complete 호출 시 내 홈의 최초 등장 연출이 생략된다. 같은 이유로 `ExhibitionIntro`를 요구하는 `ExhibitionView`도 쓰지 않는다.
 - `ExhibitionLayer.Apply`의 `introTime`이 작으면 투명하게 그려진다. 큰 값을 넘긴다.
 - `DokkaebiWanderer`와 `HousingLayout`을 재사용하지 않는다. 이동 예약 저장소가 한 마리 전제이고, 방문은 편집 모델이 필요 없다.
@@ -316,8 +360,30 @@ Unity 없이는 프리팹 생성과 화면 확인이 불가능하다. 1·2단계
 - 클릭으로 선택 변경
 - 방문 중 `host.SelectTab`과 스와이프로 탭이 바뀌지 않고, 하단 탭이 숨겨지며, 나간 뒤 대기 요청 없이 정상 복구됨
 - 로딩·오류 상태에서 `VisitBack` 동작, 재접속·차단 후 잠금 해제
-- 서버 모드에서 보상 후 `Page == "Visit"` 유지
 - 내 홈 배치 불변, 홈 등장 연출 상태 불변
+
+**4.1절 경로 검사 (응답 주입).** 실제 서버 없이 일반 `VerifyIntegration.ps1`에서 돌린다. 실패·재조회 실패·늦은 응답은 실제 서버로 재현하기 어렵기 때문이다.
+
+- 주입 방식: `JamkkaebiApiClient`의 `internal` 생성자로 `SendOnce` 대신 쓸 전달 함수를 받는다. `new JamkkaebiApiClient(baseUrl, token, transport)` 형태이고 공개 API와 기존 HTTP 경로는 바꾸지 않는다. 토큰 갱신 분기는 그대로 지난다. 테스트 전달 함수는 경로별 응답을 돌려주고 요청 수를 세며, 신호를 줄 때까지 응답을 붙잡을 수 있어야 한다.
+- 왜 이 방식인가: 로컬 `HttpListener`는 스레드와 포트가 끼어들어 응답 순서를 정하기 어렵고, 늦은 응답(P14)에는 순서 제어가 필요하다.
+- 배치: `IntegratedVerification`의 모의 검사 뒤, `VerifyServerFriends` 앞. `ConnectServer`로 서버 모드가 되면 모의로 돌아가지 않으므로 순서를 지킨다. 응답 JSON은 `FriendsServerMapper`와 `ParseSnapshot`이 요구하는 최소 필드로 코드 안에 둔다.
+
+| 시나리오 | 기대 결과 |
+| --- | --- |
+| 보상 POST 성공, 재조회 성공 | `Page == "Visit"`, `Scene` 같은 객체, 잠금 유지, `VisitReward` 비활성, 전시 GET 추가 없음 |
+| 선물 POST 성공, 재조회 성공 | 위와 같음, `VisitGift` 비활성 |
+| 보상 POST 실패 | `Page == "Visit"`, 잠금 유지, 오류 알림, `VisitReward` 활성, POST 1회 (자동 재시도 없음) |
+| 보상 POST 성공, 재조회 실패 (P13) | `Page == "Visit"`, `VisitReward` 비활성, 알림에 갱신 실패 표시, POST 1회 |
+| 선물 POST 성공, 재조회 실패 (P13) | `Page == "Visit"`, `VisitGift` 비활성, POST 1회 |
+| 재조회 중 선물·차단 입력 | 요청 수 증가 없음, 처리 중 알림 |
+| 차단 성공, 현재 소유자 대상 | `Page == "Friends"`, `Scene == null`, 잠금 해제 |
+| 차단 실패 | `Page == "Visit"`, 잠금 유지, 오류 알림 |
+| A 차단 POST 대기 → 뒤로 → B 방문 → 응답 도착 (P14) | B 방문 유지, `Scene` 소유자 B, 잠금 유지 |
+| A 차단 POST 대기 → 뒤로 → A 재방문 → 응답 도착 | 방문 종료, 잠금 해제 |
+| 재조회 뒤 GET 실패 상태에서 `VisitRetry` | 전시 GET이 다시 나감 (`_visitor` 재연결) |
+| 방문 중 `ConnectServer` | `Page == "Friends"`, 잠금 해제, 늦은 응답 알림 없음 |
+
+주입 검사의 통과를 실제 서버 검증으로 보고하지 않는다. 마지막의 `VerifyServerContract.ps1`에서 실제 HTTP로 보상 후 `Page == "Visit"` 유지를 별도 확인한다.
 
 사람이 볼 항목: `Friends_Visit.png`와 홈 캡처의 배경·상판 일치, 도깨비 크기, 긴 이름 HUD 줄바꿈. HTTP UnityTest 3개는 `JAMKKAEBI_CONTRACT_CONFIG`가 없으면 생략되므로 일반 EditMode 통과를 서버 검증으로 보고하지 않는다. Android, OAuth, 배포 서버는 범위 밖이며 검증했다고 표현하지 않는다.
 
