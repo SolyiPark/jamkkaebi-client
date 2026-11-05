@@ -13,13 +13,15 @@
 - `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionCatalogData.cs`: 확정 시트의 시대·유물 명칭과 순서를 바탕으로 고정 카탈로그를 생성한다. 설명·복원 이야기와 실제 아트는 임시 콘텐츠다.
 - `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionDemoData.cs`: 화면 검토를 위한 초기 수집 기록만 주입한다. 고정 카탈로그 정의와 더미 사용자 기록을 분리한다.
 
-현재 `CollectionPresenter.Awake()`는 `CollectionDemoData.CreateProgress(_catalog)`를 호출한다. 시작 상태는 유물 5/9종 복원 완료, 고려 건물 1개 해금이다. 삼국 금관·고려 3종·조선 옥새가 복원된 상태다. 금관·고려청자·옥새는 신규 상태이며 석불·나전칠기는 확인한 상태다. 재실행하면 이 샘플 상태로 초기화된다. 기록은 플레이 세션 메모리에만 존재한다.
+현재 `CollectionPresenter.Awake()`는 `CollectionDemoData.CreateProgress(_catalog)`를 호출한다. 시작 상태는 유물 5/9종 복원 완료, 고려 건물 1개 해금이다. 삼국 금관총 금관·고려 3종·조선 유서지보가 복원된 상태다. 금관총 금관·상감청자·유서지보는 신규 상태이며 논산 관촉사 석조미륵보살입상·나전칠기는 확인한 상태다. 재실행하면 이 샘플 상태로 초기화된다. 기록은 플레이 세션 메모리에만 존재한다.
 
 ## 확정 목록의 원본과 적용 범위
 
-시대와 유물 명칭의 원본은 [확정 Google Sheet의 시트1](https://docs.google.com/spreadsheets/d/1h2kPX9OrotI1mofpJxDIXg06z8RpFlT2e5LXNudL_rw/edit?gid=0)이다. `시트1!A2:C10`의 9개 항목을 원본 순서 그대로 사용한다. 시대 표시명은 **삼국·고려·조선**이고 각 시대의 유물은 아래 표에 나오는 순서다. `CollectionCatalogData.CreateCatalog()`가 이 목록을 생성하며, 런타임 화면은 저장된 `CollectionCatalog.asset`을 사용한다.
+시대와 유물의 구성·순서는 [확정 Google Sheet의 시트1](https://docs.google.com/spreadsheets/d/1h2kPX9OrotI1mofpJxDIXg06z8RpFlT2e5LXNudL_rw/edit?gid=0) `A2:C10`을 따른다. 시대 표시명은 **삼국·고려·조선**이고 각 시대의 유물은 아래 표에 나오는 순서다. `CollectionCatalogData.CreateCatalog()`가 이 목록을 생성하며, 런타임 화면은 저장된 `CollectionCatalog.asset`을 사용한다.
 
-같은 시트의 `D:I`는 아트 방향 후보다. 물음표·`X` 등 후보 상태를 포함하므로 해당 특성을 확정 정령 이름, 확정 도감 설명, 복원·보존 이야기로 해석하지 않는다. 정령 이름을 새로 정하지 않았으며 현재 표시는 `정령 이름 미정`이다. 유물 설명과 복원 이야기는 임시 초안임을 화면에 표시하고, 실제 자료와 아트가 준비되면 별도로 교체한다.
+2026년 11월 5일부터 유물·도깨비·건물 이름의 기준은 서버 `ContentSeedData`([`be72ae8`](https://github.com/SolyiPark/jamkkaebi-server/blob/be72ae8/src/main/java/com/example/jamkkaebi/relic/service/ContentSeedData.java))의 `realName`, `spiritDefaultName`, 건물 `name`이다. 클라이언트에 복사한 값이므로 서버 시드가 바뀌면 함께 갱신한다. 도깨비 이름은 주인이 짓기 전의 기본 이름이며 친구 전시 응답의 `spiritName`과 다를 수 있다. 화면의 "도깨비" 표기와 도깨비 이름은 확정 전 임시 내용이다. `SpiritName`, `_spiritName`, `SpiritIllustration` 같은 코드·직렬화 식별자는 씬·자산 참조를 지키기 위해 바꾸지 않았다.
+
+같은 시트의 `D:I`는 아트 방향 후보다. 물음표·`X` 등 후보 상태를 포함하므로 해당 특성을 확정 도감 설명, 복원·보존 이야기로 해석하지 않는다. 유물 설명과 복원 이야기는 임시 초안임을 화면에 표시하고, 실제 자료와 아트가 준비되면 별도로 교체한다.
 
 ## 데이터 자산 계약
 
@@ -28,21 +30,23 @@
 | 정의 | 저장 필드와 읽기 속성 |
 | --- | --- |
 | `CollectionEraDefinition` | ID, 이름, 표시용 시대 문구, 설명, 해금 건물 이름, 강조색, 선택적 `OverviewIllustration`, `ContextIllustration`, `BuildingIllustration`, `LockedBuildingIllustration`, `BackgroundIllustration` |
-| `CollectionRelicDefinition` | ID, 시대 ID, 유물 이름, 정령 이름, 유물 설명, 복원·보존 이야기 초안, 강조색, 선택적 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` |
+| `CollectionRelicDefinition` | ID, 시대 ID, 유물 이름, 도깨비 이름, 유물 설명, 복원·보존 이야기 초안, 강조색, 선택적 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` |
 
-고정 ID와 표시명은 아래와 같다. 표의 위에서 아래 순서는 원본 `A2:C10`과 같다. 이후 그림·설명 교체를 위해 ID를 변경하지 않는다.
+고정 ID와 표시명은 아래와 같다. 표의 위에서 아래 순서는 원본 `A2:C10`과 같다. 유물 ID는 이름과 별개이므로 이름이 바뀌어도, 이후 그림·설명을 교체해도 변경하지 않는다. 서버 번호는 이름을 맞춘 기준이며 코드에는 아직 이 대응이 없다.
 
-| 원본 행 | 시대 표시명 / ID | 유물 표시명 | 유물 ID |
-| --- | --- | --- | --- |
-| 2 | 삼국 / `samguk` | 금동여래입상 | `samguk-standing-buddha` |
-| 3 | 삼국 / `samguk` | 금동대향로 | `samguk-incense-burner` |
-| 4 | 삼국 / `samguk` | 금관 | `samguk-crown` |
-| 5 | 고려 / `goryeo` | 석불 | `goryeo-stone-buddha` |
-| 6 | 고려 / `goryeo` | 고려청자 | `goryeo-celadon` |
-| 7 | 고려 / `goryeo` | 나전칠기 | `goryeo-lacquerware` |
-| 8 | 조선 / `joseon` | 옥새 | `joseon-royal-seal` |
-| 9 | 조선 / `joseon` | 마패 | `joseon-horse-medallion` |
-| 10 | 조선 / `joseon` | 묘작도 | `joseon-cat-sparrow-painting` |
+| 원본 행 | 시대 표시명 / ID | 유물 표시명 | 도깨비 기본 이름 | 유물 ID | 서버 `relicId` |
+| --- | --- | --- | --- | --- | --- |
+| 2 | 삼국 / `samguk` | 금동연가7년명여래입상 | 불꽃걸음 | `samguk-standing-buddha` | 1 |
+| 3 | 삼국 / `samguk` | 금동대향로 | 향산이 | `samguk-incense-burner` | 2 |
+| 4 | 삼국 / `samguk` | 금관총 금관 | 금빛숲 | `samguk-crown` | 3 |
+| 5 | 고려 / `goryeo` | 논산 관촉사 석조미륵보살입상 | 미륵이 | `goryeo-stone-buddha` | 4 |
+| 6 | 고려 / `goryeo` | 상감청자 | 구름결 | `goryeo-celadon` | 5 |
+| 7 | 고려 / `goryeo` | 나전칠기 | 밤바다 | `goryeo-lacquerware` | 6 |
+| 8 | 조선 / `joseon` | 유서지보 | 붉은당부 | `joseon-royal-seal` | 7 |
+| 9 | 조선 / `joseon` | 마패 | 말발굽 | `joseon-horse-medallion` | 8 |
+| 10 | 조선 / `joseon` | 묘작도 | 묘작이 | `joseon-cat-sparrow-painting` | 9 |
+
+시대별 건물 이름은 삼국 석굴암(서버 `buildingId` 1), 고려 경천사지 십층석탑(2), 조선 경복궁(3)이다.
 
 초기 샘플의 `samguk-pottery`, `goryeo-bronze-mirror`, `goryeo-bell`, `joseon-white-porcelain`, `joseon-brush`, `joseon-sundial`은 폐기했다. 영속 저장이 아직 연결되지 않았으므로 이전 ID에서 새 ID로의 별칭이나 저장 마이그레이션은 만들지 않는다. 향후 작업대는 위 확정 목록의 종류 ID를 사용한다.
 
@@ -68,7 +72,7 @@ Unity 자산과 스크립트의 `.meta`를 함께 유지하고, 자산 이동·�
 | 복원한 유물 카드의 그림 | 유물 `Thumbnail` → 유물 `Illustration` → 기존 유물 벡터 그림 |
 | 미복원 유물 카드의 그림 | 유물 `LockedIllustration` → 공통 `LockIllustration` → 기존 잠금 벡터 그림 |
 | 유물 상세의 유물 그림 | 유물 `Illustration` → 기존 유물 벡터 그림 |
-| 유물 상세의 정령 그림 | 유물 `SpiritIllustration` → 기존 정령 벡터 그림 |
+| 유물 상세의 도깨비 그림 | 유물 `SpiritIllustration` → 기존 도깨비 벡터 그림 |
 | 시대 목록의 전체 배경 | 공통 `PageBackground` → 기존 종이색 배경 |
 | 시대 상세의 전체 배경 | 시대 `BackgroundIllustration` → 공통 `PageBackground` → 기존 종이색 배경 |
 | 유물 상세의 전체 배경 | 유물 `BackgroundIllustration` → 소속 시대 `BackgroundIllustration` → 공통 `PageBackground` → 기존 종이색 배경 |
@@ -83,7 +87,7 @@ Unity 자산과 스크립트의 `.meta`를 함께 유지하고, 자산 이동·�
 | `LockedRelicCardBackground` | 미복원 유물 카드 / 기존 잠금 카드색 |
 | `BuildingCardBackground` | 시대 상세의 건물 카드 / 기존 카드색 |
 | `RelicPlateBackground` | 유물 상세의 큰 그림 패널 / 기존 패널색 |
-| `SpiritPlateBackground` | 유물 상세의 정령 그림 패널 / 기존 종이색 패널 |
+| `SpiritPlateBackground` | 유물 상세의 도깨비 그림 패널 / 기존 종이색 패널 |
 | `NewBadgeBackground` | 신규 배지의 바탕 / 기존 배지색 |
 | `NewBadgeIcon` | 신규 배지 안의 그림 / `N` 텍스트 |
 | `BackButtonBackground` | 뒤로가기 버튼의 바탕 / 기존 버튼색 |
@@ -103,7 +107,7 @@ Unity 자산과 스크립트의 `.meta`를 함께 유지하고, 자산 이동·�
 
 Unity 메뉴 **`Prototype > Collection > Sync Catalog From Confirmed Data`** 또는 batch mode의 **`CollectionSetup.SyncCatalog`**로 `CollectionCatalogData.CreateCatalog()`의 정의를 `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`에 반영한다. 이 명령은 도감 씬을 이관하거나 재구성하지 않는다. `CollectionSetup.Apply()`는 초기 씬 이관 전용이므로 목록 갱신에 재실행하지 않는다.
 
-기존 카탈로그가 있으면 같은 자산을 갱신해 `.meta` GUID와 씬의 카탈로그 참조를 유지한다. 같은 시대 ID는 기존 `OverviewIllustration`, `ContextIllustration`, `BuildingIllustration`, `LockedBuildingIllustration`, `BackgroundIllustration` 참조를 보존한다. 같은 유물 ID는 기존 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` 참조를 보존한다. 공통 `CollectionAppearance.asset`은 카탈로그 동기화 대상이 아니다. 시대·유물 순서와 이름, 정령 이름 미정 표시, 임시 설명·복원 이야기 등 나머지 정의는 `CollectionCatalogData`의 값으로 교체한다. 삭제된 유물 ID의 아트를 새 ID로 옮기지는 않는다.
+기존 카탈로그가 있으면 같은 자산을 갱신해 `.meta` GUID와 씬의 카탈로그 참조를 유지한다. 같은 시대 ID는 기존 `OverviewIllustration`, `ContextIllustration`, `BuildingIllustration`, `LockedBuildingIllustration`, `BackgroundIllustration` 참조를 보존한다. 같은 유물 ID는 기존 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` 참조를 보존한다. 공통 `CollectionAppearance.asset`은 카탈로그 동기화 대상이 아니다. 시대·유물 순서와 이름, 도깨비 기본 이름, 건물 이름, 임시 설명·복원 이야기 등 나머지 정의는 `CollectionCatalogData`의 값으로 교체한다. 삭제된 유물 ID의 아트를 새 ID로 옮기지는 않는다.
 
 읽기 모델 사용 중에는 카탈로그를 재구성하지 않는 계약에 따라 Play를 종료한 상태에서 실행한다. batch mode 예시는 다음과 같다. Unity 경로는 실제 설치 위치에 맞춘다.
 
@@ -171,7 +175,7 @@ bool registered = sharedProgress.RegisterRestorationCompleted(kindId);
 
 현재 모델에는 로컬 JSON, 서버 동기화, 저장 복구 API가 없다. 저장된 완료 기록을 단순히 `RegisterRestorationCompleted`로 재생하면 모두 신규가 되므로, 실제 저장 연동 전에는 **복원 완료 종류와 확인 여부를 함께 복구하는 API 및 신규 정책**을 설계해야 한다. 저장 기록을 읽는 것과 새 복원 완료 이벤트를 별도로 다룬다.
 
-건물 해금 표시만으로 건물 인스턴스 생성·보유 수량 증가·전시관 배치를 실행하지 않는다. `HousingItemDefinition`, 전시관 배치 선택, 정령 인벤토리와의 연결은 별도 후속 작업이다. 도감 상세는 열람 역할을 유지한다.
+건물 해금 표시만으로 건물 인스턴스 생성·보유 수량 증가·전시관 배치를 실행하지 않는다. `HousingItemDefinition`, 전시관 배치 선택, 도깨비 인벤토리와의 연결은 별도 후속 작업이다. 도감 상세는 열람 역할을 유지한다.
 
 ## 검증 대상
 

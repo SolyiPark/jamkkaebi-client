@@ -167,7 +167,7 @@ namespace Jamkkaebi.Scripts.UI.Collection
             float summaryY = 145 + _data.Catalog.Eras.Count * 295;
             _content.sizeDelta = new Vector2(0, summaryY + 290);
             Label("Eyebrow", _content, "시대의 조각을 모으다", 32, Ink, 0, 0, ContentWidth, 54);
-            Label("Introduction", _content, "복원을 마친 유물과 정령을 만나보세요.", 26, Muted, 0, 57, ContentWidth, 44);
+            Label("Introduction", _content, "복원을 마친 유물과 도깨비를 만나보세요.", 26, Muted, 0, 57, ContentWidth, 44);
             for (int i = 0; i < _data.Catalog.Eras.Count; i++)
             {
                 var era = _data.Catalog.Eras[i];
@@ -255,10 +255,10 @@ namespace Jamkkaebi.Scripts.UI.Collection
             Artwork("Context Emblem", _content, KindForEra(era.Id), era.Accent, 655, contextY + 100, 270, 220,
                 FirstSprite(era.ContextIllustration, era.OverviewIllustration));
             Label("Era Context", _content, era.Description, 28, Muted, 0, contextY + 80, 605, 315, TextAnchor.UpperLeft);
-            Label("Sample Notice", _content, "미리보기 · 정령·건물 이름과 설명, 그림은 임시 콘텐츠입니다.", 22, Muted, 0, contextY + 470, ContentWidth, 70);
+            Label("Sample Notice", _content, "미리보기 · 도깨비·건물 이름과 설명, 그림은 임시 콘텐츠입니다.", 22, Muted, 0, contextY + 470, ContentWidth, 70);
         }
 
-        /// <summary>선택 유물과 정령의 그림, 설명 및 발굴과 보존 기록을 구성합니다.</summary>
+        /// <summary>선택 유물과 도깨비의 그림, 설명 및 발굴과 보존 기록을 구성합니다.</summary>
         private void BuildRelic()
         {
             var relic = _data.Catalog.FindRelic(_data.SelectedRelicId);
@@ -266,7 +266,8 @@ namespace Jamkkaebi.Scripts.UI.Collection
             _content.sizeDelta = new Vector2(0, 2020);
             Label("Era Tag", _content, era.Name + "  /  복원 완료", 25, era.Accent, 0, 0, ContentWidth, 45);
             Label("Relic Title", _content, relic.Name, 56, Ink, 0, 52, ContentWidth, 92);
-            Label("Spirit Title", _content, "함께 깨어난 정령 · " + relic.SpiritName, 30, Muted, 0, 146, ContentWidth, 60);
+            // 임시: 화면의 "도깨비" 표기는 확정 전 임시 내용입니다.
+            Label("Spirit Title", _content, "함께 깨어난 도깨비 · " + relic.SpiritName, 30, Muted, 0, 146, ContentWidth, 60);
             var plate = Box("Illustration Plate", _content, Color.Lerp(Paper, era.Accent, .10f), 0, 248, ContentWidth, 555,
                 _data.Appearance ? _data.Appearance.RelicPlateBackground : null);
             Label("Plate Index", plate.transform, "RESTORED  /  " + era.Name, 23, era.Accent, 32, 25, 650, 42);
@@ -275,14 +276,14 @@ namespace Jamkkaebi.Scripts.UI.Collection
                 _data.Appearance ? _data.Appearance.SpiritPlateBackground : null);
             Artwork("Spirit Illustration", spiritPlate.transform, CollectionArtworkKind.Spirit, era.Accent, 38, 12, 165, 141, relic.SpiritIllustration);
             Label("Spirit Caption", spiritPlate.transform, relic.SpiritName, 23, Ink, 8, 150, 224, 45, TextAnchor.MiddleCenter);
-            Label("Illustration Caption", plate.transform, relic.Illustration ? "유물과 정령의 기록" : "유물 · 정령 임시 일러스트", 22, Muted, 32, 481, 650, 42);
+            Label("Illustration Caption", plate.transform, relic.Illustration ? "유물과 도깨비의 기록" : "유물 · 도깨비 임시 일러스트", 22, Muted, 32, 481, 650, 42);
             Label("Description Heading", _content, "유물이 품은 이야기", 36, Ink, 0, 873, ContentWidth, 64);
             Label("Description", _content, relic.Description, 29, Ink, 0, 950, ContentWidth, 335, TextAnchor.UpperLeft);
             Box("Description Rule", _content, new Color(.79f, .79f, .72f), 0, 1310, ContentWidth, 2,
                 _data.Appearance ? _data.Appearance.Divider : null);
             Label("Conservation Heading", _content, "발굴과 보존의 기록", 34, Ink, 0, 1360, ContentWidth, 62);
             Label("Conservation", _content, relic.ConservationNote, 28, Muted, 0, 1445, ContentWidth, 330, TextAnchor.UpperLeft);
-            Label("Draft Notice", _content, "미리보기 · 정령·건물 이름과 설명, 그림은 임시 콘텐츠입니다.\n실제 유물 자료와 정령 아트는 추후 교체됩니다.", 22,
+            Label("Draft Notice", _content, "미리보기 · 도깨비·건물 이름과 설명, 그림은 임시 콘텐츠입니다.\n실제 유물 자료와 도깨비 아트는 추후 교체됩니다.", 22,
                 Muted, 0, 1865, ContentWidth, 90);
         }
 
