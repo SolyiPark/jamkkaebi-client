@@ -45,7 +45,12 @@ class UnityContractHarnessTest {
         @Bean @Primary MutableClock testClock() { return new MutableClock(LocalDateTime.of(2026,9,12,10,0)); }
         @Bean FakeExhibitionViewReader fakeView() { return new FakeExhibitionViewReader(); }
         @Bean @Primary ExhibitionViewReader contractView(FakeExhibitionViewReader fake, ExhibitionViewProvider real) {
-            return userId -> mockOwners.contains(userId) ? fake.readPublicView(userId) : real.readPublicView(userId);
+            return new ExhibitionViewReader() {
+                @Override public ExhibitionView readPublicView(Long userId) {
+                    return mockOwners.contains(userId) ? fake.readPublicView(userId) : real.readPublicView(userId);
+                }
+                @Override public ExhibitionView emptyView() { return real.emptyView(); }
+            };
         }
     }
     @LocalServerPort int port;

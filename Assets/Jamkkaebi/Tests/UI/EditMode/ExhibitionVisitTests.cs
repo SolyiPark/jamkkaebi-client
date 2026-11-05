@@ -107,5 +107,70 @@ namespace Jamkkaebi.Tests.UI
             var again = new ExhibitionVisitScene(snapshot);
             CollectionAssert.AreEqual(saved, again.Objects.Select(o => o.Cell));
         }
+
+        /// <summary>지원 여부는 객체 ID의 크기나 서버 모드가 아니라 주입된 카탈로그 조회 결과를 따릅니다.</summary>
+        [Test]
+        public void KnownObjectsFollowInjectedCatalogIncludingHighAndUnregisteredIds()
+        {
+            var snapshot = new ExhibitionSnapshot("A", new[]
+            {
+                new SnapshotPlacement(false, 8, "말발굽", new Vector2Int(1, 1)),
+                new SnapshotPlacement(false, 1, "미등록", new Vector2Int(2, 2)),
+                new SnapshotPlacement(true, 99, "등록 건물", new Vector2Int(3, 3))
+            });
+            var scene = new ExhibitionVisitScene(snapshot, (building, id) => building ? id == 99 : id == 8);
+            Assert.IsFalse(scene.Objects[0].Unknown);
+            Assert.IsTrue(scene.Objects[1].Unknown);
+            Assert.IsFalse(scene.Objects[2].Unknown);
+            Assert.AreEqual(1, scene.Warnings.Count);
+        }
+
+        /// <summary>원본 겹침을 유지해 경고하되 한 객체가 이동해도 다른 객체의 시작 셀 점유를 잃지 않습니다.</summary>
+        [Test]
+        public void OverlappingObjectsKeepOtherOccupantsAndReserveEveryStartCell()
+        {
+            var rows = new[]
+            {
+                new SnapshotPlacement(true, 1, "건물", new Vector2Int(3, 3)),
+                new SnapshotPlacement(false, 1, "겹친 도깨비", new Vector2Int(3, 3)),
+                new SnapshotPlacement(false, 2, "인접 도깨비", new Vector2Int(3, 2)),
+                new SnapshotPlacement(false, 3, "다른 도깨비", new Vector2Int(2, 3))
+            };
+            var snapshot = new ExhibitionSnapshot("A", rows);
+            var scene = new ExhibitionVisitScene(snapshot, seed: 71);
+            Assert.AreEqual(4, scene.Objects.Count);
+            Assert.AreEqual(1, scene.Warnings.Count);
+            for (int step = 0; step < 100; step++)
+            {
+                var start = scene.Objects.Select(obj => obj.Cell).ToArray();
+                scene.Walk(step);
+                for (int i = 0; i < scene.Objects.Count; i++)
+                {
+                    var obj = scene.Objects[i];
+                    if (obj.Cell == start[i]) continue;
+                    Assert.IsFalse(start.Where((cell, index) => index != i).Contains(obj.Cell), "보간 중 다른 객체의 시작 셀로 진입했습니다.");
+                    Assert.AreEqual(1, scene.Objects.Count(other => other.Cell == obj.Cell));
+                }
+            }
+            CollectionAssert.AreEqual(rows.Select(row => row.Anchor), snapshot.Placements.Select(row => row.Anchor));
+        }
+
+        /// <summary>같은 시드·걸음은 동일한 이동을 만들고 시드가 바뀌면 경로도 달라집니다.</summary>
+        [Test]
+        public void WalkingIsReproducibleForTheSameSeed()
+        {
+            var snapshot = MockExhibitionBackend.CreateSnapshot("A", ExhibitionPreviewScenario.Normal);
+            var first = new ExhibitionVisitScene(snapshot, seed: 12);
+            var same = new ExhibitionVisitScene(snapshot, seed: 12);
+            var different = new ExhibitionVisitScene(snapshot, seed: 99);
+            bool diverged = false;
+            for (int step = 0; step < 20; step++)
+            {
+                first.Walk(step); same.Walk(step); different.Walk(step);
+                CollectionAssert.AreEqual(first.Objects.Select(obj => obj.Cell), same.Objects.Select(obj => obj.Cell));
+                diverged |= !first.Objects.Select(obj => obj.Cell).SequenceEqual(different.Objects.Select(obj => obj.Cell));
+            }
+            Assert.IsTrue(diverged);
+        }
     }
 }

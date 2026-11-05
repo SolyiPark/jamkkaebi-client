@@ -12,15 +12,18 @@ namespace Jamkkaebi.Scripts.UI.Friends
         public int Width { get; }
         public int Height { get; }
         public IReadOnlyList<SnapshotPlacement> Placements { get; }
+        public IReadOnlyList<string> ParseWarnings { get; }
         public string GiftState { get; }
         public bool VisitRewardAvailable { get; }
         /// <summary>소유자·배치 목록·격자·캡처 시각과 일일 행동 상태를 보관합니다.</summary>
         public ExhibitionSnapshot(string code, IEnumerable<SnapshotPlacement> placements, bool hasGrid = true,
-            int width = 7, int height = 7, string capturedAt = "2026-10-08 15:00", string giftState = "AVAILABLE", bool visitRewardAvailable = true)
+            int width = 7, int height = 7, string capturedAt = "2026-10-08 15:00", string giftState = "AVAILABLE", bool visitRewardAvailable = true,
+            IEnumerable<string> parseWarnings = null)
         {
             OwnerCode = code; CapturedAt = capturedAt; HasGrid = hasGrid; Width = width; Height = height;
             GiftState = giftState; VisitRewardAvailable = visitRewardAvailable;
             Placements = System.Array.AsReadOnly(placements.ToArray());
+            ParseWarnings = System.Array.AsReadOnly((parseWarnings ?? System.Array.Empty<string>()).ToArray());
         }
     }
 }

@@ -12,6 +12,9 @@ namespace Jamkkaebi.Scripts.UI.Shell
         public GraphicRaycaster[] uiRaycasters;
         public int RenderLayer { get; private set; }
         public bool IsPaused => !gameObject.activeSelf;
+        public bool NavigationLocked { get; private set; }
+        /// <summary>콘텐츠의 전용 화면이 열려 있는 동안 공통 탭 이동을 잠급니다.</summary>
+        public void SetNavigationLocked(bool locked) => NavigationLocked = locked;
         public void Configure(int layer, RenderTexture target)
         {
             RenderLayer = layer;

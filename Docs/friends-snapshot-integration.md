@@ -76,3 +76,15 @@
 | 조회 실패 | [Friends_Snapshot_Error.png](../Logs/Integration/Player-Snapshot-Final-20261011-171219/Friends_Snapshot_Error.png) |
 
 로그와 캡처는 Git 제외 경로의 로컬 산출물이다. 최초 프론트엔드 검증은 [이전 검증 기록](friends-validation.md)에 별도로 남아 있다. 작업은 기존 `feat/friends-frontend` 브랜치에서 이어 진행했고, 작업 전 변경과 `AGENTS.md` 수정은 보존했다.
+
+## 2026-11-05 방문 재구축기와 월드 표시로 전환
+
+위의 모의 방문 도입 기록은 당시 구현이다. 현재 방문은 `FriendExhibitionRebuilder`가 조회 코루틴·`ExhibitionVisitSession`·표현물·선택·이동의 수명을 소유하며, `FriendsPresenter`는 backend 선택과 HUD·소셜 명령·알림을 담당한다. 흰 스크롤 위 버튼 배치를 `FriendExhibitionStage.prefab`의 홈 배경 10장과 공용 7×7 상판으로 대체했다. 깊이는 UI 형제 순서 대신 `ExhibitionDepth`의 바닥 접점 정렬을 사용한다.
+
+서버 ID 대응은 `ExhibitionVisualCatalog.asset`으로 통일했다. 유물 1~9·건물 1~3을 등록했으며 A2(relicId 2)·C2(relicId 8)는 실제 리깅 프리팹, 나머지는 공용 더미를 사용한다. 등록됐으나 프리팹이 없는 종류와 미등록 ID를 구분한다. 모의 데이터에도 서버 시드 이름과 2·8번을 반영했다. 객체별 점유를 계산해 겹친 입력에서 다른 객체의 칸을 비우지 않으며, 잘못된 행은 경고와 함께 제외한다. 범위 밖 좌표를 임의 보정하지 않는다.
+
+방문 중 하단 탭을 숨기고 버튼·스와이프 이동을 막는다. 로딩·오류 때도 나가기를 제공하며, 나갈 때 잠금과 카메라를 복구한다. RT 좌표를 다시 변환하지 않고 앞쪽 객체를 선택하며, 이동은 .85초 보간과 .7초 대기를 사용한다. 선택은 `ObjectSelected` 이벤트로 공개하지만 NPC 상호작용은 아직 연결하지 않았다.
+
+같은 친구의 재조회는 기존 장면·표현물을 유지하고 성공 시 교체한다. 실패하면 이전 전시를 남기며 다른 친구로 전환하거나 나가면 제거한다. 고정 `Anchor`와 방문 중 `Cell`은 분리하고 내 홈·서버 원본을 수정하지 않는다. 생성 요청 세대·방문 여부·이동 상태는 재구축기 안에 있으며 별도 외부 컨트롤러는 추가하지 않았다.
+
+모의 최종 Windows 통합 실행은 EditMode 244개 통과·HTTP 3개 생략, Player **355개 통과**·GPU 종료 오류 패턴 0·오류 0이었다(`Logs/Integration/Player-20261105-184836/`). 480×1040·768×1024의 Idle·Walk·오류 캡처를 직접 검토해 아트 모양과 버튼 가림 해소를 확인했다. 원본 PSB 일부 bone weight 정규화 임포트 경고는 남아 있으며 리깅을 임의 변경하지 않았다. 실제 HTTP 최종 실행도 서버 `be72ae8`·Java 21.0.10에서 EditMode 247개 통과·생략 0, Player 376개 통과·종료 코드 0, GPU 종료 경고 3패턴·Exception 0으로 완료했다(`Logs/ServerContract/Run-20261105-185155/`). 보상·선물 POST 후 같은 장면 유지·탭 잠금·중복 버튼 비활성을 확인했다. Android·OAuth·운영 서버는 미검증이다. 최종 결과는 [재구축기 계획의 구현 기록](friends-exhibition-rebuilder-plan.md#13-2026-11-05-구현-기록)을 확인한다.

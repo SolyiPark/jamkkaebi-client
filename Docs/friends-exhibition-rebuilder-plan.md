@@ -1,8 +1,8 @@
 # 친구 전시관 재구축기 개선 계획
 
-작성일: 2026-11-05 (같은 날 사용자 결정 반영, 방문 종료 경로 보완). 상태: **계획만 작성, 구현 시작 전**. 이 문서만 읽고 이전 대화 없이 작업을 시작할 수 있도록 썼다.
+작성일: 2026-11-05 (같은 날 사용자 결정 반영, 방문 종료 경로 보완 및 구현). 상태: **1~6단계 구현 및 모의·실제 HTTP 최종 검증 완료**. 아래의 원래 계획과 마지막 구현 기록을 함께 확인한다.
 
-기준: 클라이언트 `main` `c5cbe57`(PR #22), 서버 `be72ae8`. 아래 내용은 코드와 자산을 읽어 확인했으며 **Unity에서 실행해 본 결과가 아니다**. 줄 번호는 작성 시점 값이므로 구현 전에 다시 확인한다.
+계획 기준: 클라이언트 `main` `c5cbe57`(PR #22), 서버 `be72ae8`. 계획 당시에는 코드·자산 정적 분석만 수행했다. 구현은 `25fc7b1`에서 분기한 `feat/friend-exhibition-rebuilder`에서 진행했으며, 실행 결과는 아래 13장의 날짜별 기록으로 구분한다. 본문의 줄 번호와 "현재 구조"는 계획 작성 당시 값이다.
 
 ## 1. 목표
 
@@ -400,3 +400,33 @@ Unity 없이는 프리팹 생성과 화면 확인이 불가능하다. 1·2단계
 ```text
 Docs/friends-exhibition-rebuilder-plan.md를 읽고 0단계부터 진행해 줘.
 ```
+
+## 13. 2026-11-05 구현 기록
+
+사용자가 후속 계획의 1~5번 전체 구현과 단계별 디버깅을 요청했다. 후속 계획의 1~5번은 이 문서의 1~6단계(흐름·모델, 카탈로그, 스테이지·HUD·입력, 아트 연결)와 대응한다. 작업 브랜치는 `feat/friend-exhibition-rebuilder`이며, 커밋·푸시·PR은 수행하지 않았다. 기존 설정·문서 변경과 미추적 산출물을 보존했다.
+
+| 범위 | 구현 상태 |
+| --- | --- |
+| 1단계 흐름·모델 | 보상·선물 후 방문 유지, POST 성공 표시 보존, 갱신 실패 알림 병기, 차단 대상 코드 비교, 재시도 프로필 재연결, 처리 중 알림. 행별 파싱·시각 표시, 객체별 점유·겹침 경고, 재현 가능한 이동, 서버 시드 기준 모의 데이터 반영 |
+| 2단계 카탈로그 | `ExhibitionVisualCatalog.asset`에 유물 1~9·건물 1~3 등록. 미등록 ID만 Unknown. 프리팹 부재는 더미로 표시. 중복·유효하지 않은 크기·터치 영역 거부 |
+| 3단계 스테이지 | `FriendExhibitionStage.prefab`과 Friends 씬 참조 구성. `FriendExhibitionRebuilder`가 조회·세션·표현·이동·선택 수명을 소유. 배경 10장·공용 격자·바닥 접점 정렬 재사용 |
+| 4단계 HUD·탭 잠금 | 전체 화면 방문 HUD, 로딩·오류 중 나가기, 방문 중 하단 탭 숨김 및 버튼·스와이프 전환 거부. 종료 시 카메라·입력·탭 복구 |
+| 5단계 입력·이동 | 이미 변환된 RT 좌표로 객체 선택. 앞쪽 객체 우선 선택과 `ObjectSelected` 이벤트 제공. .85초 이동·.7초 대기, Animator의 `IsMoving` 갱신 |
+| 6단계 실제 아트 | 아트 브랜치에서 Characters 경로만 가져와 A2→relicId 2, C2→relicId 8 연결. 원본 피벗·크기는 유지하고 카탈로그에서 폭 약 .3과 바닥 접점을 보정. 건물 및 나머지 종류는 더미 유지 |
+
+### 계획과 실제 구현의 차이
+
+- 같은 친구를 재조회할 때는 기존 장면·표현물을 유지한다. 조회 성공 시 새 표현으로 교체하고, 실패·잘못된 응답에서는 기존 장면을 남긴다. 다른 친구로 전환하면 이전 표현물을 즉시 제거한다. 재조회 중 신규 이동 시작·선택은 제한한다.
+- 요청 세대·방문 여부·이동 상태는 별도 외부 컨트롤러를 추가하지 않고 `FriendExhibitionRebuilder` 내부에서 소유한다. 모델의 `ExhibitionVisitSession` 검사와 생성 요청 세대 검사를 함께 유지한다.
+- `ExhibitionArtworkSetup`으로 홈·방문 배경의 정렬·합성 설정을 공유했다. 홈 씬을 다시 생성하지 않았다.
+- 기존 이관 명령 대신 새 일회성 `FriendsSetup.ApplyVisitStage`를 실행했다. 일반 검증은 재생성 없이 `FriendsSetup.ValidateVisitStage`를 사용한다.
+
+### 실행 결과와 남은 확인
+
+- `FriendsSetup.ApplyVisitStage`: 종료 코드 0. 증거 `Logs/VisitStageSetup.log`.
+- `FriendsSetup.ValidateVisitStage`: 종료 코드 0. 방문 참조 검사와 `ExhibitionChecks.Run`, `ReviewRegressionChecks.Run` 실행.
+- 첫 통합 실행은 EditMode 244개 통과·HTTP 3개 생략, Windows Development Player 341개 통과였다. 후속 디버깅을 포함한 모의 최종 재실행은 EditMode 244개 통과·HTTP 3개 생략, Player **355개 통과**, 최종 Player 로그 GPU 종료 오류 패턴 0·오류 0이다. 증거 `Logs/Integration/Player-20261105-184836/`와 `Logs/Integration/EditMode.xml`.
+- 원본 PSB 일부 눈·입·장식에 bone weight 합계/정규화 임포트 경고가 있다. 원본 리깅을 임의로 재작성하지 않았다. 480×1040·768×1024의 Idle·Walk·오류 캡처를 직접 검토해 아트 모양과 버튼 가림 해소를 확인했다. 임포트 경고 자체의 수정은 별도 리깅 작업이다.
+- 실제 HTTP 최종 검증: 서버 `main` `be72ae8`·Java 21.0.10에서 `VerifyServerContract.ps1` 종료 코드 0. EditMode **247개 통과·생략 0**, `IntegratedSetup.Build` 종료 코드 0, Player **376개 통과·종료 코드 0** 및 `ALL CHECKS PASSED`. GPU 종료 경고 3패턴과 Exception 모두 0. 증거 `Logs/ServerContract/Run-20261105-185155/`의 XML·build.log·spring.log(`BUILD SUCCESSFUL`)·Player/verification.txt·Player/player.log. 실제 보상·선물 POST 후 같은 방문 장면 유지·탭 잠금·중복 버튼 비활성도 검사했다.
+- 서버 첫 시도는 옛 20×20을 고정한 배치 HTTP 테스트와 현 서버에서 달라진 `ExhibitionViewReader.emptyView` 실행기 때문에 실패했다. 클라이언트 저장소의 검증 소스만 현재 7×7·서버 인터페이스에 맞게 최소 수정한 뒤 위 최종 실행을 통과했다. 서버 코드는 수정하지 않았다. 임시 harness·contract-session·stop 파일 정리, 서버 체크아웃의 깨끗한 Git 상태, 잔류 Unity·Player 프로세스 없음을 확인했다.
+- 응답 주입 검사·모의 통합 검사와 실제 HTTP 결과는 별도로 기록했다. Android·OAuth 제공자·운영 배포 서버는 미검증 범위다.
