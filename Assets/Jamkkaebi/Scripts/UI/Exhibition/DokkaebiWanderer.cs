@@ -13,6 +13,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private Vector2Int _to;
         private float _progress;
         private float _idle;
+        private ExhibitionBehaviorPolicy _policy;
         public Vector2Int CurrentCell => _from;
         public Vector2Int PlacementCell { get; private set; }
         public Vector2Int TargetCell => _to;
@@ -21,8 +22,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             { Vector2Int.right, Vector2Int.up, Vector2Int.left, Vector2Int.down };
 
         /// <summary>이동에 사용할 하우징·표면과 저장 기준점을 지정하고 시작 셀을 예약합니다.</summary>
-        public void Configure(HousingLayout layout, ExhibitionSurface surface, Vector2Int cell)
+        public void Configure(HousingLayout layout, ExhibitionSurface surface, Vector2Int cell, ExhibitionBehaviorPolicy policy = null)
         {
+            _policy = policy;
             _layout = layout; _surface = surface; _from = _to = cell;
             PlacementCell = cell;
             _layout.TryReserveTraversal(cell, cell);
@@ -32,7 +34,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         /// <summary>인접한 빈 셀을 예약해 걷기 애니메이션을 진행하며 저장 기준점은 변경하지 않습니다.</summary>
         private void Update()
         {
-            if (_layout == null) return;
+            if (_layout == null || (_policy && !_policy.EnableAmbientMovement)) return;
             if (_from == _to)
             {
                 _idle -= Time.deltaTime;

@@ -23,7 +23,7 @@ public static class FriendsSetup
             rebuilder.StageActive || rebuilder.Surface.Grid.Size != new Vector2Int(7, 7))
             throw new InvalidOperationException("방문 스테이지의 초기 상태·격자·표시 연결이 올바르지 않습니다.");
         var data = new SerializedObject(rebuilder);
-        foreach (string field in new[] { "_root", "_stage", "_surface", "_content", "_catalog", "_material" })
+        foreach (string field in new[] { "_root", "_stage", "_surface", "_content", "_catalog", "_material", "_policy", "_cameraController", "_selectionController" })
             if (!data.FindProperty(field).objectReferenceValue) throw new InvalidOperationException("방문 참조 누락: " + field);
         if (root.GetComponentsInChildren<ExhibitionLayer>(true).Length != 10 ||
             root.GetComponentsInChildren<ExhibitionIntro>(true).Length != 0 ||
@@ -45,6 +45,7 @@ public static class FriendsSetup
             foreach (var renderer in definition.Prefab.GetComponentsInChildren<SpriteRenderer>(true))
                 if (!renderer.sprite) throw new InvalidOperationException("도깨비 Sprite 누락: " + renderer.name);
         }
+        ExhibitionBehaviorChecks.Run();
         ExhibitionChecks.Run();
         ReviewRegressionChecks.Run();
         Debug.Log("FRIEND_VISIT_STAGE_VALIDATED");
@@ -106,6 +107,17 @@ public static class FriendsSetup
         stage.transform.SetParent(root.transform, false);
         var stageSurface = stage.GetComponentInChildren<ExhibitionSurface>(true);
         var rebuilder = root.gameObject.AddComponent<FriendExhibitionRebuilder>();
+        var policy = AssetDatabase.LoadAssetAtPath<ExhibitionBehaviorPolicy>("Assets/Jamkkaebi/Configuration/VisitExhibitionBehavior.asset");
+        if (!policy) throw new InvalidOperationException("방문 동작 정책 자산이 필요합니다.");
+        var cameraController = root.gameObject.AddComponent<ExhibitionCameraController>();
+        cameraController.Configure(root.sceneCamera);
+        var selection = root.gameObject.AddComponent<ExhibitionSelectionController>();
+        selection.Configure(policy, cameraController);
+        var behavior = new SerializedObject(rebuilder);
+        behavior.FindProperty("_policy").objectReferenceValue = policy;
+        behavior.FindProperty("_cameraController").objectReferenceValue = cameraController;
+        behavior.FindProperty("_selectionController").objectReferenceValue = selection;
+        behavior.ApplyModifiedPropertiesWithoutUndo();
         rebuilder.Configure(root, stage, stageSurface, stageSurface.transform.Find("Visit Content"),
             stage.GetComponentsInChildren<ExhibitionLayer>(true), catalog, material);
         var stageInput = stage.GetComponentInChildren<FriendExhibitionInput>(true);

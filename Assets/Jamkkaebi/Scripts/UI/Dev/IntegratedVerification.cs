@@ -356,6 +356,8 @@ namespace Jamkkaebi.Scripts.UI.Dev
             Check(ReferenceEquals(selectedObject, front.Key), "mirrored world click selects front object when touch rectangles overlap");
             rear.Value.transform.localPosition = rearPosition; front.Value.transform.localPosition = frontPosition;
             rebuilder.enabled = true;
+            yield return SharedExhibitionVerification.Visit(host, world => Click(host, world),
+                world => host.input.MapPosition(ScreenPoint(host, world), null), Check, Capture);
             host.SelectTab(0);
             yield return Swipe(host, -1);
             Check(host.ActiveIndex == 3 && !host.IsBusy && root.NavigationLocked,
@@ -944,6 +946,8 @@ namespace Jamkkaebi.Scripts.UI.Dev
             yield return null;
             var housing = exhibition.GetComponent<ExhibitionHousing>();
             Check(housing && housing.Layout != null && housing.Wanderer, "housing and dokkaebi initialized");
+            yield return SharedExhibitionVerification.Home(host, world => Click(host, world),
+                world => host.input.MapPosition(ScreenPoint(host, world), null), Check, Capture);
             Check(!housing.Menu.IsVisible && !housing.GetComponentsInChildren<RectTransform>(true).Any(rect => rect.name == "Controls"),
                 "home has no bottom housing panel or persistent instructions");
             yield return BeginHousingPlacement(host, housing, new Vector2Int(5, 5));

@@ -261,14 +261,15 @@ namespace Jamkkaebi.Scripts.UI.Friends
             _rebuilder.Visit(current.Code, backend);
         }
 
+        /// <summary>공용 선택기의 선택·해제 상태를 유지하며 최신 방문 세션을 표시합니다.</summary>
         private void OnVisitChanged()
         {
             if (Page != "Visit") return;
-            if (string.IsNullOrEmpty(_selectedObject)) _selectedObject = VisitSession.Scene?.Objects.FirstOrDefault()?.Placement.Key;
             Render();
         }
 
-        private void OnObjectSelected(VisitObject obj) { _selectedObject = obj.Placement.Key; Render(); }
+        /// <summary>방문 객체 선택·해제를 상세 표시에 반영합니다.</summary>
+        private void OnObjectSelected(VisitObject obj) { _selectedObject = obj?.Placement.Key ?? ""; if (Page == "Visit") Render(); }
 
         /// <summary>전시 로딩·중복 수령을 차단하고 방문 보상을 별도 명령으로 요청합니다.</summary>
         private void ClaimReward(FriendProfile profile)

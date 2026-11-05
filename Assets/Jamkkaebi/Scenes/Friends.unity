@@ -456,6 +456,8 @@ GameObject:
   - component: {fileID: 1110976197}
   - component: {fileID: 1110976199}
   - component: {fileID: 1110976200}
+  - component: {fileID: 1110976201}
+  - component: {fileID: 1110976202}
   m_Layer: 11
   m_Name: Friends Root
   m_TagString: Untagged
@@ -522,6 +524,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 134ded07a08f3e6459977dcc7791e280, type: 3}
   m_Name:
   m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Friends.FriendExhibitionRebuilder
+  _policy: {fileID: 11400000, guid: 873b58a6bc7644fe8ec612d0a3092fb8, type: 2}
+  _cameraController: {fileID: 1110976201}
+  _selectionController: {fileID: 1110976202}
   _root: {fileID: 1110976197}
   _stage: {fileID: 915201510}
   _surface: {fileID: 915201509}
@@ -539,6 +544,36 @@ MonoBehaviour:
   - {fileID: 915201497}
   _catalog: {fileID: 11400000, guid: c8a058334fa0aac4faf6e01520c82dc3, type: 2}
   _material: {fileID: 2100000, guid: 1564d74242bfcee45a13b964d47e96ad, type: 2}
+--- !u!114 &1110976201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1110976196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e6724b8fa904f9aaf106e5190bb9841, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionCameraController
+  _camera: {fileID: 71618419}
+  _focusZoom: 1.5
+  _transitionSeconds: 0.15
+--- !u!114 &1110976202
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1110976196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6a5de2793f84c2eb553a1d9ae199204, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionSelectionController
+  _policy: {fileID: 11400000, guid: 873b58a6bc7644fe8ec612d0a3092fb8, type: 2}
+  _cameraController: {fileID: 1110976201}
+  _selectedOpacity: 0.75
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

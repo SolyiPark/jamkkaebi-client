@@ -16,20 +16,23 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private bool _chosen;
         private bool _validPress;
         private bool _holding;
+        private bool _cancelClick;
         public bool OwnsGesture => _holding && _pointer != null;
         public void Configure(ExhibitionHousing housing) => _housing = housing;
         public void OnPointerDown(PointerEventData data)
         {
+            _cancelClick = false;
             _pointer = data; _press = data.position; _pressedAt = Time.unscaledTime; _chosen = false;
             _itemId = _housing.ItemAtTexturePoint(data.position);
-            _validPress = _itemId != 0 || _housing.Surface.TryGetCell(_housing.SceneCamera, data.position, out _);
+            _validPress = _housing.CanEdit && (_itemId != 0 || _housing.Surface.TryGetCell(_housing.SceneCamera, data.position, out _));
         }
 
         private void Update()
         {
-            if (_pointer == null || !_validPress || OwnsGesture) return;
+            if (_pointer == null || !_validPress || OwnsGesture || !_housing.CanEdit) return;
             if (Time.unscaledTime - _pressedAt < _holdSeconds) return;
             _pointer.eligibleForClick = false;
+            _cancelClick = true;
             _holding = true;
             _housing.ShowHoldMenu(_press, _itemId);
         }
@@ -40,7 +43,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (!OwnsGesture)
             {
                 // Moving before the hold threshold abandons the hold and allows tab navigation.
-                if ((data.position - _press).magnitude > 12) _validPress = false;
+                if ((data.position - _press).magnitude > 12)
+                { _validPress = false; _cancelClick = true; _pointer.eligibleForClick = false; }
                 return;
             }
             if (_chosen) return;
@@ -55,11 +59,15 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             _pointer = null; _itemId = 0; _chosen = false; _validPress = false; _holding = false;
             if (_housing) _housing.HideHoldMenu();
         }
-        private void OnDisable() => CancelHold();
+        private void OnDisable() { _cancelClick = true; CancelHold(); }
         public void OnPointerClick(PointerEventData data)
         {
-            if (_housing.Surface.TryGetCell(_housing.SceneCamera, data.position, out var cell))
-                _housing.SelectCell(cell);
+            if (!_housing || _cancelClick || OwnsGesture) return;
+            if (_housing.IsEditingCell)
+            {
+                if (_housing.Surface.TryGetCell(_housing.SceneCamera, data.position, out var cell)) _housing.SelectCell(cell);
+            }
+            else _housing.SelectAtTexturePoint(data.position);
         }
     }
 }
