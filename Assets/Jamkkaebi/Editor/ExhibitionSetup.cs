@@ -86,18 +86,11 @@ public static class ExhibitionSetup
         var world = new GameObject("Artwork space (4320 x 7680, center pivot, 1000 PPU)").transform;
         world.SetParent(root.transform, false);
         var material = AssetDatabase.LoadAssetAtPath<Material>("Assets/Jamkkaebi/Materials/SpriteUnlit.mat");
-        float[] parallax = { .015f, .055f, .025f, .11f, .18f, .27f, .32f, .36f, .01f, 0 };
-        int[] orders = { 0, 10, 20, 30, 100, 2000, 2010, 2020, 2100, 2110 };
         for (int i = 1; i <= 10; i++)
         {
             var layer = new GameObject($"Artwork {i:00}", typeof(SpriteRenderer), typeof(ExhibitionLayer));
             layer.transform.SetParent(world, false);
-            var renderer = layer.GetComponent<SpriteRenderer>();
-            renderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{ArtPath}/Artwork{i:00}.png");
-            renderer.sharedMaterial = material;
-            renderer.sortingOrder = orders[i - 1];
-            layer.GetComponent<ExhibitionLayer>().Configure(parallax[i - 1], (i - 1) * .09f,
-                i == 10 ? .075f : i == 9 ? .22f : 1, i == 1, i == 2 || i == 4 || i == 6 || i == 7 || i == 8);
+            ExhibitionArtworkSetup.Configure(layer, i, material);
             if (i == 5)
             {
                 var surface = layer.AddComponent<ExhibitionSurface>();

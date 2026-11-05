@@ -88,7 +88,7 @@ namespace Jamkkaebi.Tests.UI
             var visitor = new JamkkaebiApiClient((string)config["baseUrl"], (string)config["layoutVisitorAccessToken"]);
             string visitPath = "/api/friends/" + JamkkaebiApiClient.CodePath((string)config["layoutCode"]) + "/exhibition";
             ServerApiResult result = null;
-            var draft = new ExhibitionLayoutDraft(new Vector2Int(20,20), new ExhibitionObjectData[] {
+            var draft = new ExhibitionLayoutDraft(new Vector2Int(7,7), new ExhibitionObjectData[] {
                 new ExhibitionNpcData("npc",2,true,new Vector2Int(1,1)),
                 new ExhibitionBuildingData("building",1,true,new Vector2Int(2,2),Vector2Int.one) });
             yield return wrapper.Save(draft, value => result = value);
@@ -105,13 +105,14 @@ namespace Jamkkaebi.Tests.UI
             Assert.IsTrue(result.Success,result.Code);
             var publicSnapshot = ServerExhibitionBackend.ParseSnapshot(result.Data);
             Assert.AreEqual(3,publicSnapshot.Placements.Count);
-            Assert.AreEqual(20,publicSnapshot.Width);
+            Assert.AreEqual(7,publicSnapshot.Width);
+            Assert.AreEqual(7,publicSnapshot.Height);
             Assert.AreEqual(new Vector2Int(2,2),publicSnapshot.Placements[2].Anchor);
             yield return client.Send("PATCH","/api/exhibition/spirits/8/visibility",new JObject { ["hidden"] = true },value=>result=value);
             Assert.IsTrue(result.Success,result.Code);
             yield return visitor.Send("GET",visitPath,null,value=>result=value);
             Assert.AreEqual(1,((JArray)result.Data["spirits"]).Count);
-            yield return wrapper.Save(new ExhibitionLayoutDraft(new Vector2Int(20,20),new ExhibitionObjectData[] {
+            yield return wrapper.Save(new ExhibitionLayoutDraft(new Vector2Int(7,7),new ExhibitionObjectData[] {
                 new ExhibitionNpcData("npc",2,false,Vector2Int.zero),
                 new ExhibitionBuildingData("building",1,true,new Vector2Int(3,3),Vector2Int.one) }),value=>result=value);
             Assert.IsTrue(result.Success,result.Code); Assert.IsFalse(wrapper.Busy);
@@ -124,7 +125,7 @@ namespace Jamkkaebi.Tests.UI
             Assert.IsTrue(result.Success,result.Code);
             Assert.AreEqual(0,((JArray)result.Data["spirits"]).Count);
             Assert.AreEqual(3,(int)result.Data["buildings"][0]["position"]["x"]);
-            yield return wrapper.Save(new ExhibitionLayoutDraft(new Vector2Int(7,7),draft.Objects),value=>result=value);
+            yield return wrapper.Save(new ExhibitionLayoutDraft(new Vector2Int(20,20),draft.Objects),value=>result=value);
             Assert.AreEqual("LAYOUT_REJECTED",result.Code); Assert.IsNull(wrapper.LastPackage); Assert.IsFalse(wrapper.Busy);
             yield return client.Send("GET","/api/exhibition",null,value=>result=value);
             Assert.AreEqual(3,(int)result.Data["buildings"][0]["position"]["x"]);

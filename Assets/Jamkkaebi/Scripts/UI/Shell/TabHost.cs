@@ -37,6 +37,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
         private readonly List<Image> icons = new List<Image>();
         private Vector2Int textureSize;
         private int pendingTab = -1;
+        private bool _navigationLocked;
 
         /// <summary>
         /// 탭 씬을 배경 실행 정책에 따라 로드하고 동기 렌더링으로 초기 미리보기를 캡처한 뒤 시작 탭을 표시합니다.
@@ -136,7 +137,11 @@ namespace Jamkkaebi.Scripts.UI.Shell
         private void Layout(bool showProfile)
         {
             profileBar.SetActive(showProfile);
-            viewport.offsetMin = new Vector2(0, toolbarHeight);
+            bool locked = ActiveRoot && ActiveRoot.NavigationLocked;
+            toolbar.gameObject.SetActive(!locked);
+            // Tabs의 부모가 배경·구분선을 포함한 하단 바입니다.
+            toolbar.parent.gameObject.SetActive(!locked);
+            viewport.offsetMin = new Vector2(0, locked ? 0 : toolbarHeight);
             viewport.offsetMax = new Vector2(0, showProfile ? -headerHeight : 0);
         }
         /// <summary>
@@ -157,6 +162,14 @@ namespace Jamkkaebi.Scripts.UI.Shell
         private void LateUpdate()
         {
             if (!IsReady || IsBusy) return;
+            bool locked = ActiveRoot && ActiveRoot.NavigationLocked;
+            if (_navigationLocked != locked)
+            {
+                _navigationLocked = locked;
+                if (locked) pendingTab = -1;
+                Layout(catalog.tabs[ActiveIndex].showProfile);
+                Canvas.ForceUpdateCanvases();
+            }
             var size = MeasureTexture();
             if (size != textureSize)
             {
@@ -192,6 +205,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
         public void SelectTab(int index)
         {
             if (!IsReady || index < 0 || index >= roots.Length) return;
+            if (ActiveRoot && ActiveRoot.NavigationLocked) return;
             if (IsBusy) { pendingTab = index; return; }
             if (index == ActiveIndex) return;
             input.Cancel();
@@ -202,7 +216,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
         /// </summary>
         public bool BeginSwipe(int direction)
         {
-            if (!IsReady || IsBusy) return false;
+            if (!IsReady || IsBusy || (ActiveRoot && ActiveRoot.NavigationLocked)) return false;
             return _transition.Begin(ActiveIndex + direction);
         }
         /// <summary>

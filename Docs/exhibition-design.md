@@ -127,3 +127,13 @@
 ### 서버 송신 객체와 wrapper (2026-10-11 후속 변경)
 
 NPC·건물의 불변 배치 데이터와 전체 교체 PUT wrapper를 구현했다. 로컬 ItemId·배치 Id와 서버 relicId·buildingId를 분리하며, 현재 더미에는 서버 ID를 지정하지 않는다. NPC는 이동 애니메이션 좌표 대신 고정 PlacementCell을 캡처한다. 홈 자동 저장과 자산·보유 ID 매핑은 아직 연결되지 않았다. 7×7 홈과 기본 20×20 서버의 격자 불일치, 서버 미지원 회전·다칸 배치는 송신 전에 거부한다. 상세 계약과 실제 HTTP 검증은 [exhibition-layout-transmission.md](exhibition-layout-transmission.md)에 기록했다.
+
+## 친구 방문 스테이지 재사용 (2026-11-05)
+
+친구 방문도 홈의 배경 10장·5번 상판·`ExhibitionGrid.asset`·`ExhibitionSurface.CellWorldPosition`·`ExhibitionDepth`를 사용하도록 구성했다. `ExhibitionArtworkSetup`은 홈과 방문의 레이어 정렬·불투명도·크기 정책을 공유한다. 방문 스테이지는 별도 프리팹이며 카메라 격리 Layer 11을 사용한다. 홈 씬·공용 격자 보정값을 다시 생성하거나 수정하지 않았다.
+
+방문에는 `ExhibitionIntro`·`ExhibitionView`·`ExhibitionHousing`·`DokkaebiWanderer`를 붙이지 않는다. `FriendExhibitionRebuilder`가 등장 연출이 완료된 레이어 표시를 적용하고 방문 전용 임시 모델과 보간으로 다중 객체를 움직인다. 따라서 홈 최초 등장 플래그·탭 시차·편집 점유·서버로 보내는 고정 PlacementCell에 영향을 주지 않는다. 같은 친구를 재조회할 때 기존 전시는 성공 응답까지 남기고, 다른 친구로 전환하면 제거한다.
+
+방문 전용 전체 화면 HUD와 객체 선택만 제공하며 하우징 편집은 제공하지 않는다. 방문 중 공통 탭 이동을 잠그고 종료 시 잠금·카메라를 복구한다. A2·C2의 표현 프리팹은 카탈로그에서 폭 약 .3과 바닥 접점을 보정하고, 건물·다른 종류는 기존 더미를 사용한다. 원본 리깅의 일부 bone weight 임포트 경고는 남아 있으나 480×1040·768×1024의 Idle·Walk 캡처에서 아트 모양을 확인했다. 이 단락은 재사용 범위이며 최신 실행 결과는 [재구축기 구현 기록](friends-exhibition-rebuilder-plan.md#13-2026-11-05-구현-기록)을 확인한다.
+
+이번 방문 재사용은 씬·전시관·회귀 검사 종료 코드 0, 모의 Player 355개 통과, 실제 HTTP Player 376개 통과로 검증했다. 최종 HTTP 실행의 EditMode는 247개 통과·생략 0이며 GPU 종료 경고 3패턴·Exception 0이었다. 상세 증거는 `Logs/ServerContract/Run-20261105-185155/`와 위 구현 기록에 있다. 모바일 렌더 비용·실제 터치·운영 OAuth는 이번 Windows 검증에 포함하지 않는다.

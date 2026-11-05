@@ -213,7 +213,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -247,6 +247,203 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1001 &915201496
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1110976198}
+    m_Modifications:
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7686541791874234318, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: m_Name
+      value: FriendExhibitionStage
+      objectReference: {fileID: 0}
+    - target: {fileID: 7758367202312702990, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+      propertyPath: _rebuilder
+      value:
+      objectReference: {fileID: 1110976200}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+--- !u!114 &915201497 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1184213836445747545, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!4 &915201498 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4601606767824052453, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &915201499 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1858026638755513984, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201500 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1074438522800756300, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201501 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6018663730797052001, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201502 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6720367144436958950, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201503 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8658151047581410631, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201504 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1018093690794373591, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201505 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8406668939042896320, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201506 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8116638782342498842, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!114 &915201507 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5033055315325419385, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a65620d8157024f42bc31bf21666e286, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionLayer
+--- !u!4 &915201508 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 975712991941682664, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &915201509 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2397897349018567449, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5868c0c4fdaf0049bdd7d2cd3e70a38, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionSurface
+--- !u!1 &915201510 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7686541791874234318, guid: 3ae6bd1418a624142b2a99637016fb6f, type: 3}
+  m_PrefabInstance: {fileID: 915201496}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1110976196
 GameObject:
   m_ObjectHideFlags: 0
@@ -258,6 +455,7 @@ GameObject:
   - component: {fileID: 1110976198}
   - component: {fileID: 1110976197}
   - component: {fileID: 1110976199}
+  - component: {fileID: 1110976200}
   m_Layer: 11
   m_Name: Friends Root
   m_TagString: Untagged
@@ -275,7 +473,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6af1510803bf26409cb08fa2e7c8313, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::Jamkkaebi.Scripts.UI.Shell.MirrorSceneRoot
   sceneCamera: {fileID: 71618419}
   uiRaycasters: []
@@ -293,6 +491,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 71618420}
+  - {fileID: 915201498}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1110976199
@@ -305,11 +504,41 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 06be69d3130d9bf4fa1f2e05b3b85e27, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Friends.FriendsPresenter
   _font: {fileID: 12800000, guid: 8ff598083fa05724cb7948bd3db7f4ac, type: 3}
-  _visitGrid: {fileID: 11400000, guid: 300bc83a9a97f5f41adeb607421115b9, type: 2}
+  _rebuilder: {fileID: 1110976200}
   _visitScenario: 0
+  _serverBaseUrl:
+--- !u!114 &1110976200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1110976196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 134ded07a08f3e6459977dcc7791e280, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Friends.FriendExhibitionRebuilder
+  _root: {fileID: 1110976197}
+  _stage: {fileID: 915201510}
+  _surface: {fileID: 915201509}
+  _content: {fileID: 915201508}
+  _layers:
+  - {fileID: 915201507}
+  - {fileID: 915201506}
+  - {fileID: 915201505}
+  - {fileID: 915201504}
+  - {fileID: 915201503}
+  - {fileID: 915201502}
+  - {fileID: 915201501}
+  - {fileID: 915201500}
+  - {fileID: 915201499}
+  - {fileID: 915201497}
+  _catalog: {fileID: 11400000, guid: c8a058334fa0aac4faf6e01520c82dc3, type: 2}
+  _material: {fileID: 2100000, guid: 1564d74242bfcee45a13b964d47e96ad, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

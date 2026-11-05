@@ -116,6 +116,18 @@ namespace Jamkkaebi.Scripts.UI.Dev
             host.input.OnPointerUp(pointer);
         }
 
+        /// <summary>HUD 사각형의 네 모서리가 현재 콘텐츠 카메라의 표시 영역 안에 있는지 검사합니다.</summary>
+        private static bool IsInsideViewport(TabHost host, RectTransform rect)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            return corners.All(corner =>
+            {
+                Vector3 uv = host.ActiveRoot.sceneCamera.WorldToViewportPoint(corner);
+                return uv.x >= -.001f && uv.x <= 1.001f && uv.y >= -.001f && uv.y <= 1.001f;
+            });
+        }
+
         /// <summary>
         /// 배치물을 길게 눌러 로컬 메뉴를 열고, 지정 동작으로 드래그해 탭 전환 없이 한 번 실행되는지 검사합니다.
         /// </summary>
@@ -264,8 +276,11 @@ namespace Jamkkaebi.Scripts.UI.Dev
         {
             var ownHousing = host.GetRoot(0).GetComponent<ExhibitionHousing>();
             var ownPlacements = ownHousing.Layout.Placements.Select(p => p.Cell).ToArray();
+            bool ownIntroComplete = host.GetRoot(0).GetComponent<ExhibitionIntro>().IsComplete;
             var root = host.GetRoot(3);
             var friends = root.GetComponent<FriendsPresenter>();
+            float originalCameraSize = root.sceneCamera.orthographicSize;
+            Vector3 originalCameraPosition = root.sceneCamera.transform.localPosition;
             Check(friends && friends.State.Friends.Count == 12 && friends.State.Received.Count == 3,
                 "friends PDF frontend replaces demo with sample social state");
             Check(!root.GetComponentInChildren<DemoDraggable>(true) && !root.GetComponentInChildren<DemoCounter>(true),
@@ -301,28 +316,75 @@ namespace Jamkkaebi.Scripts.UI.Dev
             yield return new WaitForEndOfFrame(); Capture("Friends_Visit_Loading.png");
             Check(friends.VisitSession.Loading && !friends.Buttons["VisitReward"].interactable,
                 "snapshot loading disables visit actions");
+            Check(root.NavigationLocked && !host.toolbar.gameObject.activeSelf && !host.toolbar.parent.gameObject.activeSelf && friends.Scroll == null,
+                "loading visit locks navigation and replaces scroll with full screen HUD");
             yield return new WaitForSeconds(.45f);
             yield return new WaitForEndOfFrame(); Capture("Friends_Visit.png");
             Check(friends.Page == "Visit", "friend profile click opens exhibition preview");
             Check(friends.VisitSession.Scene.Objects.Count == 5 && !friends.VisitSession.CanEdit,
                 "snapshot package reconstructs visit objects in read only mode");
+            var rebuilder = friends.Rebuilder;
+            Check(rebuilder.StageActive && rebuilder.Views.Count == friends.VisitSession.Scene.Objects.Count,
+                "visit stage contains one world visual for each snapshot object");
+            Check(rebuilder.GetComponentsInChildren<ExhibitionLayer>().Length == 10 &&
+                rebuilder.Views.Values.All(view => view.GetComponent<ExhibitionDepth>() &&
+                    view.transform.IsChildOf(rebuilder.Surface.transform)),
+                "visit reuses ten artwork layers and surface depth sorting");
+            Check(rebuilder.Views.All(pair => Vector3.Distance(pair.Value.transform.position,
+                    rebuilder.Surface.CellWorldPosition(pair.Key.Placement.Anchor)) < .001f),
+                "visit visuals start at the same calibrated cell centers as home");
+            Check(rebuilder.Views.All(pair => Vector3.Distance(
+                    rebuilder.Surface.transform.InverseTransformPoint(pair.Value.transform.position),
+                    ownHousing.Surface.transform.InverseTransformPoint(ownHousing.Surface.CellWorldPosition(pair.Key.Placement.Anchor))) < .001f),
+                "home and visit use identical surface local coordinates");
+            rebuilder.enabled = false;
+            var buildings = rebuilder.Views.Where(pair => pair.Key.Placement.IsBuilding).ToArray();
+            var rear = buildings[0]; var front = buildings[1];
+            Vector3 rearPosition = rear.Value.transform.localPosition, frontPosition = front.Value.transform.localPosition;
+            Vector3 common = rebuilder.Surface.Grid.CellCenter(new Vector2Int(3, 3));
+            rear.Value.transform.localPosition = common + Vector3.up * .03f;
+            front.Value.transform.localPosition = common - Vector3.up * .03f;
+            yield return null;
+            Check(front.Value.GetComponent<UnityEngine.Rendering.SortingGroup>().sortingOrder >
+                rear.Value.GetComponent<UnityEngine.Rendering.SortingGroup>().sortingOrder,
+                "lower foot contact sorts in front of a rear object");
+            VisitObject selectedObject = null;
+            Action<VisitObject> selectedHandler = obj => selectedObject = obj;
+            rebuilder.ObjectSelected += selectedHandler;
+            Click(host, front.Value.transform.parent.TransformPoint(common + Vector3.up * .15f));
+            rebuilder.ObjectSelected -= selectedHandler;
+            Check(ReferenceEquals(selectedObject, front.Key), "mirrored world click selects front object when touch rectangles overlap");
+            rear.Value.transform.localPosition = rearPosition; front.Value.transform.localPosition = frontPosition;
+            rebuilder.enabled = true;
+            host.SelectTab(0);
+            yield return Swipe(host, -1);
+            Check(host.ActiveIndex == 3 && !host.IsBusy && root.NavigationLocked,
+                "visit rejects both bottom navigation and swipe without queuing a tab");
             var anchors = friends.VisitSession.Scene.Objects.Select(o => o.Placement.Anchor).ToArray();
             yield return new WaitForSeconds(2.1f);
             Check(friends.VisitSession.Scene.Objects.Any(o => o.Cell != o.Placement.Anchor) &&
                 friends.VisitSession.Scene.Objects.Select(o => o.Placement.Anchor).SequenceEqual(anchors),
                 "visitor movement leaves snapshot anchors unchanged");
-            friends.Scroll.verticalNormalizedPosition = 0; yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
             Click(host, friends.Buttons["VisitReward"].transform.position);
             yield return new WaitForSeconds(.45f);
             yield return new WaitForEndOfFrame();
             Check(friends.State.VisitClaimed && !friends.Buttons["VisitReward"].interactable,
                 "visit reward becomes unavailable after one local claim");
-            friends.Scroll.verticalNormalizedPosition = 0; yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
             Click(host, friends.Buttons["VisitGift"].transform.position);
             yield return new WaitForEndOfFrame();
             Click(host, friends.Buttons["Confirm"].transform.position);
             yield return new WaitForEndOfFrame();
             Check(friends.State.GiftRecipient == friends.State.Friends[0].Code, "gift confirmation records daily recipient");
+            Click(host, friends.Buttons["VisitBack"].transform.position);
+            yield return new WaitForEndOfFrame();
+            Check(!root.NavigationLocked && !rebuilder.StageActive && rebuilder.Views.Count == 0 &&
+                Mathf.Approximately(root.sceneCamera.orthographicSize, originalCameraSize) &&
+                root.sceneCamera.transform.localPosition == originalCameraPosition && host.toolbar.gameObject.activeSelf && host.toolbar.parent.gameObject.activeSelf,
+                "visit back restores camera toolbar and input and destroys visit visuals");
+            yield return new WaitForSeconds(.4f);
+            Check(host.ActiveIndex == 3, "blocked tab request does not replay after leaving visit");
             friends.Show("Blocked"); yield return new WaitForEndOfFrame(); Capture("Friends_Blocked.png");
             var blocked = friends.State.Blocked[0];
             Click(host, friends.Buttons["Unblock_" + blocked.Code].transform.position);
@@ -338,6 +400,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 friends.PreviewScenario = scenario;
                 friends.Visit(friends.State.Friends[0]);
                 yield return new WaitForSeconds(.45f); yield return new WaitForEndOfFrame();
+                Capture("Friends_Snapshot_" + scenario + ".png");
                 if (scenario == ExhibitionPreviewScenario.Empty)
                     Check(friends.VisitSession.Scene.Objects.Count == 0, "empty snapshot renders empty exhibition");
                 else if (scenario == ExhibitionPreviewScenario.Unknown)
@@ -345,14 +408,24 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 else if (scenario == ExhibitionPreviewScenario.Invalid || scenario == ExhibitionPreviewScenario.Duplicate)
                     Check(friends.VisitSession.Scene.Objects.Count == 5 && friends.VisitSession.Scene.Warnings.Count == 1,
                         "invalid or duplicate placement is skipped: " + scenario);
-                else Check(!string.IsNullOrEmpty(friends.VisitSession.Error), "snapshot failure is shown: " + scenario);
-                Capture("Friends_Snapshot_" + scenario + ".png");
+                else
+                {
+                    Check(!string.IsNullOrEmpty(friends.VisitSession.Error) && root.NavigationLocked &&
+                        friends.Buttons.ContainsKey("VisitBack") && friends.Buttons.ContainsKey("VisitRetry"),
+                        "snapshot failure retains exit retry and lock: " + scenario);
+                    Click(host, friends.Buttons["VisitBack"].transform.position);
+                    yield return new WaitForEndOfFrame();
+                    Check(!root.NavigationLocked && friends.Page == "Friends", "error visit can always exit: " + scenario);
+                }
             }
             friends.PreviewScenario = ExhibitionPreviewScenario.Slow;
             friends.Visit(friends.State.Friends[0]); friends.Show("Friends");
             yield return new WaitForSeconds(1.9f);
             Check(friends.Page == "Friends" && friends.VisitSession.Scene == null && !friends.VisitSession.Loading,
                 "leaving during delayed snapshot prevents late reopening");
+            Check(!root.NavigationLocked && !rebuilder.StageActive &&
+                host.GetRoot(0).GetComponent<ExhibitionIntro>().IsComplete == ownIntroComplete,
+                "loading exit releases visit resources without altering home intro state");
             Check(ownHousing.Layout.Placements.Select(p => p.Cell).SequenceEqual(ownPlacements),
                 "friend visit leaves own home placements unchanged");
             friends.PreviewScenario = ExhibitionPreviewScenario.Normal;
@@ -1110,9 +1183,33 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 CheckRender(host);
                 Capture($"Collection_Overview_{size.x}x{size.y}.png");
                 host.SelectTab(3); yield return new WaitForSeconds(.4f);
-                host.GetRoot(3).GetComponent<FriendsPresenter>().Show("Friends");
+                var resizedFriends = host.GetRoot(3).GetComponent<FriendsPresenter>();
+                resizedFriends.Show("Friends");
                 yield return new WaitForEndOfFrame(); CheckRender(host);
                 Capture($"Friends_List_{size.x}x{size.y}.png");
+                resizedFriends.PreviewScenario = ExhibitionPreviewScenario.Normal;
+                resizedFriends.Visit(resizedFriends.State.Friends[0]);
+                yield return new WaitForSeconds(.45f);
+                yield return new WaitForEndOfFrame();
+                Check(resizedFriends.Page == "Visit" && resizedFriends.Rebuilder.StageActive &&
+                    host.ActiveRoot.NavigationLocked && !host.toolbar.gameObject.activeSelf && !host.toolbar.parent.gameObject.activeSelf,
+                    "resized visit hides complete bottom toolbar and retains lock " + size);
+                Check(new[] { "VisitBack", "VisitReward", "VisitGift" }.All(name =>
+                    IsInsideViewport(host, (RectTransform)resizedFriends.Buttons[name].transform)),
+                    "resized visit exit reward and gift fit inside viewport " + size);
+                Capture($"Friends_Visit_{size.x}x{size.y}.png");
+                Capture($"Friends_Visit_Idle_{size.x}x{size.y}.png");
+                yield return new WaitForSeconds(.9f);
+                yield return new WaitForEndOfFrame();
+                Capture($"Friends_Visit_Walk_{size.x}x{size.y}.png");
+                yield return new WaitForSeconds(.5f);
+                yield return new WaitForEndOfFrame();
+                Capture($"Friends_Visit_IdleReturn_{size.x}x{size.y}.png");
+                Click(host, resizedFriends.Buttons["VisitBack"].transform.position);
+                yield return new WaitForEndOfFrame();
+                Check(resizedFriends.Page == "Friends" && !host.ActiveRoot.NavigationLocked && !resizedFriends.Rebuilder.StageActive &&
+                    host.toolbar.gameObject.activeSelf && host.toolbar.parent.gameObject.activeSelf,
+                    "resized visit exit restores entire bottom toolbar " + size);
                 host.SelectTab(1); yield return new WaitForSeconds(.4f);
                 var texture = host.ActiveRoot.sceneCamera.targetTexture;
                 Check(Mathf.Abs((float)texture.width / texture.height - host.viewport.rect.width / host.viewport.rect.height) < .01f, "render texture matches viewport " + size);
@@ -1126,6 +1223,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 yield return null;
             }
             yield return VerifyCollectionArtwork(host);
+            yield return FriendVisitFlowVerification.Run(host, host.GetRoot(3).GetComponent<FriendsPresenter>(), Check);
             yield return VerifyServerFriends(host);
             Check(_errors.Count == 0, "no runtime errors during integration checks");
             yield return new WaitForSeconds(.3f);
@@ -1148,7 +1246,8 @@ namespace Jamkkaebi.Scripts.UI.Dev
             friends.Visit(profile);
             while (friends.VisitSession.Loading) yield return null;
             Check(friends.VisitSession.Scene?.Objects.Count == 2 && friends.VisitSession.Scene.Snapshot.OwnerCode == profile.Code, "server snapshot renders actual DTO relic and building IDs");
-            Check(friends.VisitSession.Scene.Objects.All(o => o.Unknown), "server objects use placeholders until artwork mapping is defined");
+            Check(friends.VisitSession.Scene.Objects.All(o => o.Unknown == !ExhibitionVisitScene.IsDefaultKnown(o.Placement.IsBuilding, o.Placement.Id)),
+                "server objects are recognized according to catalog IDs rather than prefab availability");
             Check(!friends.Buttons["VisitReward"].interactable && !friends.Buttons["VisitGift"].interactable, "server claimed reward and sent gift disable visit actions");
             yield return new WaitForEndOfFrame(); Capture("Server_Visit.png");
             friends.Visit(friends.State.Friends.First(p => p.Code == (string)config["largeGridCode"]));
@@ -1164,6 +1263,24 @@ namespace Jamkkaebi.Scripts.UI.Dev
             Check(friends.Buttons.ContainsKey("SendRequest") && friends.Buttons["SendRequest"].interactable, "server lookup populates add friend sheet");
             friends.Buttons["SendRequest"].onClick.Invoke(); while (friends.ServerBusy) yield return null;
             Check(friends.State.Sent.Any(p => p.Code == (string)config["extraCode"]), "friend request button posts server friendCode body");
+            // EditMode에서 보상을 받지 않은 별도 방문 계정으로 실제 POST 후 화면 유지를 확인합니다.
+            friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["layoutVisitorAccessToken"]));
+            while (friends.ServerBusy) yield return null;
+            friends.Visit(friends.State.Friends.First(p => p.Code == (string)config["layoutCode"]));
+            while (friends.VisitSession.Loading) yield return null;
+            var rewardScene = friends.VisitSession.Scene;
+            Check(rewardScene != null && friends.Buttons["VisitReward"].interactable, "fresh HTTP visitor can claim visit reward");
+            friends.Buttons["VisitReward"].onClick.Invoke();
+            while (friends.ServerBusy) yield return null;
+            Check(friends.Page == "Visit" && ReferenceEquals(rewardScene, friends.VisitSession.Scene) &&
+                friends.State.VisitClaimed && !friends.Buttons["VisitReward"].interactable && host.ActiveRoot.NavigationLocked,
+                "actual HTTP reward POST keeps visit scene and navigation lock");
+            Check(friends.Buttons["VisitGift"].interactable, "fresh HTTP visitor can send gift");
+            friends.Buttons["VisitGift"].onClick.Invoke(); friends.Buttons["Confirm"].onClick.Invoke();
+            while (friends.ServerBusy) yield return null;
+            Check(friends.Page == "Visit" && ReferenceEquals(rewardScene, friends.VisitSession.Scene) &&
+                friends.State.GiftRecipient != null && !friends.Buttons["VisitGift"].interactable && host.ActiveRoot.NavigationLocked,
+                "actual HTTP gift POST keeps visit scene and disables repeated gift");
             friends.ConnectServer(new JamkkaebiApiClient((string)config["baseUrl"], "invalid-reconnect-token"));
             bool staleNotification = false;
             while (friends.ServerBusy)

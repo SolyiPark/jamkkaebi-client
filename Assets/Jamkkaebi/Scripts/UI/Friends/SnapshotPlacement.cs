@@ -12,9 +12,8 @@ namespace Jamkkaebi.Scripts.UI.Friends
         public int Level { get; }
         public Vector2Int Anchor { get; }
         public string Key => (IsBuilding ? "BUILDING:" : "SPIRIT:") + Id;
-        public bool Placeholder { get; }
         /// <summary>서버 객체 ID·배치 앵커·이름·단계 또는 레벨을 불변 배치로 보관합니다.</summary>
-        public SnapshotPlacement(bool building, int id, string name, Vector2Int anchor, string stage = "AWAKENED", int level = 1, bool placeholder = false)
-        { IsBuilding = building; Id = id; Name = name; Anchor = anchor; Stage = stage; Level = level; Placeholder = placeholder; }
+        public SnapshotPlacement(bool building, int id, string name, Vector2Int anchor, string stage = "AWAKENED", int level = 1)
+        { IsBuilding = building; Id = id; Name = name; Anchor = anchor; Stage = stage; Level = level; }
     }
 }

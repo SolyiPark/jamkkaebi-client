@@ -15,6 +15,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
         private string _refreshToken;
         private bool _refreshing;
         private ServerApiResult _refreshResult;
+        private readonly Func<string, string, JObject, bool, Action<ServerApiResult>, IEnumerator> _transport;
         public string BaseUrl { get; }
         public bool Authenticated => !string.IsNullOrEmpty(_accessToken);
         /// <summary>HTTP 기본 주소를 검증하고 메모리 토큰으로 API 클라이언트를 초기화합니다.</summary>
@@ -25,6 +26,13 @@ namespace Jamkkaebi.Scripts.UI.Friends
                 !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment))
                 throw new ArgumentException("서버 기본 주소가 올바르지 않습니다.");
             BaseUrl = baseUrl.TrimEnd('/'); SetTokens(accessToken, refreshToken);
+        }
+        /// <summary>인증·갱신 경로를 보존하면서 검증용으로 한 번의 전송 경계만 교체합니다.</summary>
+        internal JamkkaebiApiClient(string baseUrl, string accessToken,
+            Func<string, string, JObject, bool, Action<ServerApiResult>, IEnumerator> transport)
+            : this(baseUrl, accessToken)
+        {
+            _transport = transport ?? throw new ArgumentNullException(nameof(transport));
         }
         /// <summary>인증 토큰을 메모리에만 교체하며 null을 전달하면 해당 토큰을 제거합니다.</summary>
         public void SetTokens(string accessToken, string refreshToken)
@@ -68,6 +76,11 @@ namespace Jamkkaebi.Scripts.UI.Friends
         /// <summary>UnityWebRequest로 한 번 요청하고 네트워크 오류와 서버 응답 오류를 구분합니다.</summary>
         private IEnumerator SendOnce(string method, string path, JObject body, bool authenticated, Action<ServerApiResult> completed)
         {
+            if (_transport != null)
+            {
+                yield return _transport(method, path, body, authenticated, completed);
+                yield break;
+            }
             using (var request = new UnityWebRequest(BaseUrl + path, method))
             {
                 request.downloadHandler = new DownloadHandlerBuffer(); request.timeout = 15;
