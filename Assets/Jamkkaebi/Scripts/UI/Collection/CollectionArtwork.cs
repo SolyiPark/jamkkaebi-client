@@ -4,7 +4,7 @@ using UnityEngine.UI;
 namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
-    /// 카탈로그 그림이 비어 있을 때 유물, 정령, 건물과 잠금 상태를 임시 벡터 기호로 표시합니다.
+    /// 카탈로그 그림이 비어 있을 때 유물, 도깨비, 건물과 잠금 상태를 임시 벡터 기호로 표시합니다.
     /// </summary>
     // 이 클래스는 '그림 모양'을 만들고 CanvasRenderer는 그 UI를 화면에 출력하는 데 필요한 부품입니다.
     // 기본 Image와 달리 직접 만든 Graphic은 이 부품을 스스로 요구해야 합니다.

@@ -381,7 +381,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             };
             var expectedRelicNames = new[]
             {
-                "금동여래입상", "금동대향로", "금관", "석불", "고려청자", "나전칠기", "옥새", "마패", "묘작도"
+                "금동연가7년명여래입상", "금동대향로", "금관총 금관", "논산 관촉사 석조미륵보살입상", "상감청자", "나전칠기", "유서지보", "마패", "묘작도"
             };
             Check(collection.Catalog.Eras.Select(era => era.Id).SequenceEqual(expectedEraIds) &&
                 collection.Catalog.Eras.Select(era => era.Name).SequenceEqual(expectedEraNames),

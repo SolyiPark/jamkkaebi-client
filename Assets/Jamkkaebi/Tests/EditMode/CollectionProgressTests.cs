@@ -318,7 +318,7 @@ namespace Jamkkaebi.Tests.EditMode
         /// <summary>수집 규칙 테스트에 필요한 최소 유물 정의를 지정한 종류·시대 ID로 만듭니다.</summary>
         private static CollectionRelicDefinition Relic(string id, string eraId)
         {
-            return new CollectionRelicDefinition(id, eraId, id, "정령", "설명", "복원 초안", Color.white);
+            return new CollectionRelicDefinition(id, eraId, id, "도깨비", "설명", "복원 초안", Color.white);
         }
     }
 }

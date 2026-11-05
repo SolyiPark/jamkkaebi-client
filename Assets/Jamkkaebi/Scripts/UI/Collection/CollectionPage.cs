@@ -7,7 +7,7 @@ namespace Jamkkaebi.Scripts.UI.Collection
         Overview,
         /// <summary>선택 시대의 유물, 건물 해금 상태와 설명을 표시합니다.</summary>
         Era,
-        /// <summary>복원 완료한 유물과 정령의 상세 기록을 표시합니다.</summary>
+        /// <summary>복원 완료한 유물과 도깨비의 상세 기록을 표시합니다.</summary>
         Relic
     }
 }

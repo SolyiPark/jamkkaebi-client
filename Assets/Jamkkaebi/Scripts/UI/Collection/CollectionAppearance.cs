@@ -20,7 +20,7 @@ namespace Jamkkaebi.Scripts.UI.Collection
         private Sprite _buildingCardBackground;
         [SerializeField, Tooltip("유물 상세 화면의 일러스트 상판 배경입니다.")]
         private Sprite _relicPlateBackground;
-        [SerializeField, Tooltip("유물 상세 화면의 정령 일러스트 상판 배경입니다.")]
+        [SerializeField, Tooltip("유물 상세 화면의 도깨비 일러스트 상판 배경입니다.")]
         private Sprite _spiritPlateBackground;
         [SerializeField, Tooltip("아직 읽지 않은 기록의 신규 배지 배경입니다.")]
         private Sprite _newBadgeBackground;
@@ -55,7 +55,7 @@ namespace Jamkkaebi.Scripts.UI.Collection
         public Sprite BuildingCardBackground => _buildingCardBackground;
         /// <summary>유물 상세의 큰 일러스트 상판에 사용하는 배경입니다.</summary>
         public Sprite RelicPlateBackground => _relicPlateBackground;
-        /// <summary>유물 상세의 정령 일러스트 상판에 사용하는 배경입니다.</summary>
+        /// <summary>유물 상세의 도깨비 일러스트 상판에 사용하는 배경입니다.</summary>
         public Sprite SpiritPlateBackground => _spiritPlateBackground;
         /// <summary>미열람 기록의 신규 배지 표면에 사용하는 배경입니다.</summary>
         public Sprite NewBadgeBackground => _newBadgeBackground;

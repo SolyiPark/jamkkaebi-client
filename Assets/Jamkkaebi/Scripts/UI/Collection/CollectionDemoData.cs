@@ -8,7 +8,7 @@ namespace Jamkkaebi.Scripts.UI.Collection
     /// </summary>
     public static class CollectionDemoData
     {
-        /// <summary>확정 유물 5종을 복원하고 석불·나전칠기의 신규 표시를 해제한 화면 검토용 기록을 만듭니다.</summary>
+        /// <summary>확정 유물 5종을 복원하고 논산 관촉사 석조미륵보살입상·나전칠기의 신규 표시를 해제한 화면 검토용 기록을 만듭니다.</summary>
         /// <param name="catalog">샘플 유물 종류가 정의된 도감 자산입니다.</param>
         /// <returns>카탈로그를 공유하는 새 메모리 기록이며 저장·작업대 연결은 수행하지 않습니다.</returns>
         /// <exception cref="System.ArgumentNullException">카탈로그가 null이거나 파괴된 경우입니다.</exception>
