@@ -82,6 +82,13 @@ public static class ExhibitionSetup
         mirrorRoot.uiRaycasters = new UnityEngine.UI.GraphicRaycaster[0];
         var view = new SerializedObject(root.GetComponent<ExhibitionView>());
         view.FindProperty("_camera").objectReferenceValue = camera;
+        var policy = AssetDatabase.LoadAssetAtPath<ExhibitionBehaviorPolicy>("Assets/Jamkkaebi/Configuration/HomeExhibitionBehavior.asset");
+        if (!policy) throw new InvalidOperationException("홈 동작 정책 자산이 필요합니다.");
+        var cameraController = root.AddComponent<ExhibitionCameraController>();
+        cameraController.Configure(camera);
+        root.AddComponent<ExhibitionSelectionController>().Configure(policy, cameraController);
+        view.FindProperty("_cameraController").objectReferenceValue = cameraController;
+        view.FindProperty("_policy").objectReferenceValue = policy;
         view.ApplyModifiedPropertiesWithoutUndo();
         var world = new GameObject("Artwork space (4320 x 7680, center pivot, 1000 PPU)").transform;
         world.SetParent(root.transform, false);

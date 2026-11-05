@@ -877,6 +877,8 @@ GameObject:
   - component: {fileID: 1191466249}
   - component: {fileID: 1191466248}
   - component: {fileID: 1191466252}
+  - component: {fileID: 1191466253}
+  - component: {fileID: 1191466254}
   m_Layer: 8
   m_Name: Home Exhibition
   m_TagString: Untagged
@@ -897,6 +899,8 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionView
   _camera: {fileID: 339322683}
+  _cameraController: {fileID: 1191466253}
+  _policy: {fileID: 11400000, guid: 4eda5f9294d14fbcb765ba311e028401, type: 2}
   _zoom: 1
   _center: {x: 0, y: 0}
 --- !u!114 &1191466249
@@ -939,6 +943,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4b77135840048de9cc7f1cacb5af204, type: 3}
   m_Name:
   m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionHousing
+  _policy: {fileID: 11400000, guid: 4eda5f9294d14fbcb765ba311e028401, type: 2}
+  _selectionController: {fileID: 1191466254}
   _surface: {fileID: 1350913802}
   _content: {fileID: 1113513872}
   _font: {fileID: 12800000, guid: 8ff598083fa05724cb7948bd3db7f4ac, type: 3}
@@ -1524,6 +1530,36 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &1191466253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1191466247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e6724b8fa904f9aaf106e5190bb9841, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionCameraController
+  _camera: {fileID: 339322683}
+  _focusZoom: 1.5
+  _transitionSeconds: 0.15
+--- !u!114 &1191466254
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1191466247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6a5de2793f84c2eb553a1d9ae199204, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Exhibition.ExhibitionSelectionController
+  _policy: {fileID: 11400000, guid: 4eda5f9294d14fbcb765ba311e028401, type: 2}
+  _cameraController: {fileID: 1191466253}
+  _selectedOpacity: 0.75
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

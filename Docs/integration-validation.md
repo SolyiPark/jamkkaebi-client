@@ -49,3 +49,7 @@ Unity Editor를 닫고 저장소 루트에서 실행합니다.
 ## 작업대 동결 기본값 적용
 
 작업대의 Background Policy를 Pause While Hidden으로 변경한 후 Windows 실행 파일을 다시 빌드했습니다. 기본 설정 그대로 작업대를 떠났을 때 남은 시간이 변하지 않고, 복귀 시 도구 사용 횟수와 진행 상태를 유지한 채 재개하는 검사를 포함하여 통합 검사 49개가 모두 통과했습니다. 정책은 MainTabs Inspector에서 계속 변경할 수 있습니다.
+
+## 2026-11-05 홈·방문 공용 동작 검증
+
+화면 정책·공용 카메라·공용 선택과 홈/방문 어댑터·씬 연결 후 단계별 검사와 전체 검증을 수행했다. 일반 실행은 EditMode 288 통과/HTTP 3 생략·Player 377 통과, 가장자리 종이 배경 덮임 보강 후 최종 실제 HTTP 실행은 EditMode 291 통과·생략 0/Player 402 통과·빌드와 Player 종료 0·GPU 종료 오류/Exception 0이다. 단계별 디버깅, 캡처, 정확한 증거와 미검증 범위는 [공용 동작 검증](exhibition-shared-behavior-validation.md)을 확인한다. 선택 포커스 기본값은 꺼짐이며 Android/iOS·운영 OAuth 검증을 포함하지 않는다.
