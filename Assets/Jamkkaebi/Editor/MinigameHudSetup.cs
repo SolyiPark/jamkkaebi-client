@@ -673,10 +673,10 @@ public static class MinigameHudSetup
         PlaceInside(page.rectTransform, 120f, 320f, 840f, 1480f);
         page.raycastTarget = false;
 
-        Button previous = CreateInfoButton("PreviousButton", frame, "InfoArrow", new Vector2(208f + 22.5f, 1861f + 25f));
+        Button previous = CreateInfoButton("PreviousButton", frame, "InfoArrow", new Vector2(195f + 35f, 1837f + 39f));
         // 화살표 그림은 오른쪽을 가리키므로 좌우로 뒤집어 왼쪽 화살표로 쓴다
         previous.transform.localScale = new Vector3(-1f, 1f, 1f);
-        Button next = CreateInfoButton("NextButton", frame, "InfoArrow", new Vector2(826f + 22.5f, 1861f + 25f));
+        Button next = CreateInfoButton("NextButton", frame, "InfoArrow", new Vector2(816f + 35f, 1837f + 39f));
         foreach (Button arrow in new[] { previous, next })
         {
             // 화살표가 작아서 손가락으로 누르기 쉽도록, 그림은 그대로 두고 눌리는 영역만 넓힌다(음수 = 바깥으로)
@@ -685,7 +685,7 @@ public static class MinigameHudSetup
 
         TMP_FontAsset font = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
         TMP_Text pageText = CreateText("PageNumber", frame, font, 40f, new Color(0.565f, 0.565f, 0.565f), TextAlignmentOptions.Midline);
-        PlaceCenterAt(pageText.rectTransform, new Vector2(540f, 1886f), new Vector2(240f, 60f));
+        PlaceCenterAt(pageText.rectTransform, new Vector2(540f, 1876f), new Vector2(240f, 60f));
         pageText.text = $"1 / {HelpPageCount}";
 
         Image closeImage = CreateInfoImage("CloseButton", frame, "InfoCloseButton");
