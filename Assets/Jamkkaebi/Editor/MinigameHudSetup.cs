@@ -683,10 +683,10 @@ public static class MinigameHudSetup
         PlaceInside(page.rectTransform, 120f, 320f, 840f, 1480f);
         page.raycastTarget = false;
 
-        Button previous = CreateInfoButton("PreviousButton", frame, "InfoArrow", new Vector2(195f + 35f, 1837f + 39f));
-        // 화살표 그림은 오른쪽을 가리키므로 좌우로 뒤집어 왼쪽 화살표로 쓴다
-        previous.transform.localScale = new Vector3(-1f, 1f, 1f);
-        Button next = CreateInfoButton("NextButton", frame, "InfoArrow", new Vector2(816f + 35f, 1837f + 39f));
+        Button previous = CreateInfoButton("PreviousButton", frame, "InfoArrow", new Vector2(197f + 34f, 1839f + 37.5f));
+        Button next = CreateInfoButton("NextButton", frame, "InfoArrow", new Vector2(816f + 34f, 1839f + 37.5f));
+        // 화살표 그림은 왼쪽을 가리키므로 좌우로 뒤집어 오른쪽 화살표로 쓴다
+        next.transform.localScale = new Vector3(-1f, 1f, 1f);
         foreach (Button arrow in new[] { previous, next })
         {
             // 화살표가 작아서 손가락으로 누르기 쉽도록, 그림은 그대로 두고 눌리는 영역만 넓힌다(음수 = 바깥으로)
