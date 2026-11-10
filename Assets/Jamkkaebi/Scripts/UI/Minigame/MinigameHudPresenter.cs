@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
+using Jamkkaebi.Scripts.UI.Common;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -57,6 +58,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [Header("기타 버튼")]
         [SerializeField] private Button _quitButton;
         [SerializeField] private Button _infoButton;
+        [Tooltip("도움말 버튼(?)을 누르면 여는 창.")]
+        [SerializeField] private InfoPanel _infoPanel;
 
         [Header("결과")]
         [SerializeField] private GameObject _resultRoot;
@@ -90,7 +93,19 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             if (_quitButton != null) _quitButton.onClick.AddListener(RestartSession);
             if (_restartButton != null) _restartButton.onClick.AddListener(RestartSession);
             if (_resultRoot != null) _resultRoot.SetActive(false);
+
+            if (_infoPanel != null)
+            {
+                if (_infoButton != null) _infoButton.onClick.AddListener(_infoPanel.Open);
+                // 도움말을 읽는 동안에는 뒤의 보드를 누를 수 없게 한다
+                _infoPanel.Opened += BlockBoardInput;
+                _infoPanel.Closed += UnblockBoardInput;
+            }
         }
+
+        private void BlockBoardInput() => _adapter.IsInputBlocked = true;
+
+        private void UnblockBoardInput() => _adapter.IsInputBlocked = false;
 
         private void OnEnable()
         {
@@ -113,6 +128,12 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             }
             if (_quitButton != null) _quitButton.onClick.RemoveListener(RestartSession);
             if (_restartButton != null) _restartButton.onClick.RemoveListener(RestartSession);
+            if (_infoPanel != null)
+            {
+                if (_infoButton != null) _infoButton.onClick.RemoveListener(_infoPanel.Open);
+                _infoPanel.Opened -= BlockBoardInput;
+                _infoPanel.Closed -= UnblockBoardInput;
+            }
         }
 
         private void LateUpdate()

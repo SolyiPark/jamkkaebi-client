@@ -22,6 +22,9 @@ public static class MinigameHudSetup
 {
     private const string ScenePath = "Assets/Jamkkaebi/Scenes/Minigame.unity";
     private const string SpriteFolder = "Assets/Jamkkaebi/Art/Minigame/UI";
+    private const string InfoPanelFolder = "Assets/Jamkkaebi/Art/Common/InfoPanel";
+    private const string HelpPanelName = "HelpPanel";
+    private const int HelpPageCount = 4;
     private const string BonusIconPath = "Assets/Jamkkaebi/Art/Minigame/TileContents/TileIcon_Bonus.png";
     private const string PretendardFolder = "Assets/Jamkkaebi/Fonts/Pretendard";
     private const string SejongFolder = "Assets/Jamkkaebi/Fonts/KingSejongInstitute";
@@ -221,6 +224,7 @@ public static class MinigameHudSetup
         AddGaugeRider(hud, presenter);
         AddScoutPopup(hud, adapter, titleFont, numberFont);
         AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText);
+        BuildHelpPanel(presenter, canvas);
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
         Selection.activeGameObject = hud.gameObject;
@@ -608,6 +612,145 @@ public static class MinigameHudSetup
         scaler.referenceResolution = ReferenceResolution;
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0f;   // 가로를 고정하고, 기기마다 세로 길이만 달라진다
+    }
+
+    /// <summary>
+    /// 이미 만든 HUD에 도움말 창만 다시 만든다. 페이지 그림을 바꾸거나 배치를 처음 상태로 되돌릴 때 쓴다.
+    /// </summary>
+    [MenuItem("Jamkkaebi/Minigame/Rebuild Help Panel")]
+    public static void RebuildHelpPanelMenu()
+    {
+        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
+        Canvas canvas = presenter != null ? presenter.GetComponentInParent<Canvas>() : null;
+        if (presenter == null || canvas == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter와 Canvas를 찾지 못했습니다.", "확인");
+            return;
+        }
+        BuildHelpPanel(presenter, canvas);
+        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
+        Debug.Log("[MinigameHudSetup] 도움말 창을 만들었습니다. 씬을 저장해주세요.");
+    }
+
+    /// <summary>
+    /// 도움말 창(어두운 배경 + 창 틀 + 페이지 그림 + 화살표·쪽 번호·닫기)을 캔버스 바로 아래에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// </summary>
+    /// <remarks>
+    /// 좌표는 피그마 시안(1080×2400) 기준이고, 창 틀(Frame)의 왼쪽 위를 원점으로 둔다.
+    /// 화면을 모두 덮어야 하므로 SafeArea 밖, 결과 화면보다는 아래에 둔다.
+    /// </remarks>
+    private static void BuildHelpPanel(MinigameHudPresenter presenter, Canvas canvas)
+    {
+        Transform root = canvas.rootCanvas.transform;
+        Transform existing = root.Find(HelpPanelName);
+        if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+
+        RectTransform panel = CreateRect(HelpPanelName, root);
+        Undo.RegisterCreatedObjectUndo(panel.gameObject, "Build Help Panel");
+        Stretch(panel);
+        // 결과 화면이 캔버스 바로 아래에 있으면 그 앞에 둬서, 도움말이 결과 화면을 가리지 않게 한다
+        var presenterSo = new SerializedObject(presenter);
+        var resultRoot = presenterSo.FindProperty("_resultRoot").objectReferenceValue as GameObject;
+        if (resultRoot != null && resultRoot.transform.parent == root) panel.SetSiblingIndex(resultRoot.transform.GetSiblingIndex());
+        else panel.SetAsLastSibling();
+
+        // 뒤의 HUD 버튼이 눌리지 않도록 화면 전체를 덮어 입력을 받는다
+        Image dim = CreateImage("Dim", panel, null);
+        Stretch(dim.rectTransform);
+        dim.color = new Color(0f, 0f, 0f, 0.6f);
+
+        // 창 틀: 1080×2400 그대로 화면 가운데에 둔다. 화면이 낮으면 InfoPanel이 통째로 줄인다
+        RectTransform frame = CreateRect("Frame", panel);
+        frame.anchorMin = frame.anchorMax = new Vector2(0.5f, 0.5f);
+        frame.pivot = new Vector2(0.5f, 0.5f);
+        frame.anchoredPosition = Vector2.zero;
+        frame.sizeDelta = ReferenceResolution;
+
+        Image background = CreateInfoImage("Background", frame, "InfoPanel");
+        PlaceTopLeft(background.rectTransform, 0f, 0f);
+
+        Image page = CreateInfoImage("Page", frame, "MinigameHelp1");
+        PlaceInside(page.rectTransform, 120f, 320f, 840f, 1480f);
+        page.raycastTarget = false;
+
+        Button previous = CreateInfoButton("PreviousButton", frame, "InfoArrow", new Vector2(208f + 22.5f, 1861f + 25f));
+        // 화살표 그림은 오른쪽을 가리키므로 좌우로 뒤집어 왼쪽 화살표로 쓴다
+        previous.transform.localScale = new Vector3(-1f, 1f, 1f);
+        Button next = CreateInfoButton("NextButton", frame, "InfoArrow", new Vector2(826f + 22.5f, 1861f + 25f));
+        foreach (Button arrow in new[] { previous, next })
+        {
+            // 화살표가 작아서 손가락으로 누르기 쉽도록, 그림은 그대로 두고 눌리는 영역만 넓힌다(음수 = 바깥으로)
+            ((Image)arrow.targetGraphic).raycastPadding = new Vector4(-40f, -35f, -40f, -35f);
+        }
+
+        TMP_FontAsset font = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
+        TMP_Text pageText = CreateText("PageNumber", frame, font, 40f, new Color(0.565f, 0.565f, 0.565f), TextAlignmentOptions.Midline);
+        PlaceCenterAt(pageText.rectTransform, new Vector2(540f, 1886f), new Vector2(240f, 60f));
+        pageText.text = $"1 / {HelpPageCount}";
+
+        Image closeImage = CreateInfoImage("CloseButton", frame, "InfoCloseButton");
+        PlaceTopLeft(closeImage.rectTransform, 377f, 2172f);
+        var close = closeImage.gameObject.AddComponent<Button>();
+        close.targetGraphic = closeImage;
+
+        var infoPanel = panel.gameObject.AddComponent<InfoPanel>();
+        var so = new SerializedObject(infoPanel);
+        so.FindProperty("_frame").objectReferenceValue = frame;
+        so.FindProperty("_pageImage").objectReferenceValue = page;
+        so.FindProperty("_pageText").objectReferenceValue = pageText;
+        so.FindProperty("_previousButton").objectReferenceValue = previous;
+        so.FindProperty("_nextButton").objectReferenceValue = next;
+        so.FindProperty("_closeButton").objectReferenceValue = close;
+        SerializedProperty pages = so.FindProperty("_pages");
+        pages.arraySize = HelpPageCount;
+        for (int i = 0; i < HelpPageCount; i++)
+        {
+            pages.GetArrayElementAtIndex(i).objectReferenceValue = LoadInfoSprite($"MinigameHelp{i + 1}");
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        presenterSo.FindProperty("_infoPanel").objectReferenceValue = infoPanel;
+        presenterSo.ApplyModifiedPropertiesWithoutUndo();
+
+        // 평소에는 닫아 둔다. ? 버튼을 누르면 InfoPanel.Open()이 켠다
+        panel.gameObject.SetActive(false);
+    }
+
+    private static Sprite LoadInfoSprite(string spriteName)
+    {
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{InfoPanelFolder}/{spriteName}.png");
+        if (sprite == null) Debug.LogWarning($"[MinigameHudSetup] 도움말 그림을 찾지 못했습니다: {spriteName}");
+        return sprite;
+    }
+
+    private static Image CreateInfoImage(string name, Transform parent, string spriteName)
+    {
+        Image image = CreateImage(name, parent, null);
+        image.sprite = LoadInfoSprite(spriteName);
+        if (image.sprite != null) image.SetNativeSize();   // 시안 크기(1080×2400 기준)로 내보낸 그림이다
+        return image;
+    }
+
+    private static Button CreateInfoButton(string name, Transform parent, string spriteName, Vector2 center)
+    {
+        Image image = CreateInfoImage(name, parent, spriteName);
+        PlaceCenterAt(image.rectTransform, center, image.rectTransform.sizeDelta);
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        // 첫 쪽·마지막 쪽에서 누를 수 없을 때 흐리게 보인다
+        ColorBlock colors = button.colors;
+        colors.disabledColor = new Color(1f, 1f, 1f, 0.3f);
+        button.colors = colors;
+        return button;
+    }
+
+    /// <summary>부모의 왼쪽 위를 기준으로, 중심이 (x, y)에 오도록 놓는다. 좌우 뒤집기가 제자리에서 되도록 기준점을 가운데에 둔다.</summary>
+    private static void PlaceCenterAt(RectTransform rect, Vector2 center, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(center.x, -center.y);
+        rect.sizeDelta = size;
     }
 
     private static RectTransform CreateRect(string name, Transform parent)

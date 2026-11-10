@@ -85,7 +85,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public ToolMode SelectedTool => _selectedTool;
         public float TileSize => _tileSize;
         public float ChainStepDelay => _chainStepDelay;
-        public bool CanAcceptInput => isActiveAndEnabled && Time.timeScale > 0f &&
+        /// <summary>
+        /// true면 타일·도구 입력을 받지 않는다. 도움말처럼 보드 위에 창이 떠 있을 때 켠다.
+        /// </summary>
+        /// <remarks>타일은 OnMouseDown으로 눌리므로 UI 창이 덮여 있어도 입력이 들어온다. 그래서 따로 막는다.</remarks>
+        public bool IsInputBlocked { get; set; }
+        public bool CanAcceptInput => isActiveAndEnabled && !IsInputBlocked && Time.timeScale > 0f &&
             (!_inputCamera || _inputCamera.isActiveAndEnabled);
 
         private void Start()
