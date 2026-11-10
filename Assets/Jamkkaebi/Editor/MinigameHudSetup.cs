@@ -534,6 +534,16 @@ public static class MinigameHudSetup
         sweepSo.FindProperty("_parent").objectReferenceValue = gridContainer;
         sweepSo.ApplyModifiedProperties();
 
+        // 다 찾은 모양의 금색 테두리. 격자 선과 같은 흰색 사각형을 색만 바꿔 쓴다
+        var gridLineView = adapter.GetComponent<BoardGridLineView>();
+        Object whiteSprite = gridLineView != null ? new SerializedObject(gridLineView).FindProperty("_lineSprite").objectReferenceValue : null;
+        var outline = GetOrAddComponent<PolyominoOutlineView>(adapter.gameObject);
+        var outlineSo = new SerializedObject(outline);
+        outlineSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        outlineSo.FindProperty("_parent").objectReferenceValue = gridContainer;
+        outlineSo.FindProperty("_sprite").objectReferenceValue = whiteSprite;
+        outlineSo.ApplyModifiedProperties();
+
         var flash = GetOrAddComponent<ScreenEdgeFlash>(canvas.rootCanvas.gameObject);
         var flashSo = new SerializedObject(flash);
         flashSo.FindProperty("_adapter").objectReferenceValue = adapter;

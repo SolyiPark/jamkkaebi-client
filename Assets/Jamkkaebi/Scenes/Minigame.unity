@@ -2982,6 +2982,7 @@ GameObject:
   - component: {fileID: 1276415659}
   - component: {fileID: 1276415660}
   - component: {fileID: 1276415661}
+  - component: {fileID: 1276415662}
   m_Layer: 0
   m_Name: Minigame
   m_TagString: Untagged
@@ -3160,6 +3161,26 @@ MonoBehaviour:
   _sparkleDrift: 0.3
   _sparkleTwinkleSpeed: 3
   _sortingOrder: 16
+--- !u!114 &1276415662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1276415654}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6562c6a8811a41b281580614a31d5b93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.PolyominoOutlineView
+  _adapter: {fileID: 1276415655}
+  _parent: {fileID: 569415861}
+  _sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  _color: {r: 1, g: 0.78, b: 0.2, a: 1}
+  _thickness: 0.04
+  _sortingOrder: 12
+  _appearDuration: 0.35
+  _appearThicknessBoost: 2
 --- !u!1 &1443456377
 GameObject:
   m_ObjectHideFlags: 0
