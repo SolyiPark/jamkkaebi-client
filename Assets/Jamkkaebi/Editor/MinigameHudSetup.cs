@@ -24,6 +24,9 @@ public static class MinigameHudSetup
     private const string SpriteFolder = "Assets/Jamkkaebi/Art/Minigame/UI";
     private const string InfoPanelFolder = "Assets/Jamkkaebi/Art/Common/InfoPanel";
     private const string HelpPanelName = "HelpPanel";
+    private const string PhasePanelFolder = "Assets/Jamkkaebi/Art/Common/PhasePanel";
+    private const string PhasePanelName = "PhasePanel";
+    private const int PhaseCount = 3;
     private const int HelpPageCount = 4;
     private const string BonusIconPath = "Assets/Jamkkaebi/Art/Minigame/TileContents/TileIcon_Bonus.png";
     private const string PretendardFolder = "Assets/Jamkkaebi/Fonts/Pretendard";
@@ -225,6 +228,7 @@ public static class MinigameHudSetup
         AddScoutPopup(hud, adapter, titleFont, numberFont);
         AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText);
         BuildHelpPanel(presenter, canvas);
+        BuildPhasePanel(presenter, canvas);
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
         Selection.activeGameObject = hud.gameObject;
@@ -676,8 +680,9 @@ public static class MinigameHudSetup
         frame.anchoredPosition = Vector2.zero;
         frame.sizeDelta = ReferenceResolution;
 
+        // 창 틀 그림은 투명한 여백을 잘라 낸 878×2015 크기다. 시안(1080×2400)에서 왼쪽 위가 (101, 96)에 있다
         Image background = CreateInfoImage("Background", frame, "InfoPanel");
-        PlaceTopLeft(background.rectTransform, 0f, 0f);
+        PlaceTopLeft(background.rectTransform, 101f, 96f);
 
         Image page = CreateInfoImage("Page", frame, "MinigameHelp1");
         PlaceInside(page.rectTransform, 120f, 320f, 840f, 1480f);
@@ -724,6 +729,144 @@ public static class MinigameHudSetup
 
         // 평소에는 닫아 둔다. ? 버튼을 누르면 InfoPanel.Open()이 켠다
         panel.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// 이미 만든 HUD에 페이즈 시작 연출(족자)만 다시 만든다.
+    /// </summary>
+    [MenuItem("Jamkkaebi/Minigame/Rebuild Phase Panel")]
+    public static void RebuildPhasePanelMenu()
+    {
+        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
+        Canvas canvas = presenter != null ? presenter.GetComponentInParent<Canvas>() : null;
+        if (presenter == null || canvas == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter와 Canvas를 찾지 못했습니다.", "확인");
+            return;
+        }
+        BuildPhasePanel(presenter, canvas);
+        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
+        Debug.Log("[MinigameHudSetup] 페이즈 연출을 만들었습니다. 씬을 저장해주세요.");
+    }
+
+    /// <summary>
+    /// 페이즈 시작 연출(어두운 배경 + 족자 + 양쪽 축 + 제목)을 캔버스 바로 아래에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// </summary>
+    /// <remarks>
+    /// 족자(1080×475)는 화면 가운데에 둔다(시안에서 족자 중심 = 화면 중심).
+    /// 축(63×518)은 족자보다 위아래로 21.5px씩 길다. 축 그림은 오른쪽 축 모양이라, 왼쪽 축은 좌우로 뒤집어 쓴다.
+    /// 처음에는 꺼 두고, 판이 시작되면 MinigameHudPresenter가 PhaseIntroPanel.Play()로 켠다.
+    /// </remarks>
+    private static void BuildPhasePanel(MinigameHudPresenter presenter, Canvas canvas)
+    {
+        Transform root = canvas.rootCanvas.transform;
+        Transform existing = root.Find(PhasePanelName);
+        if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+
+        RectTransform panel = CreateRect(PhasePanelName, root);
+        Undo.RegisterCreatedObjectUndo(panel.gameObject, "Build Phase Panel");
+        Stretch(panel);
+        // HUD 위, 도움말·결과 화면보다는 아래에 둔다
+        Transform help = root.Find(HelpPanelName);
+        var presenterSo = new SerializedObject(presenter);
+        var resultRoot = presenterSo.FindProperty("_resultRoot").objectReferenceValue as GameObject;
+        if (help != null) panel.SetSiblingIndex(help.GetSiblingIndex());
+        else if (resultRoot != null && resultRoot.transform.parent == root) panel.SetSiblingIndex(resultRoot.transform.GetSiblingIndex());
+        else panel.SetAsLastSibling();
+
+        // 화면 전체를 덮어, 연출 중에 HUD 버튼이 눌리지 않고 화면을 누르면 연출을 건너뛰게 한다
+        Image dim = CreateImage("Dim", panel, null);
+        Stretch(dim.rectTransform);
+        dim.color = new Color(0f, 0f, 0f, 0f);
+
+        RectTransform band = CreateRect("Band", panel);
+        band.anchorMin = band.anchorMax = new Vector2(0.5f, 0.5f);
+        band.pivot = new Vector2(0.5f, 0.5f);
+        band.anchoredPosition = Vector2.zero;
+        band.sizeDelta = new Vector2(ReferenceResolution.x, 518f);
+
+        // 폭을 늘리며 족자를 드러내는 마스크. 처음엔 폭 0(말린 상태)
+        RectTransform reveal = CreateRect("Reveal", band);
+        reveal.anchorMin = reveal.anchorMax = new Vector2(0.5f, 0.5f);
+        reveal.pivot = new Vector2(0.5f, 0.5f);
+        reveal.anchoredPosition = Vector2.zero;
+        reveal.sizeDelta = new Vector2(0f, 475f);
+        reveal.gameObject.AddComponent<RectMask2D>();
+
+        Image scroll = CreatePhaseImage("Scroll", reveal, "PhasePanel");
+        CenterIn(scroll.rectTransform, Vector2.zero);
+
+        // 제목 그림은 족자 그림의 (220, 170)에서 잘라 낸 640×230 영역이다. 족자 중심 기준으로 옮긴다
+        Image title = CreatePhaseImage("Title", reveal, "PhaseTitle1");
+        CenterIn(title.rectTransform, new Vector2(220f + 320f - 540f, -(170f + 115f - 237.5f)));
+
+        // 오른쪽 축: 왼쪽 끝이 족자 오른쪽 가장자리에 붙는다
+        Image rightRod = CreatePhaseImage("RightRod", band, "PhaseScrollRod");
+        RectTransform rightRect = rightRod.rectTransform;
+        rightRect.anchorMin = rightRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rightRect.pivot = new Vector2(0f, 0.5f);
+        rightRect.anchoredPosition = Vector2.zero;
+
+        // 왼쪽 축: 같은 그림을 좌우로 뒤집는다. 기준점을 그림의 왼쪽 끝에 두고 뒤집으면 그 끝이 족자 왼쪽 가장자리에 붙는다
+        Image leftRod = CreatePhaseImage("LeftRod", band, "PhaseScrollRod");
+        RectTransform leftRect = leftRod.rectTransform;
+        leftRect.anchorMin = leftRect.anchorMax = new Vector2(0.5f, 0.5f);
+        leftRect.pivot = new Vector2(0f, 0.5f);
+        leftRect.anchoredPosition = Vector2.zero;
+        leftRect.localScale = new Vector3(-1f, 1f, 1f);
+
+        // 족자 아래, 도구 버튼 위(시안 기준 y 1700)에 건너뛰기 안내를 둔다. 배경을 50% 어둡게 덮으므로 흰 글자가 읽힌다
+        TMP_FontAsset hintFont = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
+        TMP_Text skipHint = CreateText("SkipHint", panel, hintFont, 36f, Color.white, TextAlignmentOptions.Midline);
+        CenterIn(skipHint.rectTransform, new Vector2(0f, -(1700f - ReferenceResolution.y * 0.5f)));
+        skipHint.rectTransform.sizeDelta = new Vector2(900f, 60f);
+        skipHint.text = "화면을 터치하면 넘어가요";
+        skipHint.color = new Color(1f, 1f, 1f, 0f);
+
+        var intro = panel.gameObject.AddComponent<PhaseIntroPanel>();
+        var so = new SerializedObject(intro);
+        so.FindProperty("_dim").objectReferenceValue = dim;
+        so.FindProperty("_reveal").objectReferenceValue = reveal;
+        so.FindProperty("_leftRod").objectReferenceValue = leftRect;
+        so.FindProperty("_rightRod").objectReferenceValue = rightRect;
+        so.FindProperty("_title").objectReferenceValue = title;
+        so.FindProperty("_skipHint").objectReferenceValue = skipHint;
+        SerializedProperty titles = so.FindProperty("_phaseTitles");
+        titles.arraySize = PhaseCount;
+        for (int i = 0; i < PhaseCount; i++)
+        {
+            titles.GetArrayElementAtIndex(i).objectReferenceValue = LoadSprite(PhasePanelFolder, $"PhaseTitle{i + 1}");
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        presenterSo.FindProperty("_phaseIntroPanel").objectReferenceValue = intro;
+        presenterSo.ApplyModifiedPropertiesWithoutUndo();
+
+        panel.gameObject.SetActive(false);
+    }
+
+    private static Image CreatePhaseImage(string name, Transform parent, string spriteName)
+    {
+        Image image = CreateImage(name, parent, null);
+        image.sprite = LoadSprite(PhasePanelFolder, spriteName);
+        if (image.sprite != null) image.SetNativeSize();
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private static Sprite LoadSprite(string folder, string spriteName)
+    {
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/{spriteName}.png");
+        if (sprite == null) Debug.LogWarning($"[MinigameHudSetup] 그림을 찾지 못했습니다: {folder}/{spriteName}");
+        return sprite;
+    }
+
+    /// <summary>부모 가운데를 기준으로 offset만큼 옮겨 놓는다. 크기는 이미 정해진 값을 쓴다.</summary>
+    private static void CenterIn(RectTransform rect, Vector2 offset)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = offset;
     }
 
     private static Sprite LoadInfoSprite(string spriteName)

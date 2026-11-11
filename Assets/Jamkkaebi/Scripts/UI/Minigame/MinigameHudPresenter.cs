@@ -60,6 +60,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [SerializeField] private Button _infoButton;
         [Tooltip("도움말 버튼(?)을 누르면 여는 창.")]
         [SerializeField] private InfoPanel _infoPanel;
+        [Tooltip("새 판이 시작될 때 이번 페이즈를 알리는 족자 연출.")]
+        [SerializeField] private PhaseIntroPanel _phaseIntroPanel;
 
         [Header("결과")]
         [SerializeField] private GameObject _resultRoot;
@@ -72,6 +74,9 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         private float _builtPreviewWidth = -1f;
         private float _displayedDamage;   // 화면에 보이는 손상도. 실제 값을 일정한 속도로 따라간다
         private float _riderFlinchTime;   // 도깨비 움찔임이 남은 시간
+        // 보드 입력은 창이 하나라도 떠 있으면 막는다. 창마다 따로 켜고 끄면 한쪽이 닫힐 때 다른 쪽 막음까지 풀린다
+        private bool _isInfoPanelOpen;
+        private bool _isPhaseIntroPlaying;
 
         private void Awake()
         {
@@ -98,14 +103,39 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             {
                 if (_infoButton != null) _infoButton.onClick.AddListener(_infoPanel.Open);
                 // 도움말을 읽는 동안에는 뒤의 보드를 누를 수 없게 한다
-                _infoPanel.Opened += BlockBoardInput;
-                _infoPanel.Closed += UnblockBoardInput;
+                _infoPanel.Opened += OnInfoPanelOpened;
+                _infoPanel.Closed += OnInfoPanelClosed;
             }
+            if (_phaseIntroPanel != null) _phaseIntroPanel.Finished += OnPhaseIntroFinished;
         }
 
-        private void BlockBoardInput() => _adapter.IsInputBlocked = true;
+        private void OnInfoPanelOpened()
+        {
+            _isInfoPanelOpen = true;
+            RefreshInputBlock();
+        }
 
-        private void UnblockBoardInput() => _adapter.IsInputBlocked = false;
+        private void OnInfoPanelClosed()
+        {
+            _isInfoPanelOpen = false;
+            RefreshInputBlock();
+        }
+
+        private void OnPhaseIntroFinished()
+        {
+            _isPhaseIntroPlaying = false;
+            RefreshInputBlock();
+        }
+
+        private void RefreshInputBlock() => _adapter.IsInputBlocked = _isInfoPanelOpen || _isPhaseIntroPlaying;
+
+        private void PlayPhaseIntro()
+        {
+            if (_phaseIntroPanel == null) return;
+            _isPhaseIntroPlaying = true;
+            RefreshInputBlock();
+            _phaseIntroPanel.Play(_adapter.CurrentPhase);
+        }
 
         private void OnEnable()
         {
@@ -131,9 +161,10 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             if (_infoPanel != null)
             {
                 if (_infoButton != null) _infoButton.onClick.RemoveListener(_infoPanel.Open);
-                _infoPanel.Opened -= BlockBoardInput;
-                _infoPanel.Closed -= UnblockBoardInput;
+                _infoPanel.Opened -= OnInfoPanelOpened;
+                _infoPanel.Closed -= OnInfoPanelClosed;
             }
+            if (_phaseIntroPanel != null) _phaseIntroPanel.Finished -= OnPhaseIntroFinished;
         }
 
         private void LateUpdate()
@@ -153,6 +184,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             }
             if (isNewSession)
             {
+                PlayPhaseIntro();
                 // 새 판은 이전 판의 손상도에서 내려오는 연출 없이 바로 시작 값으로 맞춘다
                 _displayedDamage = session.DamageGauge;
             }

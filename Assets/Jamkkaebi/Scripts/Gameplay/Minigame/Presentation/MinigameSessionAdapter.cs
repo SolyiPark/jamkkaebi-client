@@ -33,6 +33,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Tooltip("선택. 정화할 유물. 연결하면 유물의 봉인 매개체를 쓰고, 비우면 아래 Seal Medium 값을 쓴다.")]
         [SerializeField] private RelicData _relic;          // TODO: 작업대·전시관에서 진입할 때 넘겨받도록 교체
 
+        [Header("페이즈")]
+        [Tooltip("이번 판의 정화 페이즈(1 봉인 해제, 2 기억 회복, 3 오염 관리). 시작 연출에 쓴다.")]
+        [SerializeField] [Range(1, 3)] private int _phase = 1;   // TODO: 서버 PurificationStartResponse의 페이즈 연동 후 교체
+
         [Header("연쇄 연출")]
         [Tooltip("도움 타일이 한 줄을 열 때, 도움 타일에서 한 칸 멀어질 때마다 늦게 깨지는 시간(초). 0이면 한 번에 깨진다.")]
         [SerializeField] [Min(0f)] private float _chainStepDelay = 0.05f;
@@ -85,6 +89,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public ToolMode SelectedTool => _selectedTool;
         public float TileSize => _tileSize;
         public float ChainStepDelay => _chainStepDelay;
+        public int CurrentPhase => _phase;
         /// <summary>
         /// true면 타일·도구 입력을 받지 않는다. 도움말처럼 보드 위에 창이 떠 있을 때 켠다.
         /// </summary>
