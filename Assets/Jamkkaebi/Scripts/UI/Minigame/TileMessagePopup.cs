@@ -6,18 +6,26 @@ using UnityEngine;
 namespace Jamkkaebi.Scripts.UI.Minigame
 {
     /// <summary>
-    /// 정찰한 칸 위에 결과 말풍선을 띄웠다가, 위로 떠오르며 사라지게 한다.
+    /// 칸 위에 짧은 말풍선을 띄웠다가, 위로 떠오르며 사라지게 한다.
     /// </summary>
     /// <remarks>
-    /// 말풍선은 비활성 상태의 템플릿을 복제해서 만든다. 여러 번 정찰하면 말풍선이 겹쳐 떠도 각자 사라진다.
+    /// 두 가지 상황에 쓴다.
+    /// - 정찰 결과: "주변 위협 N개"
+    /// - 누른 칸에서 도구를 쓸 수 없을 때: "이미 열린 칸이에요" 등
+    /// 말풍선은 비활성 상태의 템플릿을 복제해서 만든다. 정찰 말풍선은 여러 개가 겹쳐 떠도 각자 사라지지만,
+    /// 안내 말풍선은 같은 곳을 연달아 눌러도 쌓이지 않도록 이전 것을 지우고 새로 띄운다.
     /// </remarks>
-    public class ScoutResultPopup : MonoBehaviour
+    public class TileMessagePopup : MonoBehaviour
     {
         [SerializeField] private MinigameSessionAdapter _adapter;
         [Tooltip("보드를 비추는 카메라. 타일 위치를 화면 좌표로 바꿀 때 쓴다.")]
         [SerializeField] private Camera _boardCamera;
         [Tooltip("복제해서 쓸 말풍선. 비활성 상태로 두고, 아래쪽 가운데(pivot 0.5, 0)를 기준점으로 둔다.")]
         [SerializeField] private RectTransform _template;
+
+        [Header("문구")]
+        [SerializeField] private string _alreadyRevealedMessage = "이미 열린 칸이에요";
+        [SerializeField] private string _noUsesRemainingMessage = "남은 횟수가 없어요";
 
         [Header("연출")]
         [Tooltip("타일 중심에서 말풍선 아래 끝까지의 거리(캔버스 단위).")]
@@ -30,6 +38,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
 
         private RectTransform _area;
         private Canvas _canvas;
+        // 마지막으로 띄운 안내 말풍선. 연달아 누르면 이것을 지우고 새로 띄운다
+        private RectTransform _lastNotice;
 
         private void Awake()
         {
@@ -40,23 +50,50 @@ namespace Jamkkaebi.Scripts.UI.Minigame
 
         private void OnEnable()
         {
-            if (_adapter != null) _adapter.ScoutRevealed += Show;
+            if (_adapter == null) return;
+            _adapter.ScoutRevealed += ShowScoutResult;
+            _adapter.TileActionRejected += ShowRejection;
         }
 
         private void OnDisable()
         {
-            if (_adapter != null) _adapter.ScoutRevealed -= Show;
+            if (_adapter == null) return;
+            _adapter.ScoutRevealed -= ShowScoutResult;
+            _adapter.TileActionRejected -= ShowRejection;
         }
 
-        private void Show(Vector2Int coord, int threatCount)
+        private void ShowScoutResult(Vector2Int coord, int threatCount)
         {
-            if (_template == null || _boardCamera == null) return;
-            if (!_adapter.TryGetTileWorldPosition(coord, out Vector3 worldPosition)) return;
+            Show(coord, threatCount > 0 ? $"주변 위협 {threatCount}개" : "주변에 위협이 없어요");
+        }
+
+        private void ShowRejection(Vector2Int coord, TileActionRejectReason reason)
+        {
+            string message = reason switch
+            {
+                TileActionRejectReason.AlreadyRevealed => _alreadyRevealedMessage,
+                TileActionRejectReason.NoUsesRemaining => _noUsesRemainingMessage,
+                _ => null
+            };
+            if (string.IsNullOrEmpty(message)) return;
+
+            if (_lastNotice != null) Destroy(_lastNotice.gameObject);
+            _lastNotice = Show(coord, message);
+        }
+
+        /// <summary>
+        /// coord 칸 위에 message 말풍선을 띄운다.
+        /// </summary>
+        /// <returns>띄운 말풍선. 띄울 수 없으면 null.</returns>
+        private RectTransform Show(Vector2Int coord, string message)
+        {
+            if (_template == null || _boardCamera == null) return null;
+            if (!_adapter.TryGetTileWorldPosition(coord, out Vector3 worldPosition)) return null;
 
             // 1. 타일의 월드 좌표 → 화면 좌표 → 이 영역 안의 좌표
             Vector2 screenPoint = _boardCamera.WorldToScreenPoint(worldPosition);
             Camera uiCamera = _canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay ? _canvas.worldCamera : null;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_area, screenPoint, uiCamera, out Vector2 localPoint)) return;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_area, screenPoint, uiCamera, out Vector2 localPoint)) return null;
 
             // 2. 템플릿을 복제해 문구를 넣는다
             RectTransform popup = Instantiate(_template, _area);
@@ -66,13 +103,14 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             popup.anchoredPosition = start;
 
             TMP_Text text = popup.GetComponentInChildren<TMP_Text>();
-            if (text != null) text.text = threatCount > 0 ? $"주변 위협 {threatCount}개" : "주변에 위협이 없어요";
+            if (text != null) text.text = message;
 
             CanvasGroup group = popup.GetComponent<CanvasGroup>();
             if (group == null) group = popup.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;   // 떠 있는 동안 타일·버튼 입력을 막지 않는다
 
             StartCoroutine(Animate(popup, group, start));
+            return popup;
         }
 
         private IEnumerator Animate(RectTransform popup, CanvasGroup group, Vector2 start)

@@ -49,6 +49,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         private Sprite _defaultSprite;
         private Vector3 _baseScale = Vector3.one;
         private Coroutine _punchRoutine;
+        private Vector3 _basePosition;
+        private Coroutine _shakeRoutine;
         // 내용물 아이콘을 그리는 자식 렌더러. 처음 필요할 때 만든다
         private SpriteRenderer _iconRenderer;
         // 칸마다 떠다니는 박자를 다르게 해서 모든 아이콘이 한꺼번에 오르내리지 않게 한다
@@ -69,15 +71,49 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             
             Coordinate = coordinate;
             _sealMediumData = sealMediumData;
-            // 어댑터가 Initialize 전에 칸 크기를 정해 두므로 지금 크기를 기준 크기로 기억한다
+            // 어댑터가 Initialize 전에 칸 크기와 위치를 정해 두므로 지금 값을 기준으로 기억한다
             _baseScale = transform.localScale;
+            _basePosition = transform.localPosition;
         }
 
         private void OnDisable()
         {
-            // 튕기는 도중 꺼지면 코루틴이 멈춰 크기가 어중간하게 남으므로 기준 크기로 되돌린다
+            // 튕기거나 흔들리는 도중 꺼지면 코루틴이 멈춰 크기·위치가 어중간하게 남으므로 기준 값으로 되돌린다
             _punchRoutine = null;
             transform.localScale = _baseScale;
+            if (_shakeRoutine != null)
+            {
+                _shakeRoutine = null;
+                transform.localPosition = _basePosition;
+            }
+        }
+
+        /// <summary>
+        /// 타일을 좌우로 짧게 흔든다. 누를 수 없는 칸을 눌렀을 때 쓴다.
+        /// </summary>
+        /// <param name="distance">흔들리는 폭(칸 크기 대비).</param>
+        /// <param name="duration">흔들리는 시간(초).</param>
+        public void PlayShake(float distance = 0.06f, float duration = 0.25f)
+        {
+            if (!isActiveAndEnabled) return;
+            if (_shakeRoutine != null) StopCoroutine(_shakeRoutine);
+            _shakeRoutine = StartCoroutine(ShakeRoutine(distance, duration));
+        }
+
+        private IEnumerator ShakeRoutine(float distance, float duration)
+        {
+            // 칸 크기(localScale.x)에 맞춰 폭을 정해, 보드 크기가 달라도 같은 느낌으로 흔들린다
+            float amplitude = distance * _baseScale.x;
+            for (float elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                float t = elapsed / duration;
+                // 세 번쯤 좌우로 오가며 점점 잦아든다
+                float offset = Mathf.Sin(t * Mathf.PI * 6f) * amplitude * (1f - t);
+                transform.localPosition = _basePosition + new Vector3(offset, 0f, 0f);
+                yield return null;
+            }
+            transform.localPosition = _basePosition;
+            _shakeRoutine = null;
         }
 
         /// <summary>

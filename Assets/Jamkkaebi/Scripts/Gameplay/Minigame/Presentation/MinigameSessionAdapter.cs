@@ -78,6 +78,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         /// 줄의 타일은 <see cref="ChainStepDelay"/> 간격으로 도움 타일에서 가까운 칸부터 깨진다.
         /// </summary>
         public event Action<Vector2Int, bool> HelperChainStarted;
+        /// <summary>누른 칸에서 도구를 쓰지 못했을 때. 누른 칸 좌표와 이유를 전달한다. 화면 안내에 쓴다.</summary>
+        public event Action<Vector2Int, TileActionRejectReason> TileActionRejected;
         public MinigameSession Session => _session;
         /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
         public SealMediumData CurrentSkin { get; private set; }
@@ -317,6 +319,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                         _isCollectingResults = false;
                     }
                     Debug.Log($"({coord.x}, {coord.y}) {type} 파괴 결과: {result}");
+                    NotifyIfRejected(coord, result);
 
                     PlayRevealBatch(_selectedTool);
                     float damage = _session.DamageGauge - damageBefore;
@@ -330,9 +333,33 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     Debug.Log($"({coord.x}, {coord.y}) 정찰 결과: {result}, 위협 타일 {threatCount}개");
                     FeedbackChanged?.Invoke($"정찰: {result} · 주변 위협 {threatCount}개");
                     if (result == ScoutResult.Success) ScoutRevealed?.Invoke(coord, threatCount);
+                    else if (result == ScoutResult.NoUsesRemaining) RejectTileAction(coord, TileActionRejectReason.NoUsesRemaining);
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// 파괴 도구를 쓰지 못했으면 이유를 알린다. 판이 끝난 뒤의 입력(SessionNotInProgress)은 알리지 않는다.
+        /// </summary>
+        private void NotifyIfRejected(Vector2Int coord, DestroyResult result)
+        {
+            switch (result)
+            {
+                case DestroyResult.NoValidTargets:
+                    RejectTileAction(coord, TileActionRejectReason.AlreadyRevealed);
+                    break;
+                case DestroyResult.NoUsesRemaining:
+                    RejectTileAction(coord, TileActionRejectReason.NoUsesRemaining);
+                    break;
+            }
+        }
+
+        private void RejectTileAction(Vector2Int coord, TileActionRejectReason reason)
+        {
+            // 누른 칸이 고개를 젓듯 좌우로 살짝 흔들려 "여기는 안 돼요"를 보여 준다
+            if (_tileViews.TryGetValue(coord, out TileView view) && view != null) view.PlayShake();
+            TileActionRejected?.Invoke(coord, reason);
         }
 
         private void OnTileRevealAttempted(TileRevealResult result)

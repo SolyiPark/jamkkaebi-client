@@ -113,11 +113,16 @@ public static class MinigameHudSetup
         scoutText.text = "0";
 
         // 정성 알약은 이미지 전체가 알약이다. 아이콘이 날아와 닿을 때 가운데 기준으로 튕기도록 기준점을 가운데에 둔다
-        Image jeongseongCount = CreateImage("JeongseongCount", hud, "JeongseongCount");
+        // 0개일 때는 회색 그림만 보이고, 처음 받으면 위에 겹친 컬러 그림이 나타나 색이 돌아온다(BonusCurrencyFlyer)
+        Image jeongseongCount = CreateImage("JeongseongCount", hud, "JeongseongCountGray");
         RectTransform jeongseongRect = jeongseongCount.rectTransform;
         jeongseongRect.anchorMin = jeongseongRect.anchorMax = new Vector2(0f, 1f);
         jeongseongRect.pivot = new Vector2(0.5f, 0.5f);
         jeongseongRect.anchoredPosition = new Vector2(480f + jeongseongRect.sizeDelta.x * 0.5f, -(66f + jeongseongRect.sizeDelta.y * 0.5f));
+        Image jeongseongColor = CreateImage("ColorOverlay", jeongseongRect, "JeongseongCount");
+        Stretch(jeongseongColor.rectTransform);
+        jeongseongColor.color = new Color(1f, 1f, 1f, 0f);
+        jeongseongColor.raycastTarget = false;
         TMP_Text jeongseongText = CreateText("Count", jeongseongRect, numberFont, 44f, DarkText, TextAlignmentOptions.Midline);
         PlaceInside(jeongseongText.rectTransform, 88f, 0f, 76f, 81f);
         jeongseongText.text = "0";
@@ -226,7 +231,7 @@ public static class MinigameHudSetup
         ApplyResponsiveLayout(hud, canvas);
         AddGaugeRider(hud, presenter);
         AddScoutPopup(hud, adapter, titleFont, numberFont);
-        AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText);
+        AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText, jeongseongColor);
         BuildHelpPanel(presenter, canvas);
         BuildPhasePanel(presenter, canvas);
 
@@ -464,13 +469,17 @@ public static class MinigameHudSetup
         Stretch(area);
         Undo.RegisterCreatedObjectUndo(area.gameObject, "Add Scout Popup");
 
-        Image bubble = CreateImage("PopupTemplate", area, "panel");
+        // 반투명한 흰 캡슐. 128px 원을 9-slice로 늘려 양 끝은 반원, 가운데만 가로로 늘어난다
+        Image bubble = CreateImage("PopupTemplate", area, "CapsuleWhite");
         bubble.type = Image.Type.Sliced;
+        bubble.color = new Color(1f, 1f, 1f, 0.85f);
         bubble.raycastTarget = false;
         RectTransform bubbleRect = bubble.rectTransform;
         bubbleRect.anchorMin = bubbleRect.anchorMax = new Vector2(0.5f, 0.5f);
         bubbleRect.pivot = new Vector2(0.5f, 0f);   // 아래쪽 가운데가 타일 위에 오도록
         bubbleRect.sizeDelta = new Vector2(440f, 110f);
+        // 반원 반지름(테두리 63px)이 높이의 절반(55)이 되도록 배율을 맞춘다
+        bubble.pixelsPerUnitMultiplier = 63f / (bubbleRect.sizeDelta.y * 0.5f);
         bubble.gameObject.AddComponent<CanvasGroup>();
 
         TMP_Text label = CreateText("Text", bubbleRect, font, 40f, DarkText, TextAlignmentOptions.Center, FontWeight.Bold);
@@ -478,7 +487,7 @@ public static class MinigameHudSetup
         label.text = "주변 위협 0개";
         bubble.gameObject.SetActive(false);
 
-        var popup = area.gameObject.AddComponent<ScoutResultPopup>();
+        var popup = area.gameObject.AddComponent<TileMessagePopup>();
         var so = new SerializedObject(popup);
         so.FindProperty("_adapter").objectReferenceValue = adapter;
         so.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
@@ -519,7 +528,7 @@ public static class MinigameHudSetup
     /// - 정성 아이콘: HUD 루트(화면 전체 좌표를 쓴다)
     /// </remarks>
     private static void AddTileFeedbackEffects(RectTransform hud, MinigameSessionAdapter adapter, Canvas canvas,
-        RectTransform jeongseongCount, TMP_Text jeongseongText)
+        RectTransform jeongseongCount, TMP_Text jeongseongText, Image jeongseongColor)
     {
         var adapterSo = new SerializedObject(adapter);
         Object gridContainer = adapterSo.FindProperty("_gridContainer").objectReferenceValue;
@@ -563,6 +572,7 @@ public static class MinigameHudSetup
         // 알약 가운데에서 하트 아이콘(알약 왼쪽에서 약 52px)까지의 거리
         flyerSo.FindProperty("_targetOffset").vector2Value = new Vector2(-35f, 0f);
         flyerSo.FindProperty("_counterText").objectReferenceValue = jeongseongText;
+        flyerSo.FindProperty("_colorOverlay").objectReferenceValue = jeongseongColor;
         flyerSo.ApplyModifiedProperties();
     }
 
