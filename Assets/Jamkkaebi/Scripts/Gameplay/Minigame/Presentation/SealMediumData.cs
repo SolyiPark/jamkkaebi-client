@@ -21,6 +21,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Header("배경")]
         [SerializeField] private Color _backgroundColor;
 
+        [Tooltip("반복해서 깔리는 배경 패턴. 비어 있으면 배경색으로 대신 칠한다.")]
+        [SerializeField] private Sprite _backgroundSprite;
+
         [Header("격자")]
         [Tooltip("보드 격자 선 색. 알파가 0이면 선이 보이지 않는다.")]
         [SerializeField] private Color _gridLineColor = Color.gray;
@@ -37,6 +40,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public Sprite TileSprite => _tileSprite;
         public Sprite ReinforcedTileSprite => _reinforcedTileSprite;
         public Color BackgroundColor => _backgroundColor;
+        public Sprite BackgroundSprite => _backgroundSprite;
         public Color GridLineColor => _gridLineColor;
 
         /// <summary>
