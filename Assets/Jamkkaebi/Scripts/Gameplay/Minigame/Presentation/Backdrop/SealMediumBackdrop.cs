@@ -1,15 +1,19 @@
+using Jamkkaebi.Scripts.Gameplay.Data;
 using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
 {
     public abstract class SealMediumBackdrop : MonoBehaviour
     {
+        [Tooltip("이 배경이 담당하는 봉인 매개체. 판이 시작되면 같은 매개체의 배경만 켜진다.")]
+        [SerializeField] private SealMedium _sealMedium;
         [SerializeField, Min(0f)] private float _blendSpeed = 0.5f;
         [SerializeField] private AnimationCurve _visualCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
         private float _currentCorruption;
         private float _targetCorruption;
 
+        public SealMedium SealMedium => _sealMedium;
         protected float CurrentCorruption => _currentCorruption;
 
         protected virtual void Update()
