@@ -418,13 +418,22 @@ public static class MinigameHudSetup
         track.sizeDelta = gauge.sizeDelta;
         track.SetSiblingIndex(gauge.GetSiblingIndex());
 
-        Image rider = CreateImage("Rider", track, null);
+        // 게이지 윗변부터 위쪽만 그리는 영역. 게이지가 반투명이라 뒤에 숨기는 대신 윗변 아래를 잘라낸다
+        RectTransform clip = CreateRect("RiderClip", track);
+        clip.anchorMin = new Vector2(0f, 1f);
+        clip.anchorMax = new Vector2(1f, 1f);
+        clip.pivot = new Vector2(0.5f, 0f);
+        clip.anchoredPosition = Vector2.zero;
+        clip.sizeDelta = new Vector2(0f, 300f);
+        clip.gameObject.AddComponent<RectMask2D>();
+
+        Image rider = CreateImage("Rider", clip, null);
         rider.raycastTarget = false;
         rider.preserveAspect = true;
         RectTransform rect = rider.rectTransform;
-        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);   // 트랙 왼쪽 위
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 0f);   // 클립 왼쪽 아래 = 트랙 왼쪽 위
         rect.pivot = new Vector2(0.9f, 0f);                      // 시안처럼 그림 오른쪽 부분이 채움 끝에 오도록
-        rect.anchoredPosition = new Vector2(0f, -58f);           // 아랫부분은 게이지(높이 66) 뒤에 가려진다
+        rect.anchoredPosition = new Vector2(0f, -58f);           // 게이지 윗변 아래로 내려간 부분은 클립에 잘린다
         rect.sizeDelta = new Vector2(195f, 190f);
 
         // 게이지와 함께 보드 폭을 따라가도록 맞춤 대상에 넣는다
