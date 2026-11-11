@@ -14,6 +14,9 @@ namespace Jamkkaebi.Scripts.UI.Minigame
     /// 화면 전체를 덮는 HUD 루트에 붙인다. 아이콘은 이 오브젝트의 자식으로 만들고, 다 쓰면 꺼 두었다가 다시 쓴다.
     /// 날아갈 곳(<see cref="_target"/>)이 없으면 제자리에서 떠올랐다가 사라진다.
     /// 아이콘 그림이 없으면 코드로 만든 금색 원을 쓴다. 재화 아이콘이 나오면 Icon Sprite에 넣기만 하면 된다.
+    ///
+    /// 도착하면: 재화 표시가 톡 커지고, 숫자가 튀어 오르고, 하트 주변으로 반짝임이 퍼진다.
+    /// 재화 표시는 0개일 때 회색이고, 처음 받는 순간 색이 돌아온다(회색 그림 위에 컬러 그림을 서서히 나타나게 함).
     /// </remarks>
     public class BonusCurrencyFlyer : MonoBehaviour
     {
@@ -35,6 +38,18 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [SerializeField] private Vector2 _targetOffset;
         [Tooltip("이번 판에서 모은 정성 수를 보여 줄 글자. 아이콘이 도착할 때 하나씩 오른다.")]
         [SerializeField] private TMP_Text _counterText;
+
+        [Header("받았을 때 연출")]
+        [Tooltip("선택. 재화 표시의 컬러 그림. 0개일 때는 투명해서 아래의 회색 그림이 보이고, 처음 받으면 서서히 나타나 색이 돌아온다.")]
+        [SerializeField] private Image _colorOverlay;
+        [SerializeField] [Min(0.01f)] private float _colorRevealDuration = 0.4f;
+        [Tooltip("도착할 때 하트 주변으로 퍼지는 반짝임 수. 첫 정성은 두 배로 퍼진다.")]
+        [SerializeField] [Range(0, 16)] private int _sparkleCount = 6;
+        [SerializeField] private Color _sparkleColor = new Color(1f, 0.92f, 0.55f);
+        [SerializeField] [Min(4f)] private float _sparkleSize = 34f;
+        [Tooltip("반짝임이 퍼져 나가는 거리(캔버스 단위).")]
+        [SerializeField] private float _sparkleDistance = 80f;
+        [SerializeField] [Min(0.05f)] private float _sparkleDuration = 0.5f;
 
         [Header("움직임 (캔버스 단위)")]
         [SerializeField] private FloatRange _burstSpeed = new FloatRange(350f, 650f);
@@ -58,7 +73,28 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             public float FlyDelay;
         }
 
+        /// <summary>도착 지점에서 퍼지는 반짝임 하나의 상태.</summary>
+        private class Sparkle
+        {
+            public RectTransform Rect;
+            public Image Image;
+            public Vector2 From;
+            public Vector2 To;
+            public float Age;
+            public float Spin;
+        }
+
+        private const float PunchDuration = 0.18f;
+        private const float CounterPopDuration = 0.2f;
+
         private readonly List<Icon> _icons = new List<Icon>();
+        private readonly List<Sparkle> _sparkles = new List<Sparkle>();
+        private Texture2D _sparkleTexture;
+        private Sprite _sparkleSprite;
+        private float _targetPunchStrength;
+        private float _counterPopTime;
+        // 색이 돌아오는 연출의 진행 시간. 음수면 진행 중이 아니다
+        private float _colorRevealElapsed = -1f;
         private RectTransform _area;
         private Canvas _canvas;
         private Sprite _fallbackSprite;
@@ -72,6 +108,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             _area = (RectTransform)transform;
             _canvas = GetComponentInParent<Canvas>();
             if (_iconSprite == null) CreateFallbackSprite();
+            CreateSparkleSprite();
         }
 
         private void OnEnable()
@@ -83,12 +120,15 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         {
             if (_adapter != null) _adapter.TileBroken -= OnTileBroken;
             foreach (Icon icon in _icons) icon.Rect.gameObject.SetActive(false);
+            foreach (Sparkle sparkle in _sparkles) sparkle.Rect.gameObject.SetActive(false);
         }
 
         private void OnDestroy()
         {
             if (_fallbackSprite != null) Destroy(_fallbackSprite);
             if (_fallbackTexture != null) Destroy(_fallbackTexture);
+            if (_sparkleSprite != null) Destroy(_sparkleSprite);
+            if (_sparkleTexture != null) Destroy(_sparkleTexture);
         }
 
         private void OnTileBroken(TileBreakInfo info)
@@ -151,7 +191,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
                 if (t >= 1f)
                 {
                     icon.Rect.gameObject.SetActive(false);
-                    if (hasTarget) OnIconArrived(icon);
+                    if (hasTarget) OnIconArrived(targetPosition);
                     continue;
                 }
 
@@ -173,13 +213,25 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             }
 
             UpdateTargetPunch(deltaTime);
+            UpdateCounterPop(deltaTime);
+            UpdateColorReveal(deltaTime);
+            UpdateSparkles(deltaTime);
         }
 
-        private void OnIconArrived(Icon icon)
+        /// <summary>
+        /// 하트가 재화 표시에 닿았을 때. 숫자를 올리고, 표시를 튕기고, 반짝임을 퍼뜨린다. 첫 정성이면 색이 돌아온다.
+        /// </summary>
+        private void OnIconArrived(Vector2 at)
         {
-            _targetPunchTime = 0.15f;
+            bool isFirst = _count == 0;
             _count++;
             if (_counterText != null) _counterText.text = _count.ToString();
+
+            _targetPunchTime = PunchDuration;
+            _targetPunchStrength = isFirst ? 0.35f : 0.2f;   // 첫 정성은 더 크게 튕긴다
+            _counterPopTime = CounterPopDuration;
+            if (isFirst && _colorOverlay != null) _colorRevealElapsed = 0f;
+            SpawnSparkles(at, isFirst ? _sparkleCount * 2 : _sparkleCount);
         }
 
         /// <summary>도착할 때마다 재화 표시가 톡 커졌다가 돌아온다.</summary>
@@ -187,8 +239,104 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         {
             if (_target == null || _targetPunchTime <= 0f) return;
             _targetPunchTime = Mathf.Max(0f, _targetPunchTime - deltaTime);
-            float t = _targetPunchTime / 0.15f;   // 1에서 0으로
-            _target.localScale = Vector3.one * (1f + 0.2f * t);
+            float t = _targetPunchTime / PunchDuration;   // 1에서 0으로
+            _target.localScale = Vector3.one * (1f + _targetPunchStrength * t * t);
+        }
+
+        /// <summary>숫자가 바뀔 때 커졌다가 제 크기로 돌아온다.</summary>
+        private void UpdateCounterPop(float deltaTime)
+        {
+            if (_counterText == null || _counterPopTime <= 0f) return;
+            _counterPopTime = Mathf.Max(0f, _counterPopTime - deltaTime);
+            float t = _counterPopTime / CounterPopDuration;
+            _counterText.rectTransform.localScale = Vector3.one * (1f + 0.35f * t * t);
+        }
+
+        /// <summary>회색 위의 컬러 그림을 서서히 나타나게 해 색이 돌아오는 것처럼 보이게 한다.</summary>
+        private void UpdateColorReveal(float deltaTime)
+        {
+            if (_colorOverlay == null || _colorRevealElapsed < 0f) return;
+            _colorRevealElapsed += deltaTime;
+            float t = Mathf.Clamp01(_colorRevealElapsed / _colorRevealDuration);
+            SetOverlayAlpha(1f - (1f - t) * (1f - t));
+            if (t >= 1f) _colorRevealElapsed = -1f;
+        }
+
+        private void SetOverlayAlpha(float alpha)
+        {
+            if (_colorOverlay == null) return;
+            Color color = _colorOverlay.color;
+            color.a = alpha;
+            _colorOverlay.color = color;
+        }
+
+        /// <summary>at을 중심으로 반짝임을 고르게 퍼뜨린다. 방향은 원을 count등분하고 조금씩 흔든다.</summary>
+        private void SpawnSparkles(Vector2 at, int count)
+        {
+            if (_sparkleSprite == null || count <= 0) return;
+            float startAngle = Random.value * 360f;
+            for (int i = 0; i < count; i++)
+            {
+                float angle = (startAngle + 360f * i / count + Random.Range(-12f, 12f)) * Mathf.Deg2Rad;
+                var direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+
+                Sparkle sparkle = GetSparkle();
+                sparkle.From = at;
+                sparkle.To = at + direction * (_sparkleDistance * Random.Range(0.7f, 1.1f));
+                sparkle.Age = 0f;
+                sparkle.Spin = Random.Range(-180f, 180f);
+                sparkle.Rect.anchoredPosition = at;
+                sparkle.Rect.SetAsLastSibling();
+                sparkle.Rect.gameObject.SetActive(true);
+            }
+        }
+
+        private void UpdateSparkles(float deltaTime)
+        {
+            foreach (Sparkle sparkle in _sparkles)
+            {
+                if (!sparkle.Rect.gameObject.activeSelf) continue;
+                sparkle.Age += deltaTime;
+                float t = sparkle.Age / _sparkleDuration;
+                if (t >= 1f)
+                {
+                    sparkle.Rect.gameObject.SetActive(false);
+                    continue;
+                }
+
+                // 빠르게 퍼졌다가 멈추고(1-(1-t)³), 커졌다가 작아지며 사라진다
+                float eased = 1f - (1f - t) * (1f - t) * (1f - t);
+                sparkle.Rect.anchoredPosition = Vector2.LerpUnclamped(sparkle.From, sparkle.To, eased);
+                sparkle.Rect.localRotation = Quaternion.Euler(0f, 0f, sparkle.Spin * t);
+                float size = Mathf.Sin(Mathf.PI * Mathf.Min(1f, t * 1.4f));
+                sparkle.Rect.localScale = Vector3.one * Mathf.Max(0f, size);
+                Color color = _sparkleColor;
+                color.a *= 1f - t * t;
+                sparkle.Image.color = color;
+            }
+        }
+
+        private Sparkle GetSparkle()
+        {
+            foreach (Sparkle sparkle in _sparkles)
+            {
+                if (!sparkle.Rect.gameObject.activeSelf) return sparkle;
+            }
+
+            var go = new GameObject("BonusSparkle", typeof(RectTransform));
+            go.layer = gameObject.layer;
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(_area, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(_sparkleSize, _sparkleSize);
+
+            var image = go.AddComponent<Image>();
+            image.sprite = _sparkleSprite;
+            image.raycastTarget = false;
+
+            var created = new Sparkle { Rect = rect, Image = image };
+            _sparkles.Add(created);
+            return created;
         }
 
         private void ResetCountOnNewSession()
@@ -196,7 +344,14 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             if (_adapter == null || _adapter.Session == _countedSession) return;
             _countedSession = _adapter.Session;
             _count = 0;
-            if (_counterText != null) _counterText.text = "0";
+            if (_counterText != null)
+            {
+                _counterText.text = "0";
+                _counterText.rectTransform.localScale = Vector3.one;
+            }
+            // 새 판은 정성 0개라 다시 회색으로 시작한다
+            _colorRevealElapsed = -1f;
+            SetOverlayAlpha(0f);
         }
 
         private bool TryScreenToArea(Vector2 screenPoint, out Vector2 anchoredPosition)
@@ -234,6 +389,32 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             var created = new Icon { Rect = rect, Image = image };
             _icons.Add(created);
             return created;
+        }
+
+        /// <summary>
+        /// 반짝임 그림: 밝은 점 + 가는 십자 빛살. 흰색으로 만들고 색은 Image 색으로 입힌다.
+        /// </summary>
+        private void CreateSparkleSprite()
+        {
+            const int size = 64;
+            _sparkleTexture = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "BonusSparkle" };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + 0.5f) / size * 2f - 1f;
+                    float dy = (y + 0.5f) / size * 2f - 1f;
+                    float core = Mathf.Exp(-(dx * dx + dy * dy) * 20f);
+                    float rays = Mathf.Max(Mathf.Exp(-dy * dy * 600f) * (1f - Mathf.Abs(dx)),
+                                           Mathf.Exp(-dx * dx * 600f) * (1f - Mathf.Abs(dy)));
+                    float alpha = Mathf.Clamp01(Mathf.Max(core, rays));
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+                }
+            }
+            _sparkleTexture.SetPixels32(pixels);
+            _sparkleTexture.Apply();
+            _sparkleSprite = Sprite.Create(_sparkleTexture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
         }
 
         /// <summary>재화 아이콘이 없을 때 쓸 흰색 원. 색은 Image 색으로 입힌다.</summary>
