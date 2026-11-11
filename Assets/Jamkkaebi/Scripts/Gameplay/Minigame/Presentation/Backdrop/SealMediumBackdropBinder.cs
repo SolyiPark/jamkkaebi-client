@@ -44,7 +44,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
             }
             
             _current = ActivateBackdrop(_adapter.CurrentSkin.SealMedium);
-            if (_current != null) _current.SetCorruptionImmediate(1f);
+            if (_current != null)
+            {
+                PhaseData phaseData = _adapter.CurrentPhaseData;
+                _current.SetIntensity(phaseData != null ? phaseData.BackdropIntensity : 1f);
+                _current.SetCorruptionImmediate(1f);
+            }
         }
 
         private void OnTileBroken(TileBreakInfo info)

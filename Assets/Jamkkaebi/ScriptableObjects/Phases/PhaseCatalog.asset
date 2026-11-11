@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4494c67fe62d418e86f75524af21ff1e, type: 3}
+  m_Name: PhaseCatalog
+  m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.PhaseCatalog
+  _phases:
+  - {fileID: 11400000, guid: 9dbe872a212b4d16a60f5460556f3cc2, type: 2}
+  - {fileID: 11400000, guid: 8b75ac225a474190a865344837d01407, type: 2}
+  - {fileID: 11400000, guid: 2166c956019d4c458b7862752d37766c, type: 2}

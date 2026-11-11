@@ -4798,6 +4798,7 @@ MonoBehaviour:
   _sealMediumCatalog: {fileID: 11400000, guid: d4d36a2ec02a9409bba0818e256cf6db, type: 2}
   _backgroundView: {fileID: 190990737}
   _sealMedium: 1
+  _phaseCatalog: {fileID: 11400000, guid: db1d87ecc6d549229234ee0324f1e658, type: 2}
 --- !u!4 &1276415656
 Transform:
   m_ObjectHideFlags: 0

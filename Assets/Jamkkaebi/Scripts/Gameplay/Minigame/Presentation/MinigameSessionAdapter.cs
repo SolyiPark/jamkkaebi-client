@@ -54,6 +54,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private BackgroundView _backgroundView;
         [SerializeField] private SealMedium _sealMedium;     // TODO: 서버 PurificationStartResponse.sealMedium 연동 후 제거
 
+        [Header("페이즈 연출")]
+        [Tooltip("페이즈마다 배경 밝기와 배경 연출 세기를 정한다. 비어 있으면 모든 페이즈를 같은 연출로 보여 준다.")]
+        [SerializeField] private PhaseCatalog _phaseCatalog;
+
         private MinigameSession _session;
         private Dictionary<Vector2Int, TileView> _tileViews;
         private ToolMode _selectedTool = ToolMode.SafeDestroy;
@@ -84,6 +88,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public MinigameSession Session => _session;
         /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
         public SealMediumData CurrentSkin { get; private set; }
+        /// <summary>현재 페이즈의 연출 데이터. 카탈로그가 없거나 등록되지 않은 페이즈면 null.</summary>
+        public PhaseData CurrentPhaseData { get; private set; }
         /// <summary>판이 끝나고 정답 공개 연출까지 마쳐 결과 화면을 띄워도 되면 true.</summary>
         public bool IsResultReady { get; private set; }
         /// <summary>현재 판에서 정화하는 유물. 연결되지 않았으면 null.</summary>
@@ -142,6 +148,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         {
             SealMediumData skin = ResolveSkin();
             CurrentSkin = skin;
+            CurrentPhaseData = _phaseCatalog != null ? _phaseCatalog.GetPhaseData(_phase) : null;
             
             // 1. 이전 세션 정리
             if (_session != null)
@@ -174,6 +181,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             Debug.Log($"[Minigame] seed: {_session.Seed}");
             _tileViews = new Dictionary<Vector2Int, TileView>();
             _backgroundView.Apply(skin);
+            if (CurrentPhaseData != null) _backgroundView.SetTone(CurrentPhaseData.BackgroundTint, CurrentPhaseData.BackgroundLift);
+            else _backgroundView.SetTone(Color.white, 0f);
             
             foreach (Vector2Int coord in _session.Grid.AllCoordinates())
             {
