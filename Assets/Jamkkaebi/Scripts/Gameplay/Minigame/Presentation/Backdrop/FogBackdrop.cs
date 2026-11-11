@@ -22,11 +22,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         
         [SerializeField] private float _cleanEdgeScale = 1.4f;
 
-        private void Start()
-        {
-            SetCorruptionImmediate(1f);
-        }
-
         protected override void Update()
         {
             base.Update();

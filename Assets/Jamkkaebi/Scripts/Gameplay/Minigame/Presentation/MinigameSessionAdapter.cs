@@ -64,7 +64,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         private bool _isCollectingResults;
         // 연쇄로 늦게 깨지는 타일이 모두 깨지는 시각(Time.time 기준)
         private float _chainVisualsEndTime;
-        
+
+        public event Action SessionBegan;
         public event Action<ToolMode> ToolSelectionChanged;
         public event Action<string> FeedbackChanged;
         /// <summary>정찰에 성공했을 때. 정찰한 칸 좌표와 3×3 범위의 위협 타일 수를 전달한다.</summary>
@@ -205,6 +206,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             
             _session.TileRevealAttempted += OnTileRevealAttempted;
             FeedbackChanged?.Invoke("타일을 선택해 발굴하세요.");
+            SessionBegan?.Invoke();
         }
 
         private void Update()
