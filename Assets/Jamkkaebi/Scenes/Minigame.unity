@@ -449,6 +449,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop.FogBackdrop
   _blendSpeed: 0.5
+  _visualCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0.07190551
+      outSlope: 0.07190551
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.29583332
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 2.0411437
+      outSlope: 2.0411437
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.058333337
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   _layers:
   - _image: {fileID: 1157380816}
     _scrollSpeed: {x: 0.01, y: 0.003}

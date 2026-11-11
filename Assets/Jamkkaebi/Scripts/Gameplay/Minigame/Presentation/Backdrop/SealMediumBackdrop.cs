@@ -5,6 +5,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
     public abstract class SealMediumBackdrop : MonoBehaviour
     {
         [SerializeField, Min(0f)] private float _blendSpeed = 0.5f;
+        [SerializeField] private AnimationCurve _visualCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
         private float _currentCorruption;
         private float _targetCorruption;
@@ -17,7 +18,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
             if (_currentCorruption == _targetCorruption) return;
             
             _currentCorruption = Mathf.MoveTowards(_currentCorruption, _targetCorruption, _blendSpeed * Time.deltaTime);
-            ApplyCorruption(_currentCorruption);
+            ApplyCorruption(_visualCurve.Evaluate(_currentCorruption));
         }
 
         public void SetCorruption(float t)
@@ -29,7 +30,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         {
             _targetCorruption = Mathf.Clamp01(t);
             _currentCorruption = _targetCorruption;
-            ApplyCorruption(_currentCorruption);
+            ApplyCorruption(_visualCurve.Evaluate(_currentCorruption));
         }
 
         protected abstract void ApplyCorruption(float t);
