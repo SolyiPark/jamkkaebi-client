@@ -26,7 +26,6 @@ public static class MinigameHudSetup
     private const string HelpPanelName = "HelpPanel";
     private const string PhasePanelFolder = "Assets/Jamkkaebi/Art/Common/PhasePanel";
     private const string PhasePanelName = "PhasePanel";
-    private const int PhaseCount = 3;
     private const int HelpPageCount = 4;
     private const string BonusIconPath = "Assets/Jamkkaebi/Art/Minigame/TileContents/TileIcon_Bonus.png";
     private const string PretendardFolder = "Assets/Jamkkaebi/Fonts/Pretendard";
@@ -864,12 +863,7 @@ public static class MinigameHudSetup
         so.FindProperty("_rightRod").objectReferenceValue = rightRect;
         so.FindProperty("_title").objectReferenceValue = title;
         so.FindProperty("_skipHint").objectReferenceValue = skipHint;
-        SerializedProperty titles = so.FindProperty("_phaseTitles");
-        titles.arraySize = PhaseCount;
-        for (int i = 0; i < PhaseCount; i++)
-        {
-            titles.GetArrayElementAtIndex(i).objectReferenceValue = LoadSprite(PhasePanelFolder, $"PhaseTitle{i + 1}");
-        }
+        // 페이즈별 제목 그림은 PhaseData 에셋이 들고 있고, 프레젠터가 재생할 때 넘겨준다
         so.ApplyModifiedPropertiesWithoutUndo();
 
         presenterSo.FindProperty("_phaseIntroPanel").objectReferenceValue = intro;

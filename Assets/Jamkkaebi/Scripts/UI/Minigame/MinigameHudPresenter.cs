@@ -134,7 +134,8 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             if (_phaseIntroPanel == null) return;
             _isPhaseIntroPlaying = true;
             RefreshInputBlock();
-            _phaseIntroPanel.Play(_adapter.CurrentPhase);
+            PhaseData phaseData = _adapter.CurrentPhaseData;
+            _phaseIntroPanel.Play(phaseData != null ? phaseData.TitleSprite : null);
         }
 
         private void OnEnable()

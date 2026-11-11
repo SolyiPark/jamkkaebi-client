@@ -25,8 +25,6 @@ namespace Jamkkaebi.Scripts.UI.Common
         [SerializeField] private RectTransform _leftRod;
         [SerializeField] private RectTransform _rightRod;
         [SerializeField] private Image _title;
-        [Tooltip("페이즈별 제목 그림. 0번이 1페이즈.")]
-        [SerializeField] private Sprite[] _phaseTitles;
         [Tooltip("선택. 족자가 다 펼쳐진 동안 깜빡이는 건너뛰기 안내 글자.")]
         [SerializeField] private TMP_Text _skipHint;
 
@@ -56,15 +54,18 @@ namespace Jamkkaebi.Scripts.UI.Common
         public bool IsPlaying { get; private set; }
 
         /// <summary>
-        /// 페이즈 연출을 처음부터 재생한다.
+        /// 족자 연출을 처음부터 재생한다.
         /// </summary>
-        /// <param name="phase">1부터 시작하는 페이즈 번호.</param>
-        public void Play(int phase)
+        /// <param name="titleSprite">족자에 띄울 제목 그림. null이면 지금 걸려 있는 그림을 그대로 쓴다.</param>
+        /// <remarks>
+        /// 어떤 페이즈에 어떤 제목을 쓸지는 이 패널이 아니라 페이즈 데이터가 정한다.
+        /// 패널은 받은 그림을 펼쳐 보여 주기만 하므로 페이즈가 아닌 다른 안내에도 쓸 수 있다.
+        /// </remarks>
+        public void Play(Sprite titleSprite)
         {
-            if (_phaseTitles != null && _phaseTitles.Length > 0 && _title != null)
+            if (titleSprite != null && _title != null)
             {
-                int index = Mathf.Clamp(phase - 1, 0, _phaseTitles.Length - 1);
-                _title.sprite = _phaseTitles[index];
+                _title.sprite = titleSprite;
             }
 
             gameObject.SetActive(true);

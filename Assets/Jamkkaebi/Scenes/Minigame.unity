@@ -1709,10 +1709,6 @@ MonoBehaviour:
   _leftRod: {fileID: 34264822}
   _rightRod: {fileID: 1668054846}
   _title: {fileID: 1573181706}
-  _phaseTitles:
-  - {fileID: 21300000, guid: 9a6e62c9b1b345bbb8d41da059f9ab40, type: 3}
-  - {fileID: 21300000, guid: 0218b1c493794e9db201a7acc4f2f664, type: 3}
-  - {fileID: 21300000, guid: ee8662d0715046c1843c5a8413219589, type: 3}
   _skipHint: {fileID: 1664750884}
   _panelWidth: 1080
   _dimAlpha: 0.7

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: PhaseData_3
   m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.PhaseData
   _phase: 3
+  _titleSprite: {fileID: 21300000, guid: ee8662d0715046c1843c5a8413219589, type: 3}
   _backdropIntensity: 0.5
   _backgroundTint: {r: 1, g: 1, b: 1, a: 1}
   _backgroundLift: 0.16
