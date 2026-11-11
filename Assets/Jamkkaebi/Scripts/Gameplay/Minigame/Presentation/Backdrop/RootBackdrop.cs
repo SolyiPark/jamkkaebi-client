@@ -35,6 +35,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         [SerializeField] private RootBranch[] _branches;
 
         [Header("빛")]
+        [Tooltip("뿌리의 최대 불투명도. 낮을수록 배경이 비쳐 보여 덜 눈에 띈다.")]
+        [SerializeField, Range(0f, 1f)] private float _maxAlpha = 0.55f;
         [Tooltip("밝기가 오르내리는 폭. 0이면 빛나지 않고 그대로 보인다.")]
         [SerializeField, Range(0f, 1f)] private float _glowPulse = 0.25f;
         [SerializeField, Min(0.1f)] private float _glowPeriod = 3f;
@@ -68,7 +70,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
                 {
                     float wave = 0.5f + 0.5f * Mathf.Sin(Time.time * Mathf.PI * 2f / _glowPeriod + phase);
                     Color color = branch.Graphic.color;
-                    color.a = 1f - _glowPulse * wave;
+                    color.a = _maxAlpha * (1f - _glowPulse * wave);
                     branch.Graphic.color = color;
                 }
             }
