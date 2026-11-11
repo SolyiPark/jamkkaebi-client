@@ -476,10 +476,10 @@ MonoBehaviour:
   _layers:
   - _image: {fileID: 1157380816}
     _scrollSpeed: {x: 0.01, y: 0.003}
-    _maxAlpha: 0.45
+    _maxAlpha: 0.25
   - _image: {fileID: 1096809883}
     _scrollSpeed: {x: -0.02, y: 0.005}
-    _maxAlpha: 0.35
+    _maxAlpha: 0.18
   _edge: {fileID: 1185291998}
   _cleanEdgeScale: 1.4
 --- !u!114 &105534117
@@ -3012,7 +3012,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
   m_Material: {fileID: 0}
-  m_Color: {r: 0.74092203, g: 0.7908303, b: 0.8490566, a: 0.2509804}
+  m_Color: {r: 0.5019608, g: 0.5294118, b: 0.5568628, a: 0.19215687}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3296,7 +3296,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
   m_Material: {fileID: 0}
-  m_Color: {r: 0.6433339, g: 0.6922695, b: 0.745283, a: 0.34901962}
+  m_Color: {r: 0.50146854, g: 0.52903616, b: 0.5566038, a: 0.15686275}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3509,7 +3509,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.29803923}
+  m_Color: {r: 0.5019608, g: 0.5294118, b: 0.5568628, a: 0.29803923}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
