@@ -58,6 +58,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         private float _spawnBudget;
         private float _intensity;
 
+        /// <summary>새로 생기는 입자의 기본 색. 이미 떠 있는 입자는 바뀌지 않는다.</summary>
+        public Color Color
+        {
+            get => _color;
+            set => _color = value;
+        }
+
         /// <summary>생성량 배율(0~1). 0이면 새 입자를 만들지 않고, 남은 입자는 수명대로 사라진다.</summary>
         public float Intensity
         {

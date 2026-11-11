@@ -14,6 +14,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         [Tooltip("정화가 끝났을 때 가장자리 크기. 1보다 클수록 그을음이 화면 밖으로 밀려난다.")]
         [SerializeField, Min(1f)] private float _cleanEdgeScale = 1.3f;
         [SerializeField] private UiDriftParticles _ash;
+        [Tooltip("배경이 완전히 밝아졌을 때 재 색. 밝은 바탕에서는 옅은 회색 재가 보이지 않으므로 어둡게 바꾼다.")]
+        [SerializeField] private Color _ashAwakenedColor = new Color(0.3f, 0.26f, 0.25f, 0.6f);
+
+        private Color _ashSealedColor;
+
+        private void Awake()
+        {
+            if (_ash != null) _ashSealedColor = _ash.Color;
+        }
 
         protected override void ApplyCorruption(float t)
         {
@@ -22,7 +31,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
             _edge.color = color;
             _edge.rectTransform.localScale = Vector3.one * Mathf.Lerp(_cleanEdgeScale, 1f, t);
 
-            if (_ash != null) _ash.Intensity = t;
+            if (_ash != null)
+            {
+                _ash.Intensity = t;
+                _ash.Color = Color.Lerp(_ashSealedColor, _ashAwakenedColor, Awakening);
+            }
         }
 
         [ContextMenu("Test Corruption to Min")]

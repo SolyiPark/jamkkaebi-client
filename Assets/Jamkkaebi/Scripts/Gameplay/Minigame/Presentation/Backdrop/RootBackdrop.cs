@@ -29,6 +29,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
             public Vector2 BasePosition { get; set; }
             public float BaseAngle { get; set; }
             public Graphic Graphic { get; set; }
+            public Color SealedColor { get; set; }
         }
 
         [SerializeField] private RootBranch[] _branches;
@@ -37,6 +38,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         [Tooltip("밝기가 오르내리는 폭. 0이면 빛나지 않고 그대로 보인다.")]
         [SerializeField, Range(0f, 1f)] private float _glowPulse = 0.25f;
         [SerializeField, Min(0.1f)] private float _glowPeriod = 3f;
+        [Tooltip("배경이 완전히 밝아졌을 때 뿌리 색. 밝은 바탕에서는 흰 뿌리가 묻히므로 어둡게 바꾼다.")]
+        [SerializeField] private Color _awakenedColor = new Color(0.5f, 0.44f, 0.36f, 1f);
 
         private bool _hasBasePose;
         private float _presence;   // 화면에 남아 있는 정도. 흔들림 크기에도 곱한다
@@ -80,6 +83,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
             {
                 if (branch.Target == null) continue;
                 branch.Target.anchoredPosition = branch.BasePosition + branch.RetractOffset * (1f - t);
+
+                if (branch.Graphic != null)
+                {
+                    // 알파는 빛남(Update)이 맡으므로 색만 바꾼다
+                    Color color = Color.Lerp(branch.SealedColor, _awakenedColor, Awakening);
+                    color.a = branch.Graphic.color.a;
+                    branch.Graphic.color = color;
+                }
             }
         }
 
@@ -94,6 +105,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
                 branch.BasePosition = branch.Target.anchoredPosition;
                 branch.BaseAngle = branch.Target.localEulerAngles.z;
                 branch.Graphic = branch.Target.GetComponent<Graphic>();
+                if (branch.Graphic != null) branch.SealedColor = branch.Graphic.color;
             }
         }
 

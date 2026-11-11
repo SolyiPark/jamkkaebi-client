@@ -48,6 +48,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
             {
                 PhaseData phaseData = _adapter.CurrentPhaseData;
                 _current.SetIntensity(phaseData != null ? phaseData.BackdropIntensity : 1f);
+                _current.SetAwakening(phaseData != null ? phaseData.Awakening : 0f);
                 _current.SetCorruptionImmediate(1f);
             }
         }

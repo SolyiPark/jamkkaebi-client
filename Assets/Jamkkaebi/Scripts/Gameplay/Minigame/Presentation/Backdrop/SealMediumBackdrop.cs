@@ -13,9 +13,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         private float _currentCorruption;
         private float _targetCorruption;
         private float _intensity = 1f;
+        private float _awakening;
 
         public SealMedium SealMedium => _sealMedium;
         protected float CurrentCorruption => _currentCorruption;
+        /// <summary>봉인이 풀린 정도(0~1). 배경이 밝아지는 만큼 자식이 연출 색을 밝은 배경용으로 바꾸는 데 쓴다.</summary>
+        protected float Awakening => _awakening;
 
         protected virtual void Update()
         {
@@ -33,6 +36,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation.Backdrop
         public void SetIntensity(float intensity)
         {
             _intensity = Mathf.Clamp01(intensity);
+        }
+
+        /// <summary>
+        /// 봉인이 풀린 정도(0~1)를 정한다. 다음 <see cref="ApplyCorruption"/>부터 반영된다.
+        /// </summary>
+        public void SetAwakening(float awakening)
+        {
+            _awakening = Mathf.Clamp01(awakening);
         }
 
         public void SetCorruption(float t)

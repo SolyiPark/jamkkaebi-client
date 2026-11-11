@@ -181,7 +181,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             Debug.Log($"[Minigame] seed: {_session.Seed}");
             _tileViews = new Dictionary<Vector2Int, TileView>();
             _backgroundView.Apply(skin);
-            if (CurrentPhaseData != null) _backgroundView.SetTone(CurrentPhaseData.BackgroundTint, CurrentPhaseData.BackgroundLift);
+            if (CurrentPhaseData != null) _backgroundView.SetTone(CurrentPhaseData.BackgroundTint, CurrentPhaseData.Awakening);
             else _backgroundView.SetTone(Color.white, 0f);
             
             foreach (Vector2Int coord in _session.Grid.AllCoordinates())

@@ -21,16 +21,16 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Tooltip("배경 연출(안개·그을음·뿌리·녹)의 세기. 1이면 그대로, 낮을수록 판을 시작할 때부터 옅다.")]
         [SerializeField, Range(0f, 1f)] private float _backdropIntensity = 1f;
 
-        [Tooltip("배경 이미지에 곱하는 색. 흰색이면 원래 밝기이고, 어두울수록 봉인이 짙은 느낌이 난다.")]
+        [Tooltip("봉인된 배경에 곱하는 색. 흰색이면 원래 밝기이고, 어두울수록 봉인이 짙은 느낌이 난다.")]
         [SerializeField] private Color _backgroundTint = Color.white;
 
-        [Tooltip("배경을 원래보다 밝게 하는 정도. 곱하는 색으로는 원래보다 밝아질 수 없어, 옅은 색을 이만큼 덮는다.")]
-        [SerializeField, Range(0f, 0.5f)] private float _backgroundLift;
+        [Tooltip("봉인이 풀린 정도. 이 비율만큼 깨어난(밝은) 배경이 섞이고, 배경 연출도 밝은 배경에 맞는 색으로 바뀐다.")]
+        [SerializeField, Range(0f, 1f)] private float _awakening;
 
         public int Phase => _phase;
         public Sprite TitleSprite => _titleSprite;
         public float BackdropIntensity => _backdropIntensity;
         public Color BackgroundTint => _backgroundTint;
-        public float BackgroundLift => _backgroundLift;
+        public float Awakening => _awakening;
     }
 }

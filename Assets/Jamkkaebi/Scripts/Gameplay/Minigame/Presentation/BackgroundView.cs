@@ -1,32 +1,36 @@
 using System;
 using UnityEngine;
-using UnityEngine.LowLevelPhysics2D;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 {
+    /// <summary>
+    /// 보드 뒤에 깔리는 배경.
+    /// </summary>
+    /// <remarks>
+    /// 매개체의 봉인된(어두운) 배경 위에 깨어난(밝은) 배경을 같은 위치·크기로 한 장 더 겹치고,
+    /// 페이즈가 정한 비율(<see cref="SetTone"/>의 awakening)만큼 투명도를 올려 두 배경을 섞는다.
+    /// 두 이미지는 크기와 Pixels Per Unit이 같아 무늬가 정확히 겹친다.
+    /// </remarks>
     [RequireComponent(typeof(SpriteRenderer))]
     public class BackgroundView : MonoBehaviour
     {
         [SerializeField] private Camera _camera;
         
         private SpriteRenderer _renderer;
-        private float _lastAspect;
-        private float _lastOrthographicSize;
-        private Vector3 _lastCameraPosition;
+        private SpriteRenderer _awakenedRenderer;
         private Sprite _fallbackSprite;
         private Color _baseColor = Color.white;   // 매개체가 정한 색
         private Color _tint = Color.white;        // 페이즈가 정한 밝기. 두 색을 곱해 칠한다
-
-        [Tooltip("배경을 원래보다 밝게 할 때 위에 덮는 색. 알파는 페이즈가 정한다.")]
-        [SerializeField] private Color _liftColor = new Color(1f, 0.98f, 0.92f, 1f);
-        private SpriteRenderer _liftRenderer;     // 곱하기로는 원래보다 밝게 못 하므로, 옅은 색 판을 한 장 더 덮는다
-        private float _lift;
+        private float _awakening;                 // 깨어난 배경을 섞는 비율(0~1)
+        private float _lastAspect;
+        private float _lastOrthographicSize;
+        private Vector3 _lastCameraPosition;
 
         private void Awake()
         {
             _renderer = GetComponent<SpriteRenderer>();
             _fallbackSprite = _renderer.sprite;
-            CreateLiftRenderer();
+            CreateAwakenedRenderer();
             
             if (_camera == null)
             {
@@ -54,62 +58,31 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                 _renderer.sprite = skin.BackgroundSprite;
                 _renderer.drawMode = SpriteDrawMode.Tiled;
                 _baseColor = Color.white;
+                _awakenedRenderer.sprite = skin.AwakenedBackgroundSprite;
             }
             else
             {
+                // 패턴이 없는 매개체는 색으로만 칠하므로 섞을 깨어난 배경도 없다
                 _renderer.sprite = _fallbackSprite;
                 _renderer.drawMode = SpriteDrawMode.Simple;
                 _baseColor = skin.BackgroundColor;
+                _awakenedRenderer.sprite = null;
             }
 
-            _renderer.color = _baseColor * _tint;
+            RefreshColors();
             FitToCamera();
         }
 
         /// <summary>
         /// 페이즈에 맞춰 배경 밝기를 정한다.
         /// </summary>
-        /// <param name="tint">배경에 곱할 색. 흰색이면 원래 색 그대로이고, 어두울수록 배경이 어두워진다.</param>
-        /// <param name="lift">원래보다 밝게 할 정도(0~1). 옅은 색 판을 이만큼의 불투명도로 위에 덮는다.</param>
-        public void SetTone(Color tint, float lift)
+        /// <param name="tint">봉인된 배경에 곱할 색. 흰색이면 원래 색 그대로이고, 어두울수록 배경이 어두워진다.</param>
+        /// <param name="awakening">깨어난(밝은) 배경을 섞는 비율. 0이면 봉인된 배경만, 1이면 깨어난 배경만 보인다.</param>
+        public void SetTone(Color tint, float awakening)
         {
             _tint = tint;
-            _lift = Mathf.Clamp01(lift);
-            _renderer.color = _baseColor * _tint;
-            RefreshLiftColor();
-        }
-
-        private void CreateLiftRenderer()
-        {
-            if (_fallbackSprite == null) return;
-
-            // 배경과 스케일이 섞이지 않도록 자식이 아닌 별도 오브젝트로 두고, 매번 화면 크기에 맞춘다
-            var go = new GameObject("BackgroundLift");
-            _liftRenderer = go.AddComponent<SpriteRenderer>();
-            _liftRenderer.sprite = _fallbackSprite;
-            _liftRenderer.sortingLayerID = _renderer.sortingLayerID;
-            _liftRenderer.sortingOrder = _renderer.sortingOrder + 1;
-            RefreshLiftColor();
-        }
-
-        private void RefreshLiftColor()
-        {
-            if (_liftRenderer == null) return;
-
-            Color color = _liftColor;
-            color.a = _lift;
-            _liftRenderer.color = color;
-            _liftRenderer.enabled = _lift > 0f;
-        }
-
-        private void FitLift(float viewWidth, float viewHeight)
-        {
-            if (_liftRenderer == null) return;
-
-            Vector2 spriteSize = _liftRenderer.sprite.bounds.size;
-            Transform lift = _liftRenderer.transform;
-            lift.localScale = new Vector3(viewWidth / spriteSize.x, viewHeight / spriteSize.y, 1f);
-            lift.position = new Vector3(_camera.transform.position.x, _camera.transform.position.y, transform.position.z);
+            _awakening = Mathf.Clamp01(awakening);
+            RefreshColors();
         }
 
         private void LateUpdate()
@@ -122,6 +95,24 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             }
         }
 
+        private void CreateAwakenedRenderer()
+        {
+            // 자식으로 두면 위치를 따로 맞출 필요가 없다. 타일 모드에서는 부모 스케일이 1이라 크기도 그대로 맞는다
+            var go = new GameObject("AwakenedBackground");
+            go.transform.SetParent(transform, false);
+            _awakenedRenderer = go.AddComponent<SpriteRenderer>();
+            _awakenedRenderer.drawMode = SpriteDrawMode.Tiled;
+            _awakenedRenderer.sortingLayerID = _renderer.sortingLayerID;
+            _awakenedRenderer.sortingOrder = _renderer.sortingOrder + 1;
+        }
+
+        private void RefreshColors()
+        {
+            _renderer.color = _baseColor * _tint;
+            _awakenedRenderer.color = new Color(1f, 1f, 1f, _awakening);
+            _awakenedRenderer.enabled = _awakening > 0f && _awakenedRenderer.sprite != null;
+        }
+
         private void FitToCamera()
         {
             if (_camera == null || _renderer.sprite == null) return;
@@ -129,7 +120,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             // 1. 화면 크기 (월드 단위)
             float viewHeight = _camera.orthographicSize * 2f;
             float viewWidth = viewHeight * _camera.aspect;
-            FitLift(viewWidth, viewHeight);
             
             Vector3 position = transform.position;
 
@@ -137,6 +127,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             {
                 transform.localScale = Vector3.one;
                 _renderer.size = new Vector2(viewWidth, viewHeight);
+                _awakenedRenderer.size = _renderer.size;
                 position.x = _camera.transform.position.x;
                 position.y = _camera.transform.position.y;
                 transform.position = position;

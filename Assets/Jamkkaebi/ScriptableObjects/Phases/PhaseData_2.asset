@@ -15,5 +15,5 @@ MonoBehaviour:
   _phase: 2
   _titleSprite: {fileID: 21300000, guid: 0218b1c493794e9db201a7acc4f2f664, type: 3}
   _backdropIntensity: 0.75
-  _backgroundTint: {r: 0.8, g: 0.8, b: 0.81, a: 1}
-  _backgroundLift: 0.05
+  _backgroundTint: {r: 1, g: 1, b: 1, a: 1}
+  _awakening: 0.5

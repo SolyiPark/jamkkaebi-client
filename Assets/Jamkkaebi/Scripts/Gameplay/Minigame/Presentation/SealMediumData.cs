@@ -23,6 +23,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         [Tooltip("반복해서 깔리는 배경 패턴. 비어 있으면 배경색으로 대신 칠한다.")]
         [SerializeField] private Sprite _backgroundSprite;
+        [Tooltip("봉인이 풀린 뒤의 밝은 배경. 봉인된 배경과 같은 크기·무늬로 그리고, 페이즈가 오를수록 이쪽이 더 많이 보인다.")]
+        [SerializeField] private Sprite _awakenedBackgroundSprite;
 
         [Header("격자")]
         [Tooltip("보드 격자 선 색. 알파가 0이면 선이 보이지 않는다.")]
@@ -41,6 +43,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public Sprite ReinforcedTileSprite => _reinforcedTileSprite;
         public Color BackgroundColor => _backgroundColor;
         public Sprite BackgroundSprite => _backgroundSprite;
+        public Sprite AwakenedBackgroundSprite => _awakenedBackgroundSprite;
         public Color GridLineColor => _gridLineColor;
 
         /// <summary>
