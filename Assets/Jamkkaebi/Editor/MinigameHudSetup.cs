@@ -37,6 +37,8 @@ public static class MinigameHudSetup
 
     private static readonly Vector2 ReferenceResolution = new Vector2(1080f, 2400f);
     private static readonly Color DarkText = new Color(0.2f, 0.2f, 0.2f);
+    // 매개체마다 배경색이 달라도 어울리도록 HUD 패널은 반투명 흰색으로 통일한다
+    private static readonly Color TranslucentPanel = new Color(1f, 1f, 1f, 0.75f);
     private static readonly Color DamageRed = new Color(0.61f, 0.25f, 0.25f);
 
     [MenuItem("Jamkkaebi/Minigame/Build HUD")]
@@ -134,7 +136,12 @@ public static class MinigameHudSetup
         PlaceTopLeft((RectTransform)infoButton.transform, 956f, 65f);
 
         // ── 손상도 게이지 ──────────────────────────────────────────────
-        Image gaugeBackground = CreateImage("DamageGauge", hud, "DamageGaugeBG");
+        // 어떤 배경 위에서도 보이도록 반투명 흰 캡슐. 128px 원을 9-slice로 늘려 양 끝을 반원으로 둔다
+        Image gaugeBackground = CreateImage("DamageGauge", hud, "CapsuleWhite");
+        gaugeBackground.type = Image.Type.Sliced;
+        gaugeBackground.color = TranslucentPanel;
+        gaugeBackground.rectTransform.sizeDelta = new Vector2(987f, 66f);
+        gaugeBackground.pixelsPerUnitMultiplier = 63f / (gaugeBackground.rectTransform.sizeDelta.y * 0.5f);
         PlaceTopLeft(gaugeBackground.rectTransform, 47f, 300f);
 
         Image gaugeFill = CreateImage("Fill", gaugeBackground.rectTransform, "DamageGauge");
@@ -155,7 +162,10 @@ public static class MinigameHudSetup
         damagePercent.text = "0%";
 
         // ── 찾을 형상 패널 ─────────────────────────────────────────────
-        Image panel = CreateImage("ShapePanel", hud, "panel");
+        Image panel = CreateImage("ShapePanel", hud, "PanelWhite");
+        panel.type = Image.Type.Sliced;
+        panel.color = TranslucentPanel;
+        panel.rectTransform.sizeDelta = new Vector2(987f, 350f);
         PlaceTopLeft(panel.rectTransform, 47f, 392f);
         panel.raycastTarget = false;
 
@@ -196,8 +206,12 @@ public static class MinigameHudSetup
         Button restartButton = dim.gameObject.AddComponent<Button>();
         restartButton.transition = Selectable.Transition.None;
 
-        Image resultPanel = CreateImage("Panel", dim.rectTransform, "panel");
+        Image resultPanel = CreateImage("Panel", dim.rectTransform, "PanelWhite");
+        resultPanel.type = Image.Type.Sliced;
+        // 어두운 딤 위라 HUD 패널보다 덜 비치게 해 글자를 읽기 쉽게 한다
+        resultPanel.color = new Color(1f, 1f, 1f, 0.9f);
         RectTransform resultRect = resultPanel.rectTransform;
+        resultRect.sizeDelta = new Vector2(987f, 350f);
         resultRect.anchorMin = resultRect.anchorMax = resultRect.pivot = new Vector2(0.5f, 0.5f);
         resultRect.anchoredPosition = Vector2.zero;
         resultPanel.raycastTarget = false;
