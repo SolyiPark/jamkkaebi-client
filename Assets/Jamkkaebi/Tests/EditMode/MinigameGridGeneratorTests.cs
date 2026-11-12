@@ -108,6 +108,49 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         [Test]
+        public void Generate_AnySeed_GroupCoordinatesFollowRotatedDefinitionInIndexOrder()
+        {
+            // 칸 조각 그림을 인덱스와 회전 횟수로 찾으므로, 배치 좌표가 회전한 정의와 같은 순서여야 한다
+            for (long seed = 0; seed < 200; seed++)
+            {
+                MinigameGrid grid = MinigameGridGenerator.Generate(_config, seed);
+
+                foreach (PolyominoGroup group in grid.PolyominoGroups)
+                {
+                    Vector2Int[] rotated = PolyominoRotator.Rotate(PolyominoShapes.Definitions[group.Shape], group.RotationCount);
+                    Vector2Int offset = group.Coordinates[0] - rotated[0];
+
+                    Assert.AreEqual(rotated.Length, group.Coordinates.Count, $"seed: {seed}, shape: {group.Shape}");
+                    for (int i = 0; i < rotated.Length; i++)
+                    {
+                        Assert.AreEqual(rotated[i] + offset, group.Coordinates[i], $"seed: {seed}, shape: {group.Shape}, cell: {i}");
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void Generate_ManySeeds_RecordsNonZeroRotation()
+        {
+            // 회전 횟수를 기록하지 않고 항상 0을 넘기는 실수를 막는다
+            bool foundRotated = false;
+
+            for (long seed = 0; seed < 200 && !foundRotated; seed++)
+            {
+                foreach (PolyominoGroup group in MinigameGridGenerator.Generate(_config, seed).PolyominoGroups)
+                {
+                    if (group.RotationCount != 0)
+                    {
+                        foundRotated = true;
+                        break;
+                    }
+                }
+            }
+
+            Assert.IsTrue(foundRotated);
+        }
+
+        [Test]
         public void Generate_RequiredTileExceedsGridTileCount_ThrowsInvalidOperationException()
         {
             // Arrange

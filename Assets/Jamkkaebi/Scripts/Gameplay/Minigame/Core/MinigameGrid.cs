@@ -60,6 +60,33 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             return x >= 0 && x < Width && y >= 0 && y < Height;
         }
 
+        /// <summary>
+        /// 좌표가 어느 폴리오미노의 몇 번째 칸인지 찾는다.
+        /// </summary>
+        /// <param name="coordinate">찾을 그리드 좌표.</param>
+        /// <param name="group">좌표가 속한 폴리오미노. 없으면 default.</param>
+        /// <param name="cellIndex"><see cref="PolyominoShapes.Definitions"/> 기준의 칸 인덱스. 없으면 -1.</param>
+        /// <returns>좌표가 폴리오미노에 속하면 true.</returns>
+        public bool TryGetPolyominoCell(Vector2Int coordinate, out PolyominoGroup group, out int cellIndex)
+        {
+            foreach (PolyominoGroup candidate in PolyominoGroups)
+            {
+                for (int i = 0; i < candidate.Coordinates.Count; i++)
+                {
+                    if (candidate.Coordinates[i] == coordinate)
+                    {
+                        group = candidate;
+                        cellIndex = i;
+                        return true;
+                    }
+                }
+            }
+
+            group = default;
+            cellIndex = -1;
+            return false;
+        }
+
         public bool IsExcavated(PolyominoGroup group)
         {
             return group.Coordinates.All(coord => GetTile(coord.x, coord.y).IsRevealed);

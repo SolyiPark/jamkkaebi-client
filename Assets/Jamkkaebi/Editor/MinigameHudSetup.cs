@@ -1,0 +1,1003 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
+using Jamkkaebi.Scripts.UI.Common;
+using Jamkkaebi.Scripts.UI.Minigame;
+using TMPro;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.TextCore.LowLevel;
+using UnityEngine.UI;
+
+/// <summary>
+/// 미니게임 HUD를 피그마 시안(360×800 @3x = 1080×2400) 배치대로 Minigame 씬에 만드는 에디터 도구입니다.
+/// </summary>
+/// <remarks>
+/// 한 번 만든 뒤에는 씬에서 직접 수정합니다. 다시 실행하면 기존 HUD를 지우고 새로 만들므로 수정 내용이 사라집니다.
+/// 좌표는 모두 1080×2400 기준 픽셀이며, 위쪽 요소는 SafeArea 위에, 도구 버튼은 아래에 붙입니다.
+/// </remarks>
+public static class MinigameHudSetup
+{
+    private const string ScenePath = "Assets/Jamkkaebi/Scenes/Minigame.unity";
+    private const string SpriteFolder = "Assets/Jamkkaebi/Art/Minigame/UI";
+    private const string InfoPanelFolder = "Assets/Jamkkaebi/Art/Common/InfoPanel";
+    private const string HelpPanelName = "HelpPanel";
+    private const string HelpPrefabPath = "Assets/Jamkkaebi/Prefabs/UI/MinigameHelpPopup.prefab";
+    private const string PhasePanelFolder = "Assets/Jamkkaebi/Art/Common/PhasePanel";
+    private const string PhasePanelName = "PhasePanel";
+    private const int HelpPageCount = 4;
+    private const string BonusIconPath = "Assets/Jamkkaebi/Art/Minigame/TileContents/TileIcon_Bonus.png";
+    private const string PretendardFolder = "Assets/Jamkkaebi/Fonts/Pretendard";
+    private const string SejongFolder = "Assets/Jamkkaebi/Fonts/KingSejongInstitute";
+    private const string FontAssetFolder = "Assets/Jamkkaebi/Fonts/TMP";
+    private const string HudName = "MinigameHud";
+    private const string RiderTrackName = "DamageGaugeRiderTrack";
+
+    private static readonly Vector2 ReferenceResolution = new Vector2(1080f, 2400f);
+    private static readonly Color DarkText = new Color(0.2f, 0.2f, 0.2f);
+    // 매개체마다 배경색이 달라도 어울리도록 HUD 패널은 반투명 흰색으로 통일한다
+    private static readonly Color TranslucentPanel = new Color(1f, 1f, 1f, 0.75f);
+    private static readonly Color DamageRed = new Color(0.61f, 0.25f, 0.25f);
+
+    [MenuItem("Jamkkaebi/Minigame/Build HUD")]
+    public static void Build()
+    {
+        if (EditorSceneManager.GetActiveScene().path != ScenePath)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", $"{ScenePath}를 열고 실행해주세요.", "확인");
+            return;
+        }
+        if (Shader.Find("TextMeshPro/Mobile/Distance Field") == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD",
+                "TMP 기본 리소스가 없습니다.\nWindow > TextMeshPro > Import TMP Essential Resources를 먼저 실행해주세요.", "확인");
+            return;
+        }
+
+        var adapter = Object.FindFirstObjectByType<MinigameSessionAdapter>();
+        var safeArea = Object.FindFirstObjectByType<SafeArea>();
+        var canvas = Object.FindFirstObjectByType<Canvas>();
+        if (adapter == null || safeArea == null || canvas == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameSessionAdapter, SafeArea, Canvas를 모두 찾지 못했습니다.", "확인");
+            return;
+        }
+
+        Transform existing = safeArea.transform.Find(HudName);
+        if (existing != null)
+        {
+            if (!EditorUtility.DisplayDialog("Minigame HUD", "이미 HUD가 있습니다. 지우고 다시 만들까요?\n씬에서 수정한 내용은 사라집니다.", "다시 만들기", "취소"))
+                return;
+            Undo.DestroyObjectImmediate(existing.gameObject);
+        }
+
+        // 글꼴은 가족마다 대표 에셋 하나만 텍스트에 지정하고, 굵게는 Font Weight(Bold)로 고른다.
+        // 대표 에셋의 Font Weights 표에 Bold 에셋을 연결해 두면 TMP가 진짜 Bold 글꼴로 그린다.
+        // - 프리텐다드: Medium이 대표(숫자·설명). Regular는 Medium과 차이가 작아 합쳤다
+        // - 세종학당체: Regular가 대표(패널 제목), Bold는 손상도·결과 제목·정찰 말풍선
+        TMP_FontAsset pretendard = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
+        LinkBoldWeight(pretendard, GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Bold")));
+        TMP_FontAsset sejong = GetOrCreateFontAsset(FindFontFile(SejongFolder, "Regular"));
+        LinkBoldWeight(sejong, GetOrCreateFontAsset(FindFontFile(SejongFolder, "Bold")));
+
+        TMP_FontAsset numberFont = pretendard;
+        TMP_FontAsset bodyFont = pretendard;
+        // 세종학당체가 없으면 프리텐다드로 대신한다
+        TMP_FontAsset titleFont = sejong != null ? sejong : pretendard;
+        TMP_FontAsset captionFont = titleFont;
+
+        ConfigureCanvasScaler(canvas);
+
+        RectTransform hud = CreateRect(HudName, safeArea.transform);
+        Stretch(hud);
+        Undo.RegisterCreatedObjectUndo(hud.gameObject, "Build Minigame HUD");
+
+        var presenter = hud.gameObject.AddComponent<MinigameHudPresenter>();
+        var so = new SerializedObject(presenter);
+        so.FindProperty("_adapter").objectReferenceValue = adapter;
+
+        // ── 상단: 도구 남은 횟수, 정성, 포기, 도움말 ────────────────────────
+        // 도구 배지 이미지(106px)에서 회색 알약은 19~99px에 있어 이미지 중심보다 아래다.
+        // 이미지 위쪽을 47px에 두면 알약 위쪽이 정성 알약(66px)과 맞는다. 숫자 칸을 알약에 맞추고,
+        // 글꼴 줄 높이 대신 글자 모양 기준(Midline)으로 세로 가운데 정렬한다
+        Image destructiveCount = CreateImage("DestructiveCount", hud, "DestructiveCount");
+        PlaceTopLeft(destructiveCount.rectTransform, 44f, 47f);
+        TMP_Text destructiveText = CreateText("Count", destructiveCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Midline);
+        PlaceInside(destructiveText.rectTransform, 115f, 19f, 105f, 81f);
+        destructiveText.text = "0";
+
+        Image scoutCount = CreateImage("ScoutCount", hud, "ScoutCount");
+        PlaceTopLeft(scoutCount.rectTransform, 283f, 47f);
+        TMP_Text scoutText = CreateText("Count", scoutCount.rectTransform, numberFont, 44f, Color.white, TextAlignmentOptions.Midline);
+        PlaceInside(scoutText.rectTransform, 85f, 19f, 92f, 81f);
+        scoutText.text = "0";
+
+        // 정성 알약은 이미지 전체가 알약이다. 아이콘이 날아와 닿을 때 가운데 기준으로 튕기도록 기준점을 가운데에 둔다
+        // 0개일 때는 회색 그림만 보이고, 처음 받으면 위에 겹친 컬러 그림이 나타나 색이 돌아온다(BonusCurrencyFlyer)
+        Image jeongseongCount = CreateImage("JeongseongCount", hud, "JeongseongCountGray");
+        RectTransform jeongseongRect = jeongseongCount.rectTransform;
+        jeongseongRect.anchorMin = jeongseongRect.anchorMax = new Vector2(0f, 1f);
+        jeongseongRect.pivot = new Vector2(0.5f, 0.5f);
+        jeongseongRect.anchoredPosition = new Vector2(480f + jeongseongRect.sizeDelta.x * 0.5f, -(66f + jeongseongRect.sizeDelta.y * 0.5f));
+        Image jeongseongColor = CreateImage("ColorOverlay", jeongseongRect, "JeongseongCount");
+        Stretch(jeongseongColor.rectTransform);
+        jeongseongColor.color = new Color(1f, 1f, 1f, 0f);
+        jeongseongColor.raycastTarget = false;
+        TMP_Text jeongseongText = CreateText("Count", jeongseongRect, numberFont, 44f, DarkText, TextAlignmentOptions.Midline);
+        PlaceInside(jeongseongText.rectTransform, 88f, 0f, 76f, 81f);
+        jeongseongText.text = "0";
+
+        Button quitButton = CreateButton("QuitButton", hud, "QuitButton");
+        PlaceTopLeft((RectTransform)quitButton.transform, 698f, 66f);
+
+        Button infoButton = CreateButton("InfoButton", hud, "InfoButton");
+        PlaceTopLeft((RectTransform)infoButton.transform, 956f, 65f);
+
+        // ── 손상도 게이지 ──────────────────────────────────────────────
+        // 어떤 배경 위에서도 보이도록 반투명 흰 캡슐. 128px 원을 9-slice로 늘려 양 끝을 반원으로 둔다
+        Image gaugeBackground = CreateImage("DamageGauge", hud, "CapsuleWhite");
+        gaugeBackground.type = Image.Type.Sliced;
+        gaugeBackground.color = TranslucentPanel;
+        gaugeBackground.rectTransform.sizeDelta = new Vector2(987f, 66f);
+        gaugeBackground.pixelsPerUnitMultiplier = 63f / (gaugeBackground.rectTransform.sizeDelta.y * 0.5f);
+        PlaceTopLeft(gaugeBackground.rectTransform, 47f, 300f);
+
+        Image gaugeFill = CreateImage("Fill", gaugeBackground.rectTransform, "DamageGauge");
+        gaugeFill.type = Image.Type.Sliced;   // 좌우 둥근 끝을 유지한 채 가로로만 늘린다
+        RectTransform fillRect = gaugeFill.rectTransform;
+        fillRect.anchorMin = new Vector2(0f, 0.5f);
+        fillRect.anchorMax = new Vector2(0f, 0.5f);
+        fillRect.pivot = new Vector2(0f, 0.5f);
+        fillRect.anchoredPosition = Vector2.zero;
+        fillRect.sizeDelta = new Vector2(0f, gaugeBackground.rectTransform.sizeDelta.y);
+
+        TMP_Text damageLabel = CreateText("Label", gaugeBackground.rectTransform, titleFont, 36f, Color.white, TextAlignmentOptions.Left, FontWeight.Bold);
+        PlaceInside(damageLabel.rectTransform, 32f, 0f, 200f, 66f);
+        damageLabel.text = "손상도";
+
+        TMP_Text damagePercent = CreateText("Percent", gaugeBackground.rectTransform, numberFont, 36f, DamageRed, TextAlignmentOptions.Right);
+        PlaceInside(damagePercent.rectTransform, 987f - 32f - 200f, 0f, 200f, 66f);
+        damagePercent.text = "0%";
+
+        // ── 찾을 형상 패널 ─────────────────────────────────────────────
+        Image panel = CreateImage("ShapePanel", hud, "PanelWhite");
+        panel.type = Image.Type.Sliced;
+        panel.color = TranslucentPanel;
+        panel.rectTransform.sizeDelta = new Vector2(987f, 350f);
+        PlaceTopLeft(panel.rectTransform, 47f, 392f);
+        panel.raycastTarget = false;
+
+        TMP_Text panelTitle = CreateText("Title", panel.rectTransform, captionFont, 40f, DarkText, TextAlignmentOptions.Center);
+        PlaceInside(panelTitle.rectTransform, 0f, 26f, 987f, 64f);
+        panelTitle.text = "아래 모양을 찾으세요";
+
+        RectTransform previews = CreateRect("Previews", panel.rectTransform);
+        PlaceInside(previews, 60f, 110f, 867f, 210f);
+        var layout = previews.gameObject.AddComponent<HorizontalLayoutGroup>();
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.spacing = 100f;
+        layout.childControlWidth = false;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        // ── 하단 도구 버튼 (ToolMode 순서: 안전=곡괭이, 공격=망치, 정찰=돋보기) ──────
+        string[] toolSprites = { "Destructive_SafeButton", "Destructive_AttackButton", "scoutButton" };
+        float[] toolCenters = { 207f, 540f, 873f };
+        SerializedProperty toolButtons = so.FindProperty("_toolButtons");
+        toolButtons.arraySize = toolSprites.Length;
+        for (int i = 0; i < toolSprites.Length; i++)
+        {
+            Button button = CreateButton(toolSprites[i], hud, toolSprites[i]);
+            button.transition = Selectable.Transition.None;   // 선택·비활성 색은 프레젠터가 직접 칠한다
+            var rect = (RectTransform)button.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(toolCenters[i], 216f);
+            toolButtons.GetArrayElementAtIndex(i).objectReferenceValue = button;
+        }
+
+        // ── 프레젠터 연결 ─────────────────────────────────────────────
+        so.FindProperty("_destructiveCountText").objectReferenceValue = destructiveText;
+        so.FindProperty("_scoutCountText").objectReferenceValue = scoutText;
+        so.FindProperty("_damageGaugeBackground").objectReferenceValue = gaugeBackground.rectTransform;
+        so.FindProperty("_damageGaugeFill").objectReferenceValue = fillRect;
+        so.FindProperty("_damageLabelText").objectReferenceValue = damageLabel;
+        so.FindProperty("_damagePercentText").objectReferenceValue = damagePercent;
+        so.FindProperty("_shapePreviewContainer").objectReferenceValue = previews;
+        so.FindProperty("_previewSpacing").floatValue = layout.spacing;
+        so.FindProperty("_quitButton").objectReferenceValue = quitButton;
+        so.FindProperty("_infoButton").objectReferenceValue = infoButton;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        ConnectBoardGuides(hud);
+        ApplyResponsiveLayout(hud, canvas);
+        AddGaugeRider(hud, presenter);
+        AddScoutPopup(hud, adapter, titleFont, numberFont);
+        AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText, jeongseongColor);
+        BuildHelpPanel(presenter, canvas);
+        BuildPhasePanel(presenter, canvas);
+        ResultPopupSetup.Setup(presenter, canvas);   // 결과 창은 프리팹으로 두고 UILoader가 띄운다
+
+        EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
+        Selection.activeGameObject = hud.gameObject;
+        Debug.Log($"[MinigameHudSetup] HUD를 만들었습니다. 제목 글꼴: {(titleFont != null ? titleFont.name : "없음")}. 씬을 저장해주세요.");
+    }
+
+    /// <summary>
+    /// 보드가 들어갈 영역의 위·아래 경계를 투명한 RectTransform으로 만들고 BoardCameraFitter에 연결한다.
+    /// </summary>
+    /// <remarks>
+    /// 경계도 HUD처럼 SafeArea 위·아래에 픽셀 단위로 붙어 있어, 화면 높이가 달라져도 패널·버튼과 같이 움직인다.
+    /// 씬에서 높이를 바꿔 보드 영역을 조절할 수 있다.
+    /// </remarks>
+    private static void ConnectBoardGuides(RectTransform hud)
+    {
+        // 시안 기준: 형상 패널 아래 끝 + 간격 = 위에서 811px, 도구 버튼 위 끝 - 간격 = 아래에서 449px
+        RectTransform top = GetOrCreateGuide(hud, "BoardTopBoundary");
+        top.anchorMin = new Vector2(0f, 1f);
+        top.anchorMax = new Vector2(1f, 1f);
+        top.pivot = new Vector2(0.5f, 1f);
+        top.anchoredPosition = Vector2.zero;
+        top.sizeDelta = new Vector2(0f, 811f);
+
+        RectTransform bottom = GetOrCreateGuide(hud, "BoardBottomBoundary");
+        bottom.anchorMin = new Vector2(0f, 0f);
+        bottom.anchorMax = new Vector2(1f, 0f);
+        bottom.pivot = new Vector2(0.5f, 0f);
+        bottom.anchoredPosition = Vector2.zero;
+        bottom.sizeDelta = new Vector2(0f, ReferenceResolution.y - 1951f);
+
+        var fitter = Object.FindFirstObjectByType<BoardCameraFitter>();
+        if (fitter == null)
+        {
+            Debug.LogWarning("[MinigameHudSetup] BoardCameraFitter가 없어 경계를 연결하지 못했습니다.");
+            return;
+        }
+        var fitterSo = new SerializedObject(fitter);
+        fitterSo.FindProperty("_topBoundary").objectReferenceValue = top;
+        fitterSo.FindProperty("_bottomBoundary").objectReferenceValue = bottom;
+        // 시안은 패널과 도구 버튼 사이를 보드가 꽉 채운다. 바깥 격자 선 두께만큼만 남긴다
+        fitterSo.FindProperty("_marginInTiles").floatValue = 0.05f;
+        fitterSo.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// HUD를 화면 비율에 대응하는 배치로 바꾼다.
+    /// </summary>
+    /// <remarks>
+    /// - 도구 횟수는 화면 왼쪽, 포기·도움말은 오른쪽 끝에 붙인다.
+    /// - 손상도 바와 형상 패널은 실행 중 보드 폭에 맞춰 가로로 늘어난다(BoardWidthMatcher).
+    /// - 도구 버튼은 화면 아래 가운데를 기준으로 모인다.
+    /// - 캔버스 배율은 보드 영역을 먼저 확보하는 HudCanvasScaler가 정한다.
+    /// </remarks>
+    private static void ApplyResponsiveLayout(RectTransform hud, Canvas canvas)
+    {
+        Undo.RegisterFullObjectHierarchyUndo(hud.gameObject, "Apply Responsive Layout");
+        Stretch(hud);
+
+        // 오른쪽 끝에서의 거리 = 1080 - (시안 x + 폭)
+        AnchorTopRight(Find(hud, "QuitButton"), ReferenceResolution.x - (698f + 242f), 66f);
+        AnchorTopRight(Find(hud, "InfoButton"), ReferenceResolution.x - (956f + 85f), 65f);
+
+        RectTransform gauge = Find(hud, "DamageGauge");
+        RectTransform panel = Find(hud, "ShapePanel");
+        SetSliced(gauge);
+        SetSliced(panel);
+
+        RectTransform percent = Find(hud, "DamageGauge/Percent");
+        if (percent != null)
+        {
+            percent.anchorMin = percent.anchorMax = new Vector2(1f, 0.5f);
+            percent.pivot = new Vector2(1f, 0.5f);
+            percent.anchoredPosition = new Vector2(-32f, 0f);
+            percent.sizeDelta = new Vector2(200f, 66f);
+        }
+        StretchHorizontally(Find(hud, "ShapePanel/Title"), 0f, 26f, 64f);
+        StretchHorizontally(Find(hud, "ShapePanel/Previews"), 60f, 110f, 210f);
+
+        // 도구 버튼: 시안의 중심(207, 540, 873)을 화면 가운데 기준 오프셋으로 바꾼다
+        string[] toolNames = { "Destructive_SafeButton", "Destructive_AttackButton", "scoutButton" };
+        float[] toolCenters = { 207f, 540f, 873f };
+        for (int i = 0; i < toolNames.Length; i++)
+        {
+            RectTransform tool = Find(hud, toolNames[i]);
+            if (tool == null) continue;
+            tool.anchorMin = tool.anchorMax = new Vector2(0.5f, 0f);
+            tool.pivot = new Vector2(0.5f, 0.5f);
+            tool.anchoredPosition = new Vector2(toolCenters[i] - ReferenceResolution.x * 0.5f, 216f);
+        }
+
+        var matcher = hud.GetComponent<BoardWidthMatcher>();
+        if (matcher == null) matcher = Undo.AddComponent<BoardWidthMatcher>(hud.gameObject);
+        var matcherSo = new SerializedObject(matcher);
+        matcherSo.FindProperty("_fitter").objectReferenceValue = Object.FindFirstObjectByType<BoardCameraFitter>();
+        SerializedProperty targets = matcherSo.FindProperty("_targets");
+        // 손상도 도깨비 트랙이 이미 있으면 함께 맞춘다
+        var riderTrack = hud.Find(RiderTrackName) as RectTransform;
+        targets.arraySize = riderTrack != null ? 3 : 2;
+        targets.GetArrayElementAtIndex(0).objectReferenceValue = gauge;
+        targets.GetArrayElementAtIndex(1).objectReferenceValue = panel;
+        if (riderTrack != null) targets.GetArrayElementAtIndex(2).objectReferenceValue = riderTrack;
+        matcherSo.ApplyModifiedProperties();
+
+        var responsive = canvas.GetComponent<HudCanvasScaler>();
+        if (responsive == null) responsive = Undo.AddComponent<HudCanvasScaler>(canvas.gameObject);
+        var responsiveSo = new SerializedObject(responsive);
+        // 시안 기준: 보드 영역 811~1951px, HUD는 위 811px + 아래 449px
+        responsiveSo.FindProperty("_referenceWidth").floatValue = ReferenceResolution.x;
+        responsiveSo.FindProperty("_boardAreaHeight").floatValue = 1951f - 811f;
+        responsiveSo.FindProperty("_hudHeight").floatValue = 811f + (ReferenceResolution.y - 1951f);
+        responsiveSo.ApplyModifiedProperties();
+    }
+
+    /// <summary>
+    /// 손상도 채움 끝을 따라 움직이는 도깨비 그림 자리를 만든다. 이미 있으면 지우고 다시 만든다.
+    /// </summary>
+    /// <remarks>
+    /// 도깨비가 게이지 뒤에서 위로 빼꼼 나온 것처럼 보이도록, 게이지 바로 앞 형제로 게이지와 같은 영역(RiderTrack)을 두고
+    /// 그 안에 그림을 넣는다. 게이지의 자식으로 두면 항상 게이지 위에 그려진다.
+    /// 그림은 실행 중에 프레젠터가 현재 유물의 도깨비로 넣는다. 유물이 없으면 숨긴다.
+    /// </remarks>
+    private static void AddGaugeRider(RectTransform hud, MinigameHudPresenter presenter)
+    {
+        RectTransform gauge = Find(hud, "DamageGauge");
+        if (gauge == null) return;
+
+        // 이전 방식(게이지 자식)으로 만든 것과 기존 트랙을 모두 지운다
+        Transform oldRider = gauge.Find("Rider");
+        if (oldRider != null) Undo.DestroyObjectImmediate(oldRider.gameObject);
+        Transform oldTrack = hud.Find(RiderTrackName);
+        if (oldTrack != null) Undo.DestroyObjectImmediate(oldTrack.gameObject);
+
+        // 게이지와 같은 위치·크기의 빈 영역. 형제 순서상 게이지보다 앞이라 먼저(뒤에) 그려진다
+        RectTransform track = CreateRect(RiderTrackName, hud);
+        Undo.RegisterCreatedObjectUndo(track.gameObject, "Add Gauge Rider");
+        track.anchorMin = gauge.anchorMin;
+        track.anchorMax = gauge.anchorMax;
+        track.pivot = gauge.pivot;
+        track.anchoredPosition = gauge.anchoredPosition;
+        track.sizeDelta = gauge.sizeDelta;
+        track.SetSiblingIndex(gauge.GetSiblingIndex());
+
+        // 게이지 윗변부터 위쪽만 그리는 영역. 게이지가 반투명이라 뒤에 숨기는 대신 윗변 아래를 잘라낸다
+        RectTransform clip = CreateRect("RiderClip", track);
+        clip.anchorMin = new Vector2(0f, 1f);
+        clip.anchorMax = new Vector2(1f, 1f);
+        clip.pivot = new Vector2(0.5f, 0f);
+        clip.anchoredPosition = Vector2.zero;
+        clip.sizeDelta = new Vector2(0f, 300f);
+        clip.gameObject.AddComponent<RectMask2D>();
+
+        Image rider = CreateImage("Rider", clip, null);
+        rider.raycastTarget = false;
+        rider.preserveAspect = true;
+        RectTransform rect = rider.rectTransform;
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 0f);   // 클립 왼쪽 아래 = 트랙 왼쪽 위
+        rect.pivot = new Vector2(0.9f, 0f);                      // 시안처럼 그림 오른쪽 부분이 채움 끝에 오도록
+        rect.anchoredPosition = new Vector2(0f, -58f);           // 게이지 윗변 아래로 내려간 부분은 클립에 잘린다
+        rect.sizeDelta = new Vector2(195f, 190f);
+
+        // 게이지와 함께 보드 폭을 따라가도록 맞춤 대상에 넣는다
+        var matcher = hud.GetComponent<BoardWidthMatcher>();
+        if (matcher != null)
+        {
+            var matcherSo = new SerializedObject(matcher);
+            SerializedProperty targets = matcherSo.FindProperty("_targets");
+            // 지운 이전 트랙이 남긴 빈 슬롯을 정리한 뒤 새 트랙을 넣는다
+            var kept = new List<Object>();
+            for (int i = 0; i < targets.arraySize; i++)
+            {
+                Object target = targets.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (target != null) kept.Add(target);
+            }
+            kept.Add(track);
+            targets.arraySize = kept.Count;
+            for (int i = 0; i < kept.Count; i++) targets.GetArrayElementAtIndex(i).objectReferenceValue = kept[i];
+            matcherSo.ApplyModifiedProperties();
+        }
+
+        var so = new SerializedObject(presenter);
+        so.FindProperty("_damageGaugeRider").objectReferenceValue = rider;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    /// <summary>
+    /// 정찰 결과(칸 위에 남는 숫자, 잠깐 떠오르는 말풍선)를 HUD에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// </summary>
+    private static void AddScoutPopup(RectTransform hud, MinigameSessionAdapter adapter, TMP_FontAsset font, TMP_FontAsset numberFont)
+    {
+        foreach (string areaName in new[] { "ScoutNumbers", "ScoutPopups" })
+        {
+            Transform existing = hud.Find(areaName);
+            if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+        }
+        var fitter = Object.FindFirstObjectByType<BoardCameraFitter>();
+        Camera boardCamera = fitter != null ? fitter.GetComponent<Camera>() : Camera.main;
+
+        // 칸 위에 남는 숫자. 말풍선보다 먼저 만들어 아래에 그려지게 한다
+        RectTransform numbers = CreateRect("ScoutNumbers", hud);
+        Stretch(numbers);
+        Undo.RegisterCreatedObjectUndo(numbers.gameObject, "Add Scout Numbers");
+        TMP_Text numberTemplate = CreateText("NumberTemplate", numbers, numberFont, 60f, DarkText, TextAlignmentOptions.Center, FontWeight.Bold);
+        numberTemplate.text = "0";
+        numberTemplate.gameObject.SetActive(false);
+        var overlay = numbers.gameObject.AddComponent<ScoutNumberOverlay>();
+        var overlaySo = new SerializedObject(overlay);
+        overlaySo.FindProperty("_adapter").objectReferenceValue = adapter;
+        overlaySo.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
+        overlaySo.FindProperty("_template").objectReferenceValue = numberTemplate;
+        overlaySo.ApplyModifiedPropertiesWithoutUndo();
+
+        // 화면 전체를 덮는 투명한 영역. 말풍선은 이 안에서 타일 위치를 따라 놓인다
+        RectTransform area = CreateRect("ScoutPopups", hud);
+        Stretch(area);
+        Undo.RegisterCreatedObjectUndo(area.gameObject, "Add Scout Popup");
+
+        // 반투명한 흰 캡슐. 128px 원을 9-slice로 늘려 양 끝은 반원, 가운데만 가로로 늘어난다
+        Image bubble = CreateImage("PopupTemplate", area, "CapsuleWhite");
+        bubble.type = Image.Type.Sliced;
+        bubble.color = new Color(1f, 1f, 1f, 0.85f);
+        bubble.raycastTarget = false;
+        RectTransform bubbleRect = bubble.rectTransform;
+        bubbleRect.anchorMin = bubbleRect.anchorMax = new Vector2(0.5f, 0.5f);
+        bubbleRect.pivot = new Vector2(0.5f, 0f);   // 아래쪽 가운데가 타일 위에 오도록
+        bubbleRect.sizeDelta = new Vector2(440f, 110f);
+        // 반원 반지름(테두리 63px)이 높이의 절반(55)이 되도록 배율을 맞춘다
+        bubble.pixelsPerUnitMultiplier = 63f / (bubbleRect.sizeDelta.y * 0.5f);
+        bubble.gameObject.AddComponent<CanvasGroup>();
+
+        TMP_Text label = CreateText("Text", bubbleRect, font, 40f, DarkText, TextAlignmentOptions.Center, FontWeight.Bold);
+        Stretch(label.rectTransform);
+        label.text = "주변 위협 0개";
+        bubble.gameObject.SetActive(false);
+
+        var popup = area.gameObject.AddComponent<TileMessagePopup>();
+        var so = new SerializedObject(popup);
+        so.FindProperty("_adapter").objectReferenceValue = adapter;
+        so.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
+        so.FindProperty("_template").objectReferenceValue = bubbleRect;
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        AddScoutAreaHighlighter(adapter);
+    }
+
+    /// <summary>
+    /// 정찰 범위(3×3)를 잠깐 밝게 덮는 컴포넌트를 어댑터 오브젝트에 붙인다. 이미 있으면 설정만 다시 연결한다.
+    /// </summary>
+    private static void AddScoutAreaHighlighter(MinigameSessionAdapter adapter)
+    {
+        var highlighter = adapter.GetComponent<ScoutAreaHighlighter>();
+        if (highlighter == null) highlighter = Undo.AddComponent<ScoutAreaHighlighter>(adapter.gameObject);
+
+        // 보드 컨테이너와 흰색 사각형은 이미 연결된 어댑터·격자 선 설정에서 가져온다
+        var adapterSo = new SerializedObject(adapter);
+        Object gridContainer = adapterSo.FindProperty("_gridContainer").objectReferenceValue;
+        var gridLineView = adapter.GetComponent<BoardGridLineView>();
+        Object sprite = gridLineView != null ? new SerializedObject(gridLineView).FindProperty("_lineSprite").objectReferenceValue : null;
+
+        var so = new SerializedObject(highlighter);
+        so.FindProperty("_adapter").objectReferenceValue = adapter;
+        so.FindProperty("_parent").objectReferenceValue = gridContainer;
+        so.FindProperty("_sprite").objectReferenceValue = sprite;
+        so.ApplyModifiedProperties();
+        if (sprite == null) Debug.LogWarning("[MinigameHudSetup] 흰색 사각형 스프라이트를 찾지 못했습니다. ScoutAreaHighlighter의 Sprite를 직접 넣어주세요.");
+    }
+
+    /// <summary>
+    /// 타일 종류별 연출 컴포넌트를 붙이고 연결한다. 이미 있으면 연결만 다시 한다.
+    /// </summary>
+    /// <remarks>
+    /// - 보드 흔들림·도움 빛줄기: 어댑터 오브젝트(보드 컨테이너를 움직인다)
+    /// - 화면 가장자리 빛: 캔버스 루트(SafeArea 밖 노치 영역까지 덮는다)
+    /// - 정성 아이콘: HUD 루트(화면 전체 좌표를 쓴다)
+    /// </remarks>
+    private static void AddTileFeedbackEffects(RectTransform hud, MinigameSessionAdapter adapter, Canvas canvas,
+        RectTransform jeongseongCount, TMP_Text jeongseongText, Image jeongseongColor)
+    {
+        var adapterSo = new SerializedObject(adapter);
+        Object gridContainer = adapterSo.FindProperty("_gridContainer").objectReferenceValue;
+        var fitter = Object.FindFirstObjectByType<BoardCameraFitter>();
+        Camera boardCamera = fitter != null ? fitter.GetComponent<Camera>() : Camera.main;
+
+        var shaker = GetOrAddComponent<BoardShaker>(adapter.gameObject);
+        var shakerSo = new SerializedObject(shaker);
+        shakerSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        shakerSo.FindProperty("_target").objectReferenceValue = gridContainer;
+        shakerSo.ApplyModifiedProperties();
+
+        var sweep = GetOrAddComponent<HelperSweepEffect>(adapter.gameObject);
+        var sweepSo = new SerializedObject(sweep);
+        sweepSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        sweepSo.FindProperty("_parent").objectReferenceValue = gridContainer;
+        sweepSo.ApplyModifiedProperties();
+
+        // 다 찾은 모양의 금색 테두리. 격자 선과 같은 흰색 사각형을 색만 바꿔 쓴다
+        var gridLineView = adapter.GetComponent<BoardGridLineView>();
+        Object whiteSprite = gridLineView != null ? new SerializedObject(gridLineView).FindProperty("_lineSprite").objectReferenceValue : null;
+        var outline = GetOrAddComponent<PolyominoOutlineView>(adapter.gameObject);
+        var outlineSo = new SerializedObject(outline);
+        outlineSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        outlineSo.FindProperty("_parent").objectReferenceValue = gridContainer;
+        outlineSo.FindProperty("_sprite").objectReferenceValue = whiteSprite;
+        outlineSo.ApplyModifiedProperties();
+
+        var flash = GetOrAddComponent<ScreenEdgeFlash>(canvas.rootCanvas.gameObject);
+        var flashSo = new SerializedObject(flash);
+        flashSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        flashSo.ApplyModifiedProperties();
+
+        var flyer = GetOrAddComponent<BonusCurrencyFlyer>(hud.gameObject);
+        var flyerSo = new SerializedObject(flyer);
+        flyerSo.FindProperty("_adapter").objectReferenceValue = adapter;
+        flyerSo.FindProperty("_boardCamera").objectReferenceValue = boardCamera;
+        flyerSo.FindProperty("_iconSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(BonusIconPath);
+        flyerSo.FindProperty("_iconColor").colorValue = Color.white;
+        flyerSo.FindProperty("_target").objectReferenceValue = jeongseongCount;
+        // 알약 가운데에서 하트 아이콘(알약 왼쪽에서 약 52px)까지의 거리
+        flyerSo.FindProperty("_targetOffset").vector2Value = new Vector2(-35f, 0f);
+        flyerSo.FindProperty("_counterText").objectReferenceValue = jeongseongText;
+        flyerSo.FindProperty("_colorOverlay").objectReferenceValue = jeongseongColor;
+        flyerSo.ApplyModifiedProperties();
+    }
+
+    private static T GetOrAddComponent<T>(GameObject target) where T : Component
+    {
+        var component = target.GetComponent<T>();
+        return component != null ? component : Undo.AddComponent<T>(target);
+    }
+
+    private static RectTransform Find(RectTransform root, string path)
+    {
+        var found = root.Find(path) as RectTransform;
+        if (found == null) Debug.LogWarning($"[MinigameHudSetup] HUD에서 {path}를 찾지 못했습니다. 이름을 바꿨다면 직접 배치해주세요.");
+        return found;
+    }
+
+    /// <summary>부모의 오른쪽 위를 기준으로, 오른쪽 끝에서 right, 위에서 top만큼 떨어뜨려 놓는다.</summary>
+    private static void AnchorTopRight(RectTransform rect, float right, float top)
+    {
+        if (rect == null) return;
+        rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(1f, 1f);
+        rect.anchoredPosition = new Vector2(-right, -top);
+    }
+
+    /// <summary>부모 폭에 맞춰 가로로 늘린다. 좌우 여백은 inset, 위에서 top만큼 떨어진 곳에 height 높이로 놓는다.</summary>
+    private static void StretchHorizontally(RectTransform rect, float inset, float top, float height)
+    {
+        if (rect == null) return;
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0f, -top);
+        rect.sizeDelta = new Vector2(-inset * 2f, height);
+    }
+
+    /// <summary>늘어나도 둥근 모서리가 유지되도록 9-slice로 그린다. 스프라이트에 테두리가 설정되어 있어야 한다.</summary>
+    private static void SetSliced(RectTransform rect)
+    {
+        var image = rect != null ? rect.GetComponent<Image>() : null;
+        if (image != null) image.type = Image.Type.Sliced;
+    }
+
+    private static RectTransform GetOrCreateGuide(RectTransform hud, string name)
+    {
+        Transform existing = hud.Find(name);
+        if (existing != null) return (RectTransform)existing;
+
+        RectTransform guide = CreateRect(name, hud);
+        guide.SetAsFirstSibling();   // 보이는 요소가 아니므로 계층 맨 위에 둔다
+        Undo.RegisterCreatedObjectUndo(guide.gameObject, "Create Board Guide");
+        return guide;
+    }
+
+    private static void ConfigureCanvasScaler(Canvas canvas)
+    {
+        var scaler = canvas.GetComponent<CanvasScaler>();
+        if (scaler == null) return;
+        Undo.RecordObject(scaler, "Configure Canvas Scaler");
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = ReferenceResolution;
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0f;   // 가로를 고정하고, 기기마다 세로 길이만 달라진다
+    }
+
+    /// <summary>
+    /// 도움말 창 프리팹만 다시 만든다. 페이지 그림을 바꾸거나 배치를 처음 상태로 되돌릴 때 쓴다.
+    /// </summary>
+    [MenuItem("Jamkkaebi/Minigame/Rebuild Help Panel")]
+    public static void RebuildHelpPanelMenu()
+    {
+        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
+        Canvas canvas = presenter != null ? presenter.GetComponentInParent<Canvas>() : null;
+        if (presenter == null || canvas == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter와 Canvas를 찾지 못했습니다.", "확인");
+            return;
+        }
+        BuildHelpPanel(presenter, canvas);
+        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
+        Debug.Log($"[MinigameHudSetup] 도움말 창 프리팹을 만들었습니다({HelpPrefabPath}). 씬을 저장해주세요.");
+    }
+
+    /// <summary>
+    /// 도움말 창(어두운 배경 + 창 틀 + 페이지 그림 + 화살표·쪽 번호·닫기) 프리팹을 다시 만들어 UILoader에 등록한다.
+    /// </summary>
+    /// <remarks>
+    /// 좌표는 피그마 시안(1080×2400) 기준이고, 창 틀(Frame)의 왼쪽 위를 원점으로 둔다.
+    /// 예전처럼 씬에 직접 들어 있던 도움말 창은 지운다. 창은 UILoader가 처음 열 때 PopupRoot 아래에 만든다.
+    /// </remarks>
+    private static void BuildHelpPanel(MinigameHudPresenter presenter, Canvas canvas)
+    {
+        Transform legacy = canvas.rootCanvas.transform.Find(HelpPanelName);
+        if (legacy != null) Undo.DestroyObjectImmediate(legacy.gameObject);
+
+        // 프리팹으로 저장할 것이므로 씬의 부모 없이 만든다
+        var panelObject = new GameObject(HelpPanelName, typeof(RectTransform)) { layer = canvas.gameObject.layer };
+        var panel = (RectTransform)panelObject.transform;
+        Stretch(panel);
+
+        // 뒤의 HUD 버튼이 눌리지 않도록 화면 전체를 덮어 입력을 받는다
+        Image dim = CreateImage("Dim", panel, null);
+        Stretch(dim.rectTransform);
+        dim.color = new Color(0f, 0f, 0f, 0.6f);
+
+        // 열기 연출(팝)로 커졌다 돌아오는 묶음. 어두운 배경까지 커지면 어색하므로 따로 둔다
+        RectTransform content = CreateRect("Content", panel);
+        Stretch(content);
+
+        // 창 틀: 1080×2400 그대로 화면 가운데에 둔다. 화면이 낮으면 InfoPanel이 통째로 줄인다
+        RectTransform frame = CreateRect("Frame", content);
+        frame.anchorMin = frame.anchorMax = new Vector2(0.5f, 0.5f);
+        frame.pivot = new Vector2(0.5f, 0.5f);
+        frame.anchoredPosition = Vector2.zero;
+        frame.sizeDelta = ReferenceResolution;
+
+        // 창 틀 그림은 투명한 여백을 잘라 낸 878×2015 크기다. 시안(1080×2400)에서 왼쪽 위가 (101, 96)에 있다
+        Image background = CreateInfoImage("Background", frame, "InfoPanel");
+        PlaceTopLeft(background.rectTransform, 101f, 96f);
+
+        Image page = CreateInfoImage("Page", frame, "MinigameHelp1");
+        PlaceInside(page.rectTransform, 120f, 320f, 840f, 1480f);
+        page.raycastTarget = false;
+
+        Button previous = CreateInfoButton("PreviousButton", frame, "InfoArrow", new Vector2(197f + 34f, 1839f + 37.5f));
+        Button next = CreateInfoButton("NextButton", frame, "InfoArrow", new Vector2(816f + 34f, 1839f + 37.5f));
+        // 화살표 그림은 왼쪽을 가리키므로 좌우로 뒤집어 오른쪽 화살표로 쓴다
+        next.transform.localScale = new Vector3(-1f, 1f, 1f);
+        foreach (Button arrow in new[] { previous, next })
+        {
+            // 화살표가 작아서 손가락으로 누르기 쉽도록, 그림은 그대로 두고 눌리는 영역만 넓힌다(음수 = 바깥으로)
+            ((Image)arrow.targetGraphic).raycastPadding = new Vector4(-40f, -35f, -40f, -35f);
+        }
+
+        TMP_FontAsset font = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
+        TMP_Text pageText = CreateText("PageNumber", frame, font, 40f, new Color(0.565f, 0.565f, 0.565f), TextAlignmentOptions.Midline);
+        PlaceCenterAt(pageText.rectTransform, new Vector2(540f, 1876f), new Vector2(240f, 60f));
+        pageText.text = $"1 / {HelpPageCount}";
+
+        Image closeImage = CreateInfoImage("CloseButton", frame, "InfoCloseButton");
+        PlaceTopLeft(closeImage.rectTransform, 377f, 2172f);
+        var close = closeImage.gameObject.AddComponent<Button>();
+        close.targetGraphic = closeImage;
+
+        var infoPanel = panel.gameObject.AddComponent<InfoPanel>();
+        var so = new SerializedObject(infoPanel);
+        so.FindProperty("_frame").objectReferenceValue = frame;
+        so.FindProperty("_popTarget").objectReferenceValue = content;
+        so.FindProperty("_pageImage").objectReferenceValue = page;
+        so.FindProperty("_pageText").objectReferenceValue = pageText;
+        so.FindProperty("_previousButton").objectReferenceValue = previous;
+        so.FindProperty("_nextButton").objectReferenceValue = next;
+        so.FindProperty("_closeButton").objectReferenceValue = close;
+        SerializedProperty pages = so.FindProperty("_pages");
+        pages.arraySize = HelpPageCount;
+        for (int i = 0; i < HelpPageCount; i++)
+        {
+            pages.GetArrayElementAtIndex(i).objectReferenceValue = LoadInfoSprite($"MinigameHelp{i + 1}");
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        InfoPanel prefab = ResultPopupSetup.SavePrefab<InfoPanel>(panelObject, HelpPrefabPath);
+        ResultPopupSetup.RegisterPopup(presenter, canvas, prefab);
+    }
+
+    /// <summary>
+    /// 이미 만든 HUD에 페이즈 시작 연출(족자)만 다시 만든다.
+    /// </summary>
+    [MenuItem("Jamkkaebi/Minigame/Rebuild Phase Panel")]
+    public static void RebuildPhasePanelMenu()
+    {
+        var presenter = Object.FindFirstObjectByType<MinigameHudPresenter>();
+        Canvas canvas = presenter != null ? presenter.GetComponentInParent<Canvas>() : null;
+        if (presenter == null || canvas == null)
+        {
+            EditorUtility.DisplayDialog("Minigame HUD", "씬에서 MinigameHudPresenter와 Canvas를 찾지 못했습니다.", "확인");
+            return;
+        }
+        BuildPhasePanel(presenter, canvas);
+        EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
+        Debug.Log("[MinigameHudSetup] 페이즈 연출을 만들었습니다. 씬을 저장해주세요.");
+    }
+
+    /// <summary>
+    /// 페이즈 시작 연출(어두운 배경 + 족자 + 양쪽 축 + 제목)을 캔버스 바로 아래에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// </summary>
+    /// <remarks>
+    /// 족자(1080×475)는 화면 가운데에 둔다(시안에서 족자 중심 = 화면 중심).
+    /// 축(63×518)은 족자보다 위아래로 21.5px씩 길다. 축 그림은 오른쪽 축 모양이라, 왼쪽 축은 좌우로 뒤집어 쓴다.
+    /// 처음에는 꺼 두고, 판이 시작되면 MinigameHudPresenter가 PhaseIntroPanel.Play()로 켠다.
+    /// </remarks>
+    private static void BuildPhasePanel(MinigameHudPresenter presenter, Canvas canvas)
+    {
+        Transform root = canvas.rootCanvas.transform;
+        Transform existing = root.Find(PhasePanelName);
+        if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+
+        RectTransform panel = CreateRect(PhasePanelName, root);
+        Undo.RegisterCreatedObjectUndo(panel.gameObject, "Build Phase Panel");
+        Stretch(panel);
+        // HUD 위, 도움말·결과 화면보다는 아래에 둔다
+        Transform help = root.Find(HelpPanelName);
+        Transform popupRoot = root.Find(ResultPopupSetup.PopupRootName);
+        if (help != null) panel.SetSiblingIndex(help.GetSiblingIndex());
+        else if (popupRoot != null) panel.SetSiblingIndex(popupRoot.GetSiblingIndex());
+        else panel.SetAsLastSibling();
+
+        // 화면 전체를 덮어, 연출 중에 HUD 버튼이 눌리지 않고 화면을 누르면 연출을 건너뛰게 한다
+        Image dim = CreateImage("Dim", panel, null);
+        Stretch(dim.rectTransform);
+        dim.color = new Color(0f, 0f, 0f, 0f);
+
+        RectTransform band = CreateRect("Band", panel);
+        band.anchorMin = band.anchorMax = new Vector2(0.5f, 0.5f);
+        band.pivot = new Vector2(0.5f, 0.5f);
+        band.anchoredPosition = Vector2.zero;
+        band.sizeDelta = new Vector2(ReferenceResolution.x, 518f);
+
+        // 폭을 늘리며 족자를 드러내는 마스크. 처음엔 폭 0(말린 상태)
+        RectTransform reveal = CreateRect("Reveal", band);
+        reveal.anchorMin = reveal.anchorMax = new Vector2(0.5f, 0.5f);
+        reveal.pivot = new Vector2(0.5f, 0.5f);
+        reveal.anchoredPosition = Vector2.zero;
+        reveal.sizeDelta = new Vector2(0f, 475f);
+        reveal.gameObject.AddComponent<RectMask2D>();
+
+        Image scroll = CreatePhaseImage("Scroll", reveal, "PhasePanel");
+        CenterIn(scroll.rectTransform, Vector2.zero);
+
+        // 제목 그림은 족자 그림의 (220, 170)에서 잘라 낸 640×230 영역이다. 족자 중심 기준으로 옮긴다
+        Image title = CreatePhaseImage("Title", reveal, "PhaseTitle1");
+        CenterIn(title.rectTransform, new Vector2(220f + 320f - 540f, -(170f + 115f - 237.5f)));
+
+        // 오른쪽 축: 왼쪽 끝이 족자 오른쪽 가장자리에 붙는다
+        Image rightRod = CreatePhaseImage("RightRod", band, "PhaseScrollRod");
+        RectTransform rightRect = rightRod.rectTransform;
+        rightRect.anchorMin = rightRect.anchorMax = new Vector2(0.5f, 0.5f);
+        rightRect.pivot = new Vector2(0f, 0.5f);
+        rightRect.anchoredPosition = Vector2.zero;
+
+        // 왼쪽 축: 같은 그림을 좌우로 뒤집는다. 기준점을 그림의 왼쪽 끝에 두고 뒤집으면 그 끝이 족자 왼쪽 가장자리에 붙는다
+        Image leftRod = CreatePhaseImage("LeftRod", band, "PhaseScrollRod");
+        RectTransform leftRect = leftRod.rectTransform;
+        leftRect.anchorMin = leftRect.anchorMax = new Vector2(0.5f, 0.5f);
+        leftRect.pivot = new Vector2(0f, 0.5f);
+        leftRect.anchoredPosition = Vector2.zero;
+        leftRect.localScale = new Vector3(-1f, 1f, 1f);
+
+        // 족자 아래, 도구 버튼 위(시안 기준 y 1700)에 건너뛰기 안내를 둔다. 배경을 50% 어둡게 덮으므로 흰 글자가 읽힌다
+        TMP_FontAsset hintFont = GetOrCreateFontAsset(FindFontFile(PretendardFolder, "Medium"));
+        TMP_Text skipHint = CreateText("SkipHint", panel, hintFont, 36f, Color.white, TextAlignmentOptions.Midline);
+        CenterIn(skipHint.rectTransform, new Vector2(0f, -(1700f - ReferenceResolution.y * 0.5f)));
+        skipHint.rectTransform.sizeDelta = new Vector2(900f, 60f);
+        skipHint.text = "화면을 터치하면 넘어가요";
+        skipHint.color = new Color(1f, 1f, 1f, 0f);
+
+        var intro = panel.gameObject.AddComponent<PhaseIntroPanel>();
+        var so = new SerializedObject(intro);
+        so.FindProperty("_dim").objectReferenceValue = dim;
+        so.FindProperty("_reveal").objectReferenceValue = reveal;
+        so.FindProperty("_leftRod").objectReferenceValue = leftRect;
+        so.FindProperty("_rightRod").objectReferenceValue = rightRect;
+        so.FindProperty("_title").objectReferenceValue = title;
+        so.FindProperty("_skipHint").objectReferenceValue = skipHint;
+        // 페이즈별 제목 그림은 PhaseData 에셋이 들고 있고, 프레젠터가 재생할 때 넘겨준다
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        var presenterSo = new SerializedObject(presenter);
+        presenterSo.FindProperty("_phaseIntroPanel").objectReferenceValue = intro;
+        presenterSo.ApplyModifiedPropertiesWithoutUndo();
+
+        panel.gameObject.SetActive(false);
+    }
+
+    private static Image CreatePhaseImage(string name, Transform parent, string spriteName)
+    {
+        Image image = CreateImage(name, parent, null);
+        image.sprite = LoadSprite(PhasePanelFolder, spriteName);
+        if (image.sprite != null) image.SetNativeSize();
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private static Sprite LoadSprite(string folder, string spriteName)
+    {
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{folder}/{spriteName}.png");
+        if (sprite == null) Debug.LogWarning($"[MinigameHudSetup] 그림을 찾지 못했습니다: {folder}/{spriteName}");
+        return sprite;
+    }
+
+    /// <summary>부모 가운데를 기준으로 offset만큼 옮겨 놓는다. 크기는 이미 정해진 값을 쓴다.</summary>
+    private static void CenterIn(RectTransform rect, Vector2 offset)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = offset;
+    }
+
+    private static Sprite LoadInfoSprite(string spriteName)
+    {
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{InfoPanelFolder}/{spriteName}.png");
+        if (sprite == null) Debug.LogWarning($"[MinigameHudSetup] 도움말 그림을 찾지 못했습니다: {spriteName}");
+        return sprite;
+    }
+
+    private static Image CreateInfoImage(string name, Transform parent, string spriteName)
+    {
+        Image image = CreateImage(name, parent, null);
+        image.sprite = LoadInfoSprite(spriteName);
+        if (image.sprite != null) image.SetNativeSize();   // 시안 크기(1080×2400 기준)로 내보낸 그림이다
+        return image;
+    }
+
+    private static Button CreateInfoButton(string name, Transform parent, string spriteName, Vector2 center)
+    {
+        Image image = CreateInfoImage(name, parent, spriteName);
+        PlaceCenterAt(image.rectTransform, center, image.rectTransform.sizeDelta);
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        // 첫 쪽·마지막 쪽에서 누를 수 없을 때 흐리게 보인다
+        ColorBlock colors = button.colors;
+        colors.disabledColor = new Color(1f, 1f, 1f, 0.3f);
+        button.colors = colors;
+        return button;
+    }
+
+    /// <summary>부모의 왼쪽 위를 기준으로, 중심이 (x, y)에 오도록 놓는다. 좌우 뒤집기가 제자리에서 되도록 기준점을 가운데에 둔다.</summary>
+    private static void PlaceCenterAt(RectTransform rect, Vector2 center, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(center.x, -center.y);
+        rect.sizeDelta = size;
+    }
+
+    private static RectTransform CreateRect(string name, Transform parent)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.layer = parent.gameObject.layer;
+        var rect = (RectTransform)go.transform;
+        rect.SetParent(parent, false);
+        return rect;
+    }
+
+    private static Image CreateImage(string name, Transform parent, string spriteName)
+    {
+        RectTransform rect = CreateRect(name, parent);
+        var image = rect.gameObject.AddComponent<Image>();
+        if (spriteName != null)
+        {
+            image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{SpriteFolder}/{spriteName}.png");
+            if (image.sprite == null) Debug.LogWarning($"[MinigameHudSetup] 스프라이트를 찾지 못했습니다: {spriteName}");
+            image.SetNativeSize();   // 에셋이 1080×2400 기준으로 내보내져 있어 원래 크기가 곧 디자인 크기다
+        }
+        return image;
+    }
+
+    private static Button CreateButton(string name, Transform parent, string spriteName)
+    {
+        Image image = CreateImage(name, parent, spriteName);
+        var button = image.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        return button;
+    }
+
+    private static TMP_Text CreateText(string name, Transform parent, TMP_FontAsset font, float size, Color color,
+        TextAlignmentOptions alignment, FontWeight weight = FontWeight.Regular)
+    {
+        RectTransform rect = CreateRect(name, parent);
+        var text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+        if (font != null) text.font = font;
+        text.fontWeight = weight;   // 대표 에셋의 Font Weights 표에서 이 굵기의 에셋을 찾아 그린다
+        text.fontSize = size;
+        text.color = color;
+        text.alignment = alignment;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.raycastTarget = false;
+        return text;
+    }
+
+    /// <summary>부모의 왼쪽 위를 기준으로 (x, y)에 놓는다. 크기는 이미 정해진 값을 쓴다.</summary>
+    private static void PlaceTopLeft(RectTransform rect, float x, float y)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(x, -y);
+    }
+
+    /// <summary>부모의 왼쪽 위를 기준으로 (x, y, 폭, 높이) 영역에 놓는다.</summary>
+    private static void PlaceInside(RectTransform rect, float x, float y, float width, float height)
+    {
+        PlaceTopLeft(rect, x, y);
+        rect.sizeDelta = new Vector2(width, height);
+    }
+
+    private static void Stretch(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+    }
+
+    /// <summary>폴더에서 이름에 keyword가 들어간 글꼴 파일을 찾는다. 없으면 폴더의 첫 글꼴을 쓴다.</summary>
+    private static string FindFontFile(string folder, string keyword)
+    {
+        if (!AssetDatabase.IsValidFolder(folder)) return null;
+        string[] paths = AssetDatabase.FindAssets("t:Font", new[] { folder })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .OrderBy(p => p)
+            .ToArray();
+        return paths.FirstOrDefault(p => Path.GetFileNameWithoutExtension(p).Contains(keyword)) ?? paths.FirstOrDefault();
+    }
+
+    /// <summary>글꼴 파일로 동적 TMP 글꼴 에셋을 만든다. 이미 있으면 그것을 쓴다.</summary>
+    /// <remarks>동적 모드라 쓰는 글자만 실행 중에 아틀라스에 추가되어 한글 전체를 미리 굽지 않아도 된다.</remarks>
+    /// <summary>
+    /// 대표 폰트 에셋의 Font Weights 표 700(Bold) 칸에 Bold 에셋을 연결한다.
+    /// </summary>
+    /// <remarks>표의 칸 번호는 굵기 ÷ 100이다(400 = Regular, 700 = Bold). 배열 원소를 직접 바꾸므로 대표 에셋에 바로 반영된다.</remarks>
+    private static void LinkBoldWeight(TMP_FontAsset main, TMP_FontAsset bold)
+    {
+        if (main == null || bold == null || main == bold) return;
+        TMP_FontWeightPair[] table = main.fontWeightTable;
+        if (table == null || table.Length <= 7 || table[7].regularTypeface == bold) return;
+        table[7].regularTypeface = bold;
+        EditorUtility.SetDirty(main);
+    }
+
+    internal static TMP_FontAsset GetOrCreateFontAsset(string fontPath)
+    {
+        if (string.IsNullOrEmpty(fontPath)) return null;
+
+        string assetPath = $"{FontAssetFolder}/{Path.GetFileNameWithoutExtension(fontPath)} SDF.asset";
+        var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
+        if (existing != null) return existing;
+
+        var font = AssetDatabase.LoadAssetAtPath<Font>(fontPath);
+        if (font == null) return null;
+
+        if (!AssetDatabase.IsValidFolder(FontAssetFolder))
+        {
+            AssetDatabase.CreateFolder(Path.GetDirectoryName(FontAssetFolder).Replace('\\', '/'), Path.GetFileName(FontAssetFolder));
+        }
+
+        // 크기는 정적 굽기 도구(StaticFontBaker)와 맞춘다. 만든 뒤 그 메뉴로 한글 2,350자를 구워야 정적 폰트가 된다
+        TMP_FontAsset fontAsset = TMP_FontAsset.CreateFontAsset(font, StaticFontBaker.SamplingPointSize, StaticFontBaker.AtlasPadding,
+            GlyphRenderMode.SDFAA, StaticFontBaker.AtlasSize, StaticFontBaker.AtlasSize, AtlasPopulationMode.Dynamic);
+        if (fontAsset == null) return null;
+
+        AssetDatabase.CreateAsset(fontAsset, assetPath);
+        // 아틀라스와 머티리얼을 같은 에셋 안에 넣어야 에디터를 다시 열어도 사라지지 않는다
+        fontAsset.atlasTextures[0].name = $"{font.name} Atlas";
+        AssetDatabase.AddObjectToAsset(fontAsset.atlasTextures[0], fontAsset);
+        fontAsset.material.name = $"{font.name} Material";
+        AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+        AssetDatabase.SaveAssets();
+        return fontAsset;
+    }
+}
