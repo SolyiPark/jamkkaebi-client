@@ -58,16 +58,12 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         [Header("기타 버튼")]
         [SerializeField] private Button _quitButton;
         [SerializeField] private Button _infoButton;
-        [Tooltip("도움말 버튼(?)을 누르면 여는 창.")]
-        [SerializeField] private InfoPanel _infoPanel;
         [Tooltip("새 판이 시작될 때 이번 페이즈를 알리는 족자 연출.")]
         [SerializeField] private PhaseIntroPanel _phaseIntroPanel;
 
-        [Header("결과")]
-        [SerializeField] private GameObject _resultRoot;
-        [SerializeField] private TMP_Text _resultTitleText;
-        [SerializeField] private TMP_Text _resultBodyText;
-        [SerializeField] private Button _restartButton;
+        [Header("팝업")]
+        [Tooltip("도움말 창(InfoPanel)과 결과 창(ResultPopup)을 꺼내 띄울 UILoader.")]
+        [SerializeField] private UILoader _uiLoader;
 
         private readonly List<(PolyominoGroup Group, Image Image)> _shapePreviews = new List<(PolyominoGroup, Image)>();
         private MinigameSession _shownSession;
@@ -77,6 +73,9 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         // 보드 입력은 창이 하나라도 떠 있으면 막는다. 창마다 따로 켜고 끄면 한쪽이 닫힐 때 다른 쪽 막음까지 풀린다
         private bool _isInfoPanelOpen;
         private bool _isPhaseIntroPlaying;
+        // 팝업은 처음 쓸 때 UILoader에서 받아 와 계속 쓴다
+        private InfoPanel _infoPanel;
+        private ResultPopup _resultPopup;
 
         private void Awake()
         {
@@ -96,17 +95,24 @@ namespace Jamkkaebi.Scripts.UI.Minigame
 
             // 결과 화면 연출이 정해지기 전까지 포기는 새 판 시작으로 처리한다
             if (_quitButton != null) _quitButton.onClick.AddListener(RestartSession);
-            if (_restartButton != null) _restartButton.onClick.AddListener(RestartSession);
-            if (_resultRoot != null) _resultRoot.SetActive(false);
+            if (_uiLoader == null) Debug.LogWarning($"{nameof(MinigameHudPresenter)}: _uiLoader가 없어 도움말·결과 창을 띄우지 않습니다.", this);
 
-            if (_infoPanel != null)
+            if (_infoButton != null) _infoButton.onClick.AddListener(OpenInfoPanel);
+            if (_phaseIntroPanel != null) _phaseIntroPanel.Finished += OnPhaseIntroFinished;
+        }
+
+        private void OpenInfoPanel()
+        {
+            if (_uiLoader == null) return;
+            if (_infoPanel == null)
             {
-                if (_infoButton != null) _infoButton.onClick.AddListener(_infoPanel.Open);
+                _infoPanel = _uiLoader.Get<InfoPanel>();
+                if (_infoPanel == null) return;
                 // 도움말을 읽는 동안에는 뒤의 보드를 누를 수 없게 한다
                 _infoPanel.Opened += OnInfoPanelOpened;
                 _infoPanel.Closed += OnInfoPanelClosed;
             }
-            if (_phaseIntroPanel != null) _phaseIntroPanel.Finished += OnPhaseIntroFinished;
+            _infoPanel.Open();
         }
 
         private void OnInfoPanelOpened()
@@ -158,10 +164,15 @@ namespace Jamkkaebi.Scripts.UI.Minigame
                 if (button != null) button.onClick.RemoveAllListeners();
             }
             if (_quitButton != null) _quitButton.onClick.RemoveListener(RestartSession);
-            if (_restartButton != null) _restartButton.onClick.RemoveListener(RestartSession);
+            if (_resultPopup != null)
+            {
+                _resultPopup.RetryRequested -= RestartSession;
+                _resultPopup.ExitRequested -= ExitMinigame;
+                _resultPopup.NextRequested -= BeginNextPhase;
+            }
+            if (_infoButton != null) _infoButton.onClick.RemoveListener(OpenInfoPanel);
             if (_infoPanel != null)
             {
-                if (_infoButton != null) _infoButton.onClick.RemoveListener(_infoPanel.Open);
                 _infoPanel.Opened -= OnInfoPanelOpened;
                 _infoPanel.Closed -= OnInfoPanelClosed;
             }
@@ -201,6 +212,14 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         {
             if (_adapter.CanAcceptInput) _adapter.BeginSession();
         }
+
+        private void BeginNextPhase()
+        {
+            if (_adapter.CanAcceptInput) _adapter.BeginNextPhase();
+        }
+
+        // TODO: 작업대·전시관 씬 연결 후 미니게임을 빠져나가도록 교체. 지금은 같은 페이즈를 다시 시작한다
+        private void ExitMinigame() => RestartSession();
 
         private void RefreshToolCounts(MinigameSession session)
         {
@@ -370,21 +389,31 @@ namespace Jamkkaebi.Scripts.UI.Minigame
 
         private void RefreshResult(MinigameSession session)
         {
-            if (_resultRoot == null) return;
+            if (_uiLoader == null) return;
 
-            // 판이 끝나도 정답 공개 연출이 끝날 때까지는 결과 화면을 띄우지 않는다
+            // 판이 끝나도 정답 공개 연출이 끝날 때까지는 결과 창을 띄우지 않는다
             bool ended = session.State != SessionState.InProgress && _adapter.IsResultReady;
-            if (_resultRoot.activeSelf != ended) _resultRoot.SetActive(ended);
-            if (!ended) return;
+            bool shown = _resultPopup != null && _resultPopup.IsOpen;
+            if (ended == shown) return;   // 매 프레임 불리므로, 상태가 바뀐 순간에만 열고 닫는다
+
+            if (ended) ShowResult(session);
+            else _resultPopup.Close();
+        }
+
+        private void ShowResult(MinigameSession session)
+        {
+            if (_resultPopup == null)
+            {
+                _resultPopup = _uiLoader.Get<ResultPopup>();
+                if (_resultPopup == null) return;
+                _resultPopup.RetryRequested += RestartSession;
+                _resultPopup.ExitRequested += ExitMinigame;
+                _resultPopup.NextRequested += BeginNextPhase;
+            }
 
             bool succeeded = session.State == SessionState.Succeeded;
-            if (_resultTitleText != null) _resultTitleText.text = succeeded ? "정화 성공" : "정화 실패";
-            if (_resultBodyText != null)
-            {
-                _resultBodyText.text = succeeded
-                    ? $"손상도 {Mathf.RoundToInt(session.DamageGauge * 100f)}% · 정성 {session.RevealedBonusTileCount}\n화면을 눌러 다시 하기"
-                    : "유물이 더 상하기 전에 작업을 멈췄어요.\n화면을 눌러 다시 하기";
-            }
+            _resultPopup.Bind(new ResultPopupData(succeeded, session.DamageGauge, session.RevealedBonusTileCount, _adapter.HasNextPhase));
+            _resultPopup.Open();
         }
 
         private static Vector2Int GetBoundingCells(PolyominoShape shape)

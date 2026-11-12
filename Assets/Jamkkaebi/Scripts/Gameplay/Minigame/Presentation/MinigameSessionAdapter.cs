@@ -99,6 +99,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public float TileSize => _tileSize;
         public float ChainStepDelay => _chainStepDelay;
         public int CurrentPhase => _phase;
+        /// <summary>정화의 마지막 페이즈 번호.</summary>
+        public const int LastPhase = 3;
+        /// <summary>지금보다 뒤의 페이즈가 남아 있는지.</summary>
+        public bool HasNextPhase => _phase < LastPhase;
         /// <summary>
         /// true면 타일·도구 입력을 받지 않는다. 도움말처럼 보드 위에 창이 떠 있을 때 켠다.
         /// </summary>
@@ -141,6 +145,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         {
             long seed = ResolveSeed(_useFixedSeed, _fixedSeed);
             BeginSession(seed);
+        }
+
+        /// <summary>다음 페이즈로 넘어가 새 판을 시작한다. 마지막 페이즈면 아무 일도 하지 않는다.</summary>
+        public void BeginNextPhase()
+        {
+            if (!HasNextPhase) return;
+            _phase++;
+            BeginSession();
         }
 
         // 서버 연동 후 호출

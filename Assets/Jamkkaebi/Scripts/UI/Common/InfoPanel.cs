@@ -1,4 +1,3 @@
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,11 +8,11 @@ namespace Jamkkaebi.Scripts.UI.Common
     /// 여러 장의 안내 그림을 넘겨 보는 도움말 창.
     /// </summary>
     /// <remarks>
-    /// 화면 전체를 덮는 오브젝트에 붙인다. 평소에는 꺼 두고 <see cref="Open"/>으로 연다.
+    /// 화면 전체를 덮는 창 프리팹의 뿌리에 붙여 <see cref="UILoader"/>에 등록하고, <see cref="UIPopup.Open"/>으로 연다.
     /// 창 틀은 1080×2400 기준으로 만들어졌으므로, 화면이 그보다 낮으면 틀 전체를 같은 비율로 줄여 모두 보이게 한다.
-    /// 어떤 화면의 도움말인지는 모른다. 열고 닫힐 때 이벤트만 알리므로, 게임 입력을 막는 일은 쓰는 쪽이 맡는다.
+    /// 어떤 화면의 도움말인지는 모른다. 열고 닫힐 때 이벤트(Opened·Closed)만 알리므로, 게임 입력을 막는 일은 쓰는 쪽이 맡는다.
     /// </remarks>
-    public class InfoPanel : MonoBehaviour
+    public class InfoPanel : UIPopup
     {
         [Tooltip("1080×2400 기준으로 배치한 창 틀. 화면 높이에 맞춰 이 오브젝트의 크기를 줄인다.")]
         [SerializeField] private RectTransform _frame;
@@ -33,13 +32,6 @@ namespace Jamkkaebi.Scripts.UI.Common
         [SerializeField] private Button _closeButton;
 
         private int _pageIndex;
-
-        /// <summary>창이 열렸을 때. 뒤에 있는 게임의 입력을 막는 데 쓴다.</summary>
-        public event Action Opened;
-        /// <summary>창이 닫혔을 때.</summary>
-        public event Action Closed;
-
-        public bool IsOpen => gameObject.activeSelf;
 
         private void Awake()
         {
@@ -72,21 +64,8 @@ namespace Jamkkaebi.Scripts.UI.Common
             if (Input.GetKeyDown(KeyCode.Escape)) Close();
         }
 
-        /// <summary>첫 페이지부터 보여 주며 창을 연다.</summary>
-        public void Open()
-        {
-            if (IsOpen) return;
-            gameObject.SetActive(true);
-            ShowPage(0);
-            Opened?.Invoke();
-        }
-
-        public void Close()
-        {
-            if (!IsOpen) return;
-            gameObject.SetActive(false);
-            Closed?.Invoke();
-        }
+        // 열 때마다 첫 페이지부터 보여 준다
+        protected override void OnOpened() => ShowPage(0);
 
         private void ShowPreviousPage() => ShowPage(_pageIndex - 1);
 

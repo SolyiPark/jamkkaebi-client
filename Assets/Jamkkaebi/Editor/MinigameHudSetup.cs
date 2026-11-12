@@ -24,6 +24,7 @@ public static class MinigameHudSetup
     private const string SpriteFolder = "Assets/Jamkkaebi/Art/Minigame/UI";
     private const string InfoPanelFolder = "Assets/Jamkkaebi/Art/Common/InfoPanel";
     private const string HelpPanelName = "HelpPanel";
+    private const string HelpPrefabPath = "Assets/Jamkkaebi/Prefabs/UI/MinigameHelpPopup.prefab";
     private const string PhasePanelFolder = "Assets/Jamkkaebi/Art/Common/PhasePanel";
     private const string PhasePanelName = "PhasePanel";
     private const int HelpPageCount = 4;
@@ -198,31 +199,6 @@ public static class MinigameHudSetup
             toolButtons.GetArrayElementAtIndex(i).objectReferenceValue = button;
         }
 
-        // ── 결과 화면 ────────────────────────────────────────────────
-        Image dim = CreateImage("Result", hud, null);
-        Stretch(dim.rectTransform);
-        dim.color = new Color(0f, 0f, 0f, 0.55f);
-        Button restartButton = dim.gameObject.AddComponent<Button>();
-        restartButton.transition = Selectable.Transition.None;
-
-        Image resultPanel = CreateImage("Panel", dim.rectTransform, "PanelWhite");
-        resultPanel.type = Image.Type.Sliced;
-        // 어두운 딤 위라 HUD 패널보다 덜 비치게 해 글자를 읽기 쉽게 한다
-        resultPanel.color = new Color(1f, 1f, 1f, 0.9f);
-        RectTransform resultRect = resultPanel.rectTransform;
-        resultRect.sizeDelta = new Vector2(987f, 350f);
-        resultRect.anchorMin = resultRect.anchorMax = resultRect.pivot = new Vector2(0.5f, 0.5f);
-        resultRect.anchoredPosition = Vector2.zero;
-        resultPanel.raycastTarget = false;
-
-        TMP_Text resultTitle = CreateText("Title", resultRect, titleFont, 64f, DarkText, TextAlignmentOptions.Center, FontWeight.Bold);
-        PlaceInside(resultTitle.rectTransform, 0f, 50f, 987f, 100f);
-        resultTitle.text = "정화 성공";
-        TMP_Text resultBody = CreateText("Body", resultRect, bodyFont, 36f, DarkText, TextAlignmentOptions.Center);
-        PlaceInside(resultBody.rectTransform, 40f, 160f, 907f, 150f);
-        resultBody.text = "";
-        dim.gameObject.SetActive(false);
-
         // ── 프레젠터 연결 ─────────────────────────────────────────────
         so.FindProperty("_destructiveCountText").objectReferenceValue = destructiveText;
         so.FindProperty("_scoutCountText").objectReferenceValue = scoutText;
@@ -234,10 +210,6 @@ public static class MinigameHudSetup
         so.FindProperty("_previewSpacing").floatValue = layout.spacing;
         so.FindProperty("_quitButton").objectReferenceValue = quitButton;
         so.FindProperty("_infoButton").objectReferenceValue = infoButton;
-        so.FindProperty("_resultRoot").objectReferenceValue = dim.gameObject;
-        so.FindProperty("_resultTitleText").objectReferenceValue = resultTitle;
-        so.FindProperty("_resultBodyText").objectReferenceValue = resultBody;
-        so.FindProperty("_restartButton").objectReferenceValue = restartButton;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         ConnectBoardGuides(hud);
@@ -247,6 +219,7 @@ public static class MinigameHudSetup
         AddTileFeedbackEffects(hud, adapter, canvas, jeongseongRect, jeongseongText, jeongseongColor);
         BuildHelpPanel(presenter, canvas);
         BuildPhasePanel(presenter, canvas);
+        ResultPopupSetup.Setup(presenter, canvas);   // 결과 창은 프리팹으로 두고 UILoader가 띄운다
 
         EditorSceneManager.MarkSceneDirty(hud.gameObject.scene);
         Selection.activeGameObject = hud.gameObject;
@@ -299,7 +272,6 @@ public static class MinigameHudSetup
     /// - 손상도 바와 형상 패널은 실행 중 보드 폭에 맞춰 가로로 늘어난다(BoardWidthMatcher).
     /// - 도구 버튼은 화면 아래 가운데를 기준으로 모인다.
     /// - 캔버스 배율은 보드 영역을 먼저 확보하는 HudCanvasScaler가 정한다.
-    /// - 결과 화면의 어두운 배경은 화면 전체를 덮도록 캔버스 바로 아래로 옮긴다.
     /// </remarks>
     private static void ApplyResponsiveLayout(RectTransform hud, Canvas canvas)
     {
@@ -338,8 +310,6 @@ public static class MinigameHudSetup
             tool.anchoredPosition = new Vector2(toolCenters[i] - ReferenceResolution.x * 0.5f, 216f);
         }
 
-        MoveResultOverlayToCanvas(hud, canvas);
-
         var matcher = hud.GetComponent<BoardWidthMatcher>();
         if (matcher == null) matcher = Undo.AddComponent<BoardWidthMatcher>(hud.gameObject);
         var matcherSo = new SerializedObject(matcher);
@@ -361,31 +331,6 @@ public static class MinigameHudSetup
         responsiveSo.FindProperty("_boardAreaHeight").floatValue = 1951f - 811f;
         responsiveSo.FindProperty("_hudHeight").floatValue = 811f + (ReferenceResolution.y - 1951f);
         responsiveSo.ApplyModifiedProperties();
-    }
-
-    /// <summary>
-    /// 결과 화면(어두운 배경 + 패널)을 캔버스 바로 아래 맨 앞으로 옮기고 화면 전체로 늘린다.
-    /// </summary>
-    /// <remarks>
-    /// SafeArea 안에 두면 노치·홈 표시줄 영역만큼 배경이 비어 보인다.
-    /// 가운데 패널은 화면 가운데 기준이라 노치에 걸리지 않으므로 SafeArea 밖으로 빼도 된다.
-    /// </remarks>
-    private static void MoveResultOverlayToCanvas(RectTransform hud, Canvas canvas)
-    {
-        var presenterSo = new SerializedObject(hud.GetComponent<MinigameHudPresenter>());
-        var resultRoot = presenterSo.FindProperty("_resultRoot").objectReferenceValue as GameObject;
-        if (resultRoot == null) return;
-
-        Canvas rootCanvas = canvas.rootCanvas;
-        if (resultRoot.transform.parent != rootCanvas.transform)
-        {
-            Undo.SetTransformParent(resultRoot.transform, rootCanvas.transform, "Move Result Overlay");
-        }
-        var resultRect = (RectTransform)resultRoot.transform;
-        Undo.RecordObject(resultRect, "Stretch Result Overlay");
-        Stretch(resultRect);
-        resultRect.localScale = Vector3.one;
-        resultRect.SetAsLastSibling();   // HUD보다 위에 그려지도록 맨 뒤 형제로 둔다
     }
 
     /// <summary>
@@ -661,7 +606,7 @@ public static class MinigameHudSetup
     }
 
     /// <summary>
-    /// 이미 만든 HUD에 도움말 창만 다시 만든다. 페이지 그림을 바꾸거나 배치를 처음 상태로 되돌릴 때 쓴다.
+    /// 도움말 창 프리팹만 다시 만든다. 페이지 그림을 바꾸거나 배치를 처음 상태로 되돌릴 때 쓴다.
     /// </summary>
     [MenuItem("Jamkkaebi/Minigame/Rebuild Help Panel")]
     public static void RebuildHelpPanelMenu()
@@ -675,38 +620,37 @@ public static class MinigameHudSetup
         }
         BuildHelpPanel(presenter, canvas);
         EditorSceneManager.MarkSceneDirty(presenter.gameObject.scene);
-        Debug.Log("[MinigameHudSetup] 도움말 창을 만들었습니다. 씬을 저장해주세요.");
+        Debug.Log($"[MinigameHudSetup] 도움말 창 프리팹을 만들었습니다({HelpPrefabPath}). 씬을 저장해주세요.");
     }
 
     /// <summary>
-    /// 도움말 창(어두운 배경 + 창 틀 + 페이지 그림 + 화살표·쪽 번호·닫기)을 캔버스 바로 아래에 만든다. 이미 있으면 지우고 다시 만든다.
+    /// 도움말 창(어두운 배경 + 창 틀 + 페이지 그림 + 화살표·쪽 번호·닫기) 프리팹을 다시 만들어 UILoader에 등록한다.
     /// </summary>
     /// <remarks>
     /// 좌표는 피그마 시안(1080×2400) 기준이고, 창 틀(Frame)의 왼쪽 위를 원점으로 둔다.
-    /// 화면을 모두 덮어야 하므로 SafeArea 밖, 결과 화면보다는 아래에 둔다.
+    /// 예전처럼 씬에 직접 들어 있던 도움말 창은 지운다. 창은 UILoader가 처음 열 때 PopupRoot 아래에 만든다.
     /// </remarks>
     private static void BuildHelpPanel(MinigameHudPresenter presenter, Canvas canvas)
     {
-        Transform root = canvas.rootCanvas.transform;
-        Transform existing = root.Find(HelpPanelName);
-        if (existing != null) Undo.DestroyObjectImmediate(existing.gameObject);
+        Transform legacy = canvas.rootCanvas.transform.Find(HelpPanelName);
+        if (legacy != null) Undo.DestroyObjectImmediate(legacy.gameObject);
 
-        RectTransform panel = CreateRect(HelpPanelName, root);
-        Undo.RegisterCreatedObjectUndo(panel.gameObject, "Build Help Panel");
+        // 프리팹으로 저장할 것이므로 씬의 부모 없이 만든다
+        var panelObject = new GameObject(HelpPanelName, typeof(RectTransform)) { layer = canvas.gameObject.layer };
+        var panel = (RectTransform)panelObject.transform;
         Stretch(panel);
-        // 결과 화면이 캔버스 바로 아래에 있으면 그 앞에 둬서, 도움말이 결과 화면을 가리지 않게 한다
-        var presenterSo = new SerializedObject(presenter);
-        var resultRoot = presenterSo.FindProperty("_resultRoot").objectReferenceValue as GameObject;
-        if (resultRoot != null && resultRoot.transform.parent == root) panel.SetSiblingIndex(resultRoot.transform.GetSiblingIndex());
-        else panel.SetAsLastSibling();
 
         // 뒤의 HUD 버튼이 눌리지 않도록 화면 전체를 덮어 입력을 받는다
         Image dim = CreateImage("Dim", panel, null);
         Stretch(dim.rectTransform);
         dim.color = new Color(0f, 0f, 0f, 0.6f);
 
+        // 열기 연출(팝)로 커졌다 돌아오는 묶음. 어두운 배경까지 커지면 어색하므로 따로 둔다
+        RectTransform content = CreateRect("Content", panel);
+        Stretch(content);
+
         // 창 틀: 1080×2400 그대로 화면 가운데에 둔다. 화면이 낮으면 InfoPanel이 통째로 줄인다
-        RectTransform frame = CreateRect("Frame", panel);
+        RectTransform frame = CreateRect("Frame", content);
         frame.anchorMin = frame.anchorMax = new Vector2(0.5f, 0.5f);
         frame.pivot = new Vector2(0.5f, 0.5f);
         frame.anchoredPosition = Vector2.zero;
@@ -743,6 +687,7 @@ public static class MinigameHudSetup
         var infoPanel = panel.gameObject.AddComponent<InfoPanel>();
         var so = new SerializedObject(infoPanel);
         so.FindProperty("_frame").objectReferenceValue = frame;
+        so.FindProperty("_popTarget").objectReferenceValue = content;
         so.FindProperty("_pageImage").objectReferenceValue = page;
         so.FindProperty("_pageText").objectReferenceValue = pageText;
         so.FindProperty("_previousButton").objectReferenceValue = previous;
@@ -756,11 +701,8 @@ public static class MinigameHudSetup
         }
         so.ApplyModifiedPropertiesWithoutUndo();
 
-        presenterSo.FindProperty("_infoPanel").objectReferenceValue = infoPanel;
-        presenterSo.ApplyModifiedPropertiesWithoutUndo();
-
-        // 평소에는 닫아 둔다. ? 버튼을 누르면 InfoPanel.Open()이 켠다
-        panel.gameObject.SetActive(false);
+        InfoPanel prefab = ResultPopupSetup.SavePrefab<InfoPanel>(panelObject, HelpPrefabPath);
+        ResultPopupSetup.RegisterPopup(presenter, canvas, prefab);
     }
 
     /// <summary>
@@ -800,10 +742,9 @@ public static class MinigameHudSetup
         Stretch(panel);
         // HUD 위, 도움말·결과 화면보다는 아래에 둔다
         Transform help = root.Find(HelpPanelName);
-        var presenterSo = new SerializedObject(presenter);
-        var resultRoot = presenterSo.FindProperty("_resultRoot").objectReferenceValue as GameObject;
+        Transform popupRoot = root.Find(ResultPopupSetup.PopupRootName);
         if (help != null) panel.SetSiblingIndex(help.GetSiblingIndex());
-        else if (resultRoot != null && resultRoot.transform.parent == root) panel.SetSiblingIndex(resultRoot.transform.GetSiblingIndex());
+        else if (popupRoot != null) panel.SetSiblingIndex(popupRoot.GetSiblingIndex());
         else panel.SetAsLastSibling();
 
         // 화면 전체를 덮어, 연출 중에 HUD 버튼이 눌리지 않고 화면을 누르면 연출을 건너뛰게 한다
@@ -866,6 +807,7 @@ public static class MinigameHudSetup
         // 페이즈별 제목 그림은 PhaseData 에셋이 들고 있고, 프레젠터가 재생할 때 넘겨준다
         so.ApplyModifiedPropertiesWithoutUndo();
 
+        var presenterSo = new SerializedObject(presenter);
         presenterSo.FindProperty("_phaseIntroPanel").objectReferenceValue = intro;
         presenterSo.ApplyModifiedPropertiesWithoutUndo();
 
@@ -1028,7 +970,7 @@ public static class MinigameHudSetup
         EditorUtility.SetDirty(main);
     }
 
-    private static TMP_FontAsset GetOrCreateFontAsset(string fontPath)
+    internal static TMP_FontAsset GetOrCreateFontAsset(string fontPath)
     {
         if (string.IsNullOrEmpty(fontPath)) return null;
 
