@@ -97,3 +97,19 @@ Java 21과 서버 Gradle 의존성 다운로드가 필요하다. 이 스크립�
 친구 탭 외의 계정 화면·홈 하우징 저장·도감·발굴 보상은 이번에 서버와 연결하지 않았다. 방문 중 도깨비 움직임은 클라이언트의 연출이며 저장된 스냅샷 좌표나 내 홈을 수정하지 않는다.
 
 후속 구현에서 홈 배치 송신 객체와 wrapper를 추가했다. 자동 저장은 연결하지 않았으며 API 호출 기반을 구현했다. 실제 전시 도메인의 저장 → 친구 공개 스냅샷 갱신과 기능 간 검수, EditMode 103개·Player 242개 최종 실행 결과는 [friends-interaction-review.md](friends-interaction-review.md)를 참고한다. 이전 90개·238개 결과는 당시 실행 기록이다.
+
+## 2026-11-05 방문 유지와 요청 수명 보강
+
+방문 보상·선물 POST 성공 후에도 현재 방문 장면을 유지한다. 전시 GET을 추가로 요청하지 않고 친구 목록·요약만 다시 읽는다. POST 성공을 상태에 먼저 표시해 뒤이은 재조회가 실패해도 보상·선물 버튼이 다시 켜지지 않게 하며, 성공 결과와 갱신 실패를 함께 알린다. POST 실패는 방문·재시도 가능 상태를 유지하고 자동으로 반복하지 않는다.
+
+차단 성공은 차단 대상 코드와 현재 방문 소유자가 같을 때만 방문을 종료한다. A 차단 요청 뒤 B 방문으로 바뀌었다면 늦은 A 응답이 B 전시를 닫지 않는다. 목록 재조회 후에는 코드로 최신 프로필을 다시 연결해 `VisitRetry`가 이전 객체 참조 때문에 무시되지 않게 했다. 재조회 중 중복 변경 입력에는 처리 중임을 알린다. 재접속은 기존 소셜·방문 요청을 취소하고 응답 세대를 무효화한다.
+
+`JamkkaebiApiClient` 내부 전달 함수 주입으로 POST 실패·성공 후 GET 실패·응답 순서 역전 등을 일반 Player 검사에서 재현한다. 이 경로는 기존 토큰 갱신 분기를 통과하지만 실제 HTTP 전송의 증거는 아니다. 모의 최종 Windows 통합 실행은 EditMode 244개 통과·HTTP 3개 생략, Player **355개 통과**·GPU 종료 오류 패턴 0·오류 0이었다(`Logs/Integration/Player-20261105-184836/`). 이 결과와 실제 HTTP 결과는 구분한다.
+
+### 이번 실제 HTTP 최종 결과
+
+서버 `main` `be72ae8`의 별도 체크아웃과 Java 21.0.10에서 `Tools/VerifyServerContract.ps1` 전체 실행이 종료 코드 0으로 완료됐다. EditMode **247개 통과·실패 0·생략 0**, `IntegratedSetup.Build` 종료 코드 0, Windows Development Player **376개 통과·종료 코드 0** 및 `ALL CHECKS PASSED`를 확인했다. 최종 Player 로그에서 GPU 종료 경고 3패턴과 Exception은 모두 0이었다. 실제 HTTP로 보상·선물 POST 후 같은 방문 장면 유지·탭 잠금 유지·중복 요청 버튼 비활성도 검사했다.
+
+첫 실행에서 기존 배치 HTTP 테스트의 20×20 고정값과 실행기의 `ExhibitionViewReader.emptyView` 사용이 현 서버 계약과 맞지 않았다. 클라이언트 저장소의 검증 테스트·Java 실행기만 현재 7×7·서버 인터페이스에 맞게 최소 수정해 다시 실행했으며 서버 소스는 변경하지 않았다.
+
+증거는 `Logs/ServerContract/Run-20261105-185155/`의 `EditMode.xml`, `build.log`, `spring.log`(`BUILD SUCCESSFUL`), `Player/verification.txt`, `Player/player.log`다. 임시 harness·contract-session·stop 파일 삭제, 서버 체크아웃의 깨끗한 Git 상태, 잔류 Unity·Player 프로세스 없음을 확인했다. 실제 OAuth 제공자·Android·운영 배포 서버 검증으로 확대하지 않는다.

@@ -19,7 +19,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [TearDown]
         public void TearDown() => Object.DestroyImmediate(_catalog);
 
-        /// <summary>시대와 유물의 ID·소속·명칭·순서가 확정 시트의 9개 행과 일치하는지 검사합니다.</summary>
+        /// <summary>시대와 유물의 ID·소속·순서가 확정 시트와, 명칭이 서버 시드와 일치하는지 검사합니다.</summary>
         [Test]
         public void CatalogMatchesConfirmedSheetRowsInOrder()
         {
@@ -30,19 +30,33 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(_catalog.Relics.Select(relic => relic.Id + ":" + relic.EraId + ":" + relic.Name),
                 Is.EqualTo(new[]
                 {
-                    "samguk-standing-buddha:samguk:금동여래입상",
+                    "samguk-standing-buddha:samguk:금동연가7년명여래입상",
                     "samguk-incense-burner:samguk:금동대향로",
-                    "samguk-crown:samguk:금관",
-                    "goryeo-stone-buddha:goryeo:석불",
-                    "goryeo-celadon:goryeo:고려청자",
+                    "samguk-crown:samguk:금관총 금관",
+                    "goryeo-stone-buddha:goryeo:논산 관촉사 석조미륵보살입상",
+                    "goryeo-celadon:goryeo:상감청자",
                     "goryeo-lacquerware:goryeo:나전칠기",
-                    "joseon-royal-seal:joseon:옥새",
+                    "joseon-royal-seal:joseon:유서지보",
                     "joseon-horse-medallion:joseon:마패",
                     "joseon-cat-sparrow-painting:joseon:묘작도"
                 }));
         }
 
-        /// <summary>도감 씬에 사용하는 저장 자산의 순서·표시명·미정 문구가 확정 정의 코드와 일치하는지 검사합니다.</summary>
+        /// <summary>도깨비 기본 이름과 시대별 건물 이름이 서버 시드와 일치하는지 검사합니다.</summary>
+        [Test]
+        public void SpiritAndBuildingNamesMatchServerSeed()
+        {
+            Assert.That(_catalog.Relics.Select(relic => relic.SpiritName), Is.EqualTo(new[]
+            {
+                "불꽃걸음", "향산이", "금빛숲", "미륵이", "구름결", "밤바다", "붉은당부", "말발굽", "묘작이"
+            }));
+            Assert.That(_catalog.Eras.Select(era => era.BuildingName), Is.EqualTo(new[]
+            {
+                "석굴암", "경천사지 십층석탑", "경복궁"
+            }));
+        }
+
+        /// <summary>도감 씬에 사용하는 저장 자산의 순서·표시명·임시 문구가 확정 정의 코드와 일치하는지 검사합니다.</summary>
         [Test]
         public void SceneCatalogAssetMatchesConfirmedDefinitions()
         {
@@ -55,6 +69,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
             {
                 Assert.That(saved.Eras[i].Id, Is.EqualTo(_catalog.Eras[i].Id));
                 Assert.That(saved.Eras[i].Name, Is.EqualTo(_catalog.Eras[i].Name));
+                Assert.That(saved.Eras[i].Description, Is.EqualTo(_catalog.Eras[i].Description));
+                Assert.That(saved.Eras[i].BuildingName, Is.EqualTo(_catalog.Eras[i].BuildingName));
             }
             for (int i = 0; i < _catalog.Relics.Count; i++)
             {

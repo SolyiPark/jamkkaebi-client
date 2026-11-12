@@ -1,0 +1,136 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9637e00acc545aea5429b36c8d28126, type: 3}
+  m_Name: ExhibitionVisualCatalog
+  m_EditorClassIdentifier: Jamkkaebi.UI::Jamkkaebi.Scripts.UI.Friends.ExhibitionVisualCatalog
+  _relics:
+  - _id: 1
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 2
+    _prefab: {fileID: 6824029605109763950, guid: acbcd65cb2bdd4ecba3bee2eea2d9284, type: 3}
+    _scale: {x: 0.037128713, y: 0.037128713, z: 0.037128713}
+    _footOffset: {x: -0.0029702587, y: 0.17339109}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.18
+      y: 0
+      width: 0.36
+      height: 0.4
+  - _id: 3
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 4
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 5
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 6
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 7
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 8
+    _prefab: {fileID: 2046087701337448474, guid: d73606155222e45f3a08ac2bcba17409, type: 3}
+    _scale: {x: 0.03984064, y: 0.03984064, z: 0.03984064}
+    _footOffset: {x: -0.005378467, y: 0.18605578}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.18
+      y: 0
+      width: 0.36
+      height: 0.4
+  - _id: 9
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  _buildings:
+  - _id: 1
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 2
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5
+  - _id: 3
+    _prefab: {fileID: 0}
+    _scale: {x: 1, y: 1, z: 1}
+    _footOffset: {x: 0, y: 0}
+    _touchRect:
+      serializedVersion: 2
+      x: -0.2
+      y: 0
+      width: 0.4
+      height: 0.5

@@ -115,6 +115,16 @@ namespace Jamkkaebi.Scripts.UI.Friends
             GiftRecipient = giftSent ? "SERVER_SENT" : null; ReceivedGifts = giftAvailable ? 1 : 0;
             FriendLimit = limit; _serverRemaining = remaining; NextResetAt = nextReset;
         }
+        /// <summary>서버 보상 성공을 재조회 전 표시해 갱신 실패가 중복 수령 입력을 허용하지 않게 합니다.</summary>
+        public void MarkServerVisitClaimed()
+        {
+            if (ServerOwned) VisitClaimed = true;
+        }
+        /// <summary>서버 선물 성공을 하루 공통 표시로 기록하며 다음 서버 요약이 이를 교체합니다.</summary>
+        public void MarkServerGiftSent()
+        {
+            if (ServerOwned) GiftRecipient = "SERVER_SENT";
+        }
         /// <summary>더미 친구·요청·보상 상태를 제거해 서버 조회 실패가 모의 성공으로 보이지 않게 합니다.</summary>
         public void ClearForServer()
         {

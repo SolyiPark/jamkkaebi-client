@@ -34,11 +34,11 @@ namespace Jamkkaebi.Scripts.UI.Friends
         {
             var rows = new List<SnapshotPlacement>();
             if (scenario == ExhibitionPreviewScenario.Empty) return new ExhibitionSnapshot(code, rows, false, capturedAt: null);
-            rows.Add(new SnapshotPlacement(false, 1, "미소", new Vector2Int(1, 3)));
-            rows.Add(new SnapshotPlacement(false, 2, "달이", new Vector2Int(5, 2), "FULLY_AWAKENED"));
-            rows.Add(new SnapshotPlacement(false, 3, "푸른결", new Vector2Int(0, 1), "AWAKENED_PLUS"));
-            rows.Add(new SnapshotPlacement(true, 1, "불국사 다보탑", new Vector2Int(3, 4)));
-            rows.Add(new SnapshotPlacement(true, 2, "경복궁 근정전", new Vector2Int(6, 6), level: 2));
+            rows.Add(new SnapshotPlacement(false, 1, "불꽃걸음", new Vector2Int(1, 3)));
+            rows.Add(new SnapshotPlacement(false, 2, "향산이", new Vector2Int(5, 2), "FULLY_AWAKENED"));
+            rows.Add(new SnapshotPlacement(false, 8, "말발굽", new Vector2Int(0, 1), "AWAKENED_PLUS"));
+            rows.Add(new SnapshotPlacement(true, 1, "석굴암", new Vector2Int(3, 4)));
+            rows.Add(new SnapshotPlacement(true, 2, "경천사지 십층석탑", new Vector2Int(6, 6), level: 2));
             if (scenario == ExhibitionPreviewScenario.Unknown) rows.Add(new SnapshotPlacement(true, 999, "새 건물", new Vector2Int(6, 0)));
             if (scenario == ExhibitionPreviewScenario.Invalid) rows.Add(new SnapshotPlacement(false, 4, "잘못된 배치", new Vector2Int(8, -1)));
             if (scenario == ExhibitionPreviewScenario.Duplicate) rows.Add(rows[0]);

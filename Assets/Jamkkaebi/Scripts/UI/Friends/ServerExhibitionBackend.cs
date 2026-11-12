@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -34,23 +35,87 @@ namespace Jamkkaebi.Scripts.UI.Friends
                 completed((int)result.Data["jeongseongGained"]);
             });
         }
-        /// <summary>친구 공개 전시 응답을 placeholder 배치 목록과 보상 상태를 포함한 스냅샷으로 변환합니다.</summary>
+        /// <summary>친구 공개 전시 응답을 배치 목록과 보상 상태로 변환하고 손상된 개별 행은 경고와 함께 제외합니다.</summary>
         public static ExhibitionSnapshot ParseSnapshot(JToken data)
         {
-            string code = (string)data?["owner"]?["friendCode"];
-            if (!FriendsPreviewState.IsValidCode(code) || data?["spirits"] is not JArray spirits || data?["buildings"] is not JArray buildings)
+            if (data is not JObject payload || payload["owner"] is not JObject owner)
+                throw new FormatException("잘못된 스냅샷입니다.");
+            string code = owner["friendCode"]?.Type == JTokenType.String ? (string)owner["friendCode"] : null;
+            if (!FriendsPreviewState.IsValidCode(code) || payload["spirits"] is not JArray spirits || payload["buildings"] is not JArray buildings ||
+                payload["giftState"]?.Type != JTokenType.String || payload["visitRewardAvailable"]?.Type != JTokenType.Boolean)
                 throw new FormatException("잘못된 스냅샷입니다.");
             var rows = new List<SnapshotPlacement>();
-            foreach (var row in spirits) rows.Add(new SnapshotPlacement(false, (int)row["relicId"],
-                (string)row["spiritName"] ?? (string)row["realName"], Position(row), (string)row["awakeningStage"], placeholder: true));
-            foreach (var row in buildings) rows.Add(new SnapshotPlacement(true, (int)row["buildingId"],
-                (string)row["name"], Position(row), level: (int)row["level"], placeholder: true));
-            bool hasGrid = data["grid"] is JObject;
+            var warnings = new List<string>();
+            ReadRows(spirits, false, rows, warnings);
+            ReadRows(buildings, true, rows, warnings);
+            bool hasGrid = payload["grid"] is JObject;
+            if (!hasGrid && (spirits.Count != 0 || buildings.Count != 0))
+                throw new FormatException("배치가 있는 전시에는 격자 정보가 필요합니다.");
+            if (payload["grid"] != null && payload["grid"].Type != JTokenType.Null && !hasGrid)
+                throw new FormatException("잘못된 전시 격자입니다.");
+            if (hasGrid && (payload["grid"]["width"]?.Type != JTokenType.Integer || payload["grid"]["height"]?.Type != JTokenType.Integer))
+                throw new FormatException("잘못된 전시 격자입니다.");
             return new ExhibitionSnapshot(FriendsPreviewState.NormalizeCode(code), rows, hasGrid,
-                hasGrid ? (int)data["grid"]["width"] : 0, hasGrid ? (int)data["grid"]["height"] : 0,
-                (string)data["capturedAt"], (string)data["giftState"], (bool)data["visitRewardAvailable"]);
+                hasGrid ? (int)payload["grid"]["width"] : 0, hasGrid ? (int)payload["grid"]["height"] : 0,
+                FormatCapturedAt(payload["capturedAt"]), (string)payload["giftState"], (bool)payload["visitRewardAvailable"], warnings);
         }
-        /// <summary>서버 배치 응답의 논리 x·y 좌표를 읽습니다.</summary>
-        private static Vector2Int Position(JToken row) => new Vector2Int((int)row["position"]["x"], (int)row["position"]["y"]);
+        /// <summary>객체별 필수 필드를 검사해 정상 행만 추가하며 최상위 패키지 오류와 구분합니다.</summary>
+        private static void ReadRows(JArray source, bool isBuilding, List<SnapshotPlacement> rows, List<string> warnings)
+        {
+            foreach (var token in source)
+            {
+                if (token is not JObject row || row["position"] is not JObject position ||
+                    row[isBuilding ? "buildingId" : "relicId"]?.Type != JTokenType.Integer ||
+                    position["x"]?.Type != JTokenType.Integer || position["y"]?.Type != JTokenType.Integer ||
+                    (isBuilding && (row["name"]?.Type != JTokenType.String || row["level"]?.Type != JTokenType.Integer)) ||
+                    (!isBuilding && ((row["spiritName"]?.Type != JTokenType.String && row["realName"]?.Type != JTokenType.String) ||
+                        row["awakeningStage"]?.Type != JTokenType.String)))
+                {
+                    warnings.Add("필수 정보가 없는 배치는 표시하지 않았어요.");
+                    continue;
+                }
+                try
+                {
+                    string name = isBuilding ? (string)row["name"] :
+                        row["spiritName"]?.Type == JTokenType.String ? (string)row["spiritName"] : (string)row["realName"];
+                    rows.Add(new SnapshotPlacement(isBuilding, (int)row[isBuilding ? "buildingId" : "relicId"],
+                        name,
+                        new Vector2Int((int)position["x"], (int)position["y"]),
+                        isBuilding ? "AWAKENED" : (string)row["awakeningStage"], isBuilding ? (int)row["level"] : 1));
+                }
+                catch (OverflowException) { warnings.Add("값의 범위를 벗어난 배치는 표시하지 않았어요."); }
+            }
+        }
+        /// <summary>문자열과 JSON 날짜 토큰을 한국 시간의 일관된 표시 형식으로 바꾸고 잘못된 값은 생략합니다.</summary>
+        private static string FormatCapturedAt(JToken token)
+        {
+            try { return FormatValidCapturedAt(token); }
+            catch (ArgumentException) { return null; }
+        }
+
+        /// <summary>표현 가능한 날짜를 정규화하며 시간대 변환이 날짜 범위를 벗어나면 호출 측에서 생략합니다.</summary>
+        private static string FormatValidCapturedAt(JToken token)
+        {
+            DateTimeOffset value;
+            if (token?.Type == JTokenType.Date)
+            {
+                object raw = ((JValue)token).Value;
+                if (raw is DateTimeOffset offset) value = offset;
+                else
+                {
+                    var date = (DateTime)raw;
+                    value = date.Kind == DateTimeKind.Unspecified ? new DateTimeOffset(date, TimeSpan.FromHours(9)) : new DateTimeOffset(date);
+                }
+            }
+            else
+            {
+                if (token?.Type != JTokenType.String || !DateTime.TryParse((string)token, CultureInfo.InvariantCulture,
+                        DateTimeStyles.RoundtripKind, out var date)) return null;
+                // 오프셋 없는 서버 로컬 시각은 기기의 시간대에 따라 이동시키지 않습니다.
+                if (date.Kind == DateTimeKind.Unspecified) value = new DateTimeOffset(date, TimeSpan.FromHours(9));
+                else if (!DateTimeOffset.TryParse((string)token, CultureInfo.InvariantCulture, DateTimeStyles.None, out value)) return null;
+            }
+            return value.ToOffset(TimeSpan.FromHours(9)).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+        }
     }
 }

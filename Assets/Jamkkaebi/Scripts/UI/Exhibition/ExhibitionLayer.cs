@@ -44,8 +44,12 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 // Paper covers even tablet/very tall viewports and the small parallax overscan.
                 float worldHeight = camera.orthographicSize * 2;
                 var size = _renderer.sprite.bounds.size;
+                // 포커스로 시점이 이동해도 종이 배경의 가장자리가 노출되지 않도록 중심 차이를 포함합니다.
+                var center = transform.TransformPoint(_renderer.sprite.bounds.center);
+                float height = worldHeight + 2 * Mathf.Abs(camera.transform.position.y - center.y);
+                float width = worldHeight * camera.aspect + 2 * Mathf.Abs(camera.transform.position.x - center.x);
                 float parentScale = transform.parent.lossyScale.x;
-                float scale = Mathf.Max(worldHeight / size.y, worldHeight * camera.aspect / size.x) / parentScale;
+                float scale = Mathf.Max(height / size.y, width / size.x) / parentScale;
                 transform.localScale = _baseScale * scale * 1.12f;
             }
             else if (_fillSceneryWidth)

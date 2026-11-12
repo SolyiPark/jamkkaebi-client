@@ -15,7 +15,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Collection
         [SerializeField] private Color _accent;
         [Tooltip("유물 상세의 그림입니다. 비어 있으면 기본 유물 그림을 사용합니다.")]
         [SerializeField] private Sprite _illustration;
-        [Tooltip("유물 상세의 정령 그림입니다. 비어 있으면 기본 정령 그림을 사용합니다.")]
+        [Tooltip("유물 상세의 도깨비 그림입니다. 비어 있으면 기본 도깨비 그림을 사용합니다.")]
         [SerializeField] private Sprite _spiritIllustration;
         [Tooltip("유물 목록 카드의 그림입니다. 비어 있으면 상세 그림 또는 기본 그림을 사용합니다.")]
         [SerializeField] private Sprite _thumbnail;
@@ -35,7 +35,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Collection
         public Color Accent => _accent;
         /// <summary>유물 상세 그림이며 썸네일이 없으면 목록 카드에도 사용합니다.</summary>
         public Sprite Illustration => _illustration;
-        /// <summary>복원 후 함께 표시할 정령의 선택적 상세 그림입니다.</summary>
+        /// <summary>복원 후 함께 표시할 도깨비의 선택적 상세 그림입니다.</summary>
         public Sprite SpiritIllustration => _spiritIllustration;
         /// <summary>목록 카드 전용 그림이며 null이면 유물 상세 그림 또는 대체 그림을 사용합니다.</summary>
         public Sprite Thumbnail => _thumbnail;
@@ -48,12 +48,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Collection
         /// <param name="id">카탈로그 내에서 유일한 유물 종류 ID입니다.</param>
         /// <param name="eraId">카탈로그에 정의된 소속 시대 ID입니다.</param>
         /// <param name="name">복원 완료 후 표시할 유물 이름입니다.</param>
-        /// <param name="spiritName">상세와 목록에 표시할 정령 이름 또는 미정 안내입니다.</param>
+        /// <param name="spiritName">상세와 목록에 표시할 도깨비 이름 또는 미정 안내입니다.</param>
         /// <param name="description">유물 상세 설명입니다.</param>
         /// <param name="conservationNote">상세에 표시할 발굴·복원·보존 이야기입니다.</param>
         /// <param name="accent">그림이 없는 화면의 대체 표현에 사용하는 강조색입니다.</param>
         /// <param name="illustration">유물 상세의 선택적 그림입니다.</param>
-        /// <param name="spiritIllustration">정령 상세의 선택적 그림입니다.</param>
+        /// <param name="spiritIllustration">도깨비 상세의 선택적 그림입니다.</param>
         /// <param name="thumbnail">유물 목록 카드의 선택적 전용 그림입니다.</param>
         /// <param name="lockedIllustration">미복원 카드의 선택적 잠금 그림입니다.</param>
         /// <param name="backgroundIllustration">유물 상세의 선택적 배경입니다.</param>

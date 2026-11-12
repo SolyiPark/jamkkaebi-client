@@ -19,13 +19,13 @@ namespace Jamkkaebi.Scripts.UI.Friends
             _requestedCode = code; Error = null; Loading = true; return ++_revision;
         }
         /// <summary>최신 요청 세대와 소유자를 검증한 스냅샷만 방문 장면으로 적용합니다.</summary>
-        public bool Complete(int revision, ExhibitionSnapshot snapshot)
+        public bool Complete(int revision, ExhibitionSnapshot snapshot, Func<bool, int, bool> isKnown = null)
         {
             if (revision != _revision) return false;
             try
             {
                 if (snapshot == null || FriendsPreviewState.NormalizeCode(snapshot.OwnerCode) != FriendsPreviewState.NormalizeCode(_requestedCode)) throw new ArgumentException("요청한 친구의 전시 정보가 아니에요.");
-                var scene = new ExhibitionVisitScene(snapshot);
+                var scene = new ExhibitionVisitScene(snapshot, isKnown);
                 Scene = scene; Loading = false; Error = null; return true;
             }
             catch (ArgumentException error) { Fail(revision, error.Message); return false; }

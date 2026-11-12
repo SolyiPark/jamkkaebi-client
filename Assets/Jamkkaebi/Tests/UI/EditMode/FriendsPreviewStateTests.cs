@@ -61,5 +61,22 @@ namespace Jamkkaebi.Tests.UI
         {
             Assert.AreEqual(expected, FriendsPreviewState.IsValidCode(code));
         }
+
+        /// <summary>서버 성공 표시는 모의 상태에 적용되지 않고 다음 서버 요약으로 교체되는지 검증합니다.</summary>
+        [Test]
+        public void ServerSuccessMarksAreTemporaryAndSummaryRemainsAuthoritative()
+        {
+            var state = new FriendsPreviewState(DateTime.Today);
+            state.MarkServerVisitClaimed(); state.MarkServerGiftSent();
+            Assert.IsFalse(state.VisitClaimed);
+            Assert.IsNull(state.GiftRecipient);
+            state.ClearForServer();
+            state.MarkServerVisitClaimed(); state.MarkServerGiftSent();
+            Assert.IsTrue(state.VisitClaimed);
+            Assert.AreEqual("SERVER_SENT", state.GiftRecipient);
+            state.ApplyServerSummary("K7QM3PVX", false, false, false, 30, 3, DateTime.Today.AddDays(1));
+            Assert.IsFalse(state.VisitClaimed);
+            Assert.IsNull(state.GiftRecipient);
+        }
     }
 }

@@ -15,6 +15,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         [SerializeField] private HousingItemDefinition _defaultItem;
         [SerializeField] private Vector2Int _initialCell = new Vector2Int(2, 2);
         [SerializeField] private bool _spawnInitialItem = true;
+        [SerializeField] private ExhibitionBehaviorPolicy _policy;
+        [SerializeField] private ExhibitionSelectionController _selectionController;
         private MirrorSceneRoot _root;
         private ExhibitionDummyVisuals _visuals;
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
@@ -22,12 +24,17 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private HousingItemDefinition _pendingItem;
         private int _selectedId;
         private bool _placing;
+        private readonly Dictionary<SpriteRenderer, float> _editingAlphas = new Dictionary<SpriteRenderer, float>();
         public ExhibitionSurface Surface => _surface;
         public Camera SceneCamera => _root.sceneCamera;
         public HousingLayout Layout { get; private set; }
         public DokkaebiWanderer Wanderer { get; private set; }
         public HousingRadialMenu Menu { get; private set; }
         public bool IsPlacing => _placing;
+        public bool IsEditingCell => _placing || _selectedId != 0;
+        public bool CanEdit => !_policy || _policy.AllowLayoutEditing;
+        public ExhibitionBehaviorPolicy BehaviorPolicy => _policy;
+        public ExhibitionSelectionController SelectionController => _selectionController;
         public HousingItemDefinition DefaultItem => _defaultItem;
         // A catalog/inventory bridge chooses an item and then calls BeginPlacement(definition).
         public event Action PlacementRequested;
@@ -36,6 +43,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public void ShowHoldMenu(Vector2 texturePoint, int itemId)
         {
+            if (!CanEdit) return;
+            if (_selectionController) _selectionController.Clear();
             bool floorMenu = itemId == 0;
             Menu.SetMessage(floorMenu ? "배치·취소 방향으로 밀어주세요." : "원하는 버튼 방향으로 밀어 선택하세요.");
             Menu.Show(texturePoint, floorMenu);
@@ -49,6 +58,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private void Start()
         {
             _root = GetComponent<MirrorSceneRoot>();
+            if (!_selectionController) _selectionController = GetComponent<ExhibitionSelectionController>();
+            if (!_selectionController) _selectionController = gameObject.AddComponent<ExhibitionSelectionController>();
+            _selectionController.Configure(_policy, GetComponent<ExhibitionCameraController>());
             Layout = new HousingLayout(_surface.Grid);
             _visuals = new ExhibitionDummyVisuals(_material);
             // Keep the collider off the artwork renderer: its texture is intentionally non-readable.
@@ -59,6 +71,12 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             var grid = _surface.Grid;
             collider.points = new[] { grid.ToLocal(Vector2.zero), grid.ToLocal(new Vector2(grid.Size.x, 0)),
                 grid.ToLocal((Vector2)grid.Size), grid.ToLocal(new Vector2(0, grid.Size.y)) };
+            // 빈 배경 클릭도 같은 루트 핸들러로 전달하며 스와이프 소유권은 셸에 남깁니다.
+            var backgroundInput = new GameObject("Exhibition Selection Input", typeof(BoxCollider2D));
+            _root.RegisterSpawnedObject(backgroundInput);
+            backgroundInput.transform.SetParent(transform, false);
+            backgroundInput.GetComponent<BoxCollider2D>().size = Vector2.one * 40;
+            MirrorSceneRoot.SetLayer(backgroundInput.transform, _root.RenderLayer);
             gameObject.AddComponent<HousingSurfaceInput>().Configure(this);
             CreateControls();
             if (_spawnInitialItem) TryAdd(_defaultItem, _initialCell);
@@ -84,9 +102,11 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                     if (!Layout.IsWalkable(cell)) continue;
                     var obj = ContentObject("Dokkaebi Dummy");
                     _visuals.Dokkaebi(obj.transform);
+                    var hitArea = obj.AddComponent<BoxCollider2D>();
+                    hitArea.size = new Vector2(.24f, .45f); hitArea.offset = new Vector2(0, .22f);
                     MirrorSceneRoot.SetLayer(obj.transform, _root.RenderLayer);
                     Wanderer = obj.AddComponent<DokkaebiWanderer>();
-                    Wanderer.Configure(Layout, _surface, cell);
+                    Wanderer.Configure(Layout, _surface, cell, _policy);
                     return;
                 }
         }
@@ -140,8 +160,10 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public void ExecuteAction(int id, HousingAction action)
         {
-            if (action == HousingAction.Place) { RequestPlacement(); return; }
             if (action == HousingAction.Cancel) { ResetSelection(); return; }
+            if (!CanEdit) return;
+            if (_selectionController) _selectionController.Clear();
+            if (action == HousingAction.Place) { RequestPlacement(); return; }
             if (!_objects.ContainsKey(id)) return;
             _selectedId = id; _placing = false;
             switch (action)
@@ -164,6 +186,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public void RequestPlacement()
         {
+            if (!CanEdit) return;
+            if (_selectionController) _selectionController.Clear();
             ResetSelection();
             if (PlacementRequested != null) PlacementRequested.Invoke();
             else BeginPlacement(_defaultItem);
@@ -171,7 +195,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public bool BeginPlacement(HousingItemDefinition definition)
         {
-            if (!definition || !definition.IsValid) return false;
+            if (!CanEdit || !definition || !definition.IsValid) return false;
+            if (_selectionController) _selectionController.Clear();
             _pendingItem = definition;
             _selectedId = 0; _placing = true;
             RefreshSelection("빈칸을 터치해 전시물을 배치하세요.");
@@ -180,7 +205,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public void SelectCell(Vector2Int cell)
         {
-            if (!_surface.Grid.Contains(cell)) return;
+            if (!CanEdit || !_surface.Grid.Contains(cell)) return;
             if (_placing)
             {
                 if (TryAdd(_pendingItem, cell)) ResetSelection();
@@ -205,6 +230,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public void RemoveSelected()
         {
+            if (!CanEdit) return;
+            if (_selectionController) _selectionController.Clear();
             var removed = Layout.GetPlacement(_selectedId);
             if (!Layout.Remove(_selectedId)) return;
             Destroy(_objects[_selectedId]);
@@ -223,15 +250,48 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         private void RefreshSelection(string message)
         {
-            Menu.SetMessage(message);
-            foreach (var pair in _objects)
-                foreach (var renderer in pair.Value.GetComponentsInChildren<SpriteRenderer>())
-                {
-                    var color = renderer.color;
-                    color.a = pair.Key == _selectedId ? .6f : 1;
-                    renderer.color = color;
-                }
+            if (Menu) Menu.SetMessage(message);
+            foreach (var pair in _editingAlphas)
+            {
+                if (!pair.Key) continue;
+                var color = pair.Key.color; color.a = pair.Value; pair.Key.color = color;
+            }
+            _editingAlphas.Clear();
+            if (_selectedId == 0 || !_objects.TryGetValue(_selectedId, out var selected)) return;
+            foreach (var renderer in selected.GetComponentsInChildren<SpriteRenderer>())
+            {
+                var color = renderer.color; _editingAlphas.Add(renderer, color.a);
+                color.a *= .6f; renderer.color = color;
+            }
         }
+
+        /// <summary>RT 좌표의 적중 결과를 화면 공용 선택 대상으로 변환합니다.</summary>
+        public void SelectAtTexturePoint(Vector2 texturePoint)
+        {
+            if (IsEditingCell || !_selectionController || !_selectionController.CanSelect) return;
+            int itemId = ItemAtTexturePoint(texturePoint);
+            GameObject selected = itemId == 0 ? null : _objects[itemId];
+            string id = itemId == 0 ? null : "housing:" + itemId;
+            if (Wanderer && Wanderer.gameObject.activeInHierarchy)
+            {
+                var obj = Wanderer.gameObject;
+                var hitArea = obj.GetComponent<BoxCollider2D>();
+                var ray = SceneCamera.ScreenPointToRay(texturePoint);
+                var plane = new Plane(Vector3.forward, obj.transform.position);
+                if (hitArea && plane.Raycast(ray, out float distance))
+                {
+                    Vector2 local = obj.transform.InverseTransformPoint(ray.GetPoint(distance));
+                    Vector2 delta = local - hitArea.offset;
+                    if (Mathf.Abs(delta.x) <= hitArea.size.x * .5f && Mathf.Abs(delta.y) <= hitArea.size.y * .5f &&
+                        (!selected || DepthOrder(obj) >= DepthOrder(selected)))
+                    { selected = obj; id = "home-npc:" + Wanderer.GetInstanceID(); }
+                }
+            }
+            if (selected) _selectionController.Select(new ExhibitionSelectionTarget(id, selected.transform));
+            else _selectionController.Clear();
+        }
+
+        private int DepthOrder(GameObject obj) => ExhibitionDepth.OrderFor(_surface.transform.InverseTransformPoint(obj.transform.position).y);
 
         private void CreateControls()
         {
@@ -256,12 +316,14 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         private void LateUpdate()
         {
+            if (!CanEdit && IsEditingCell) { ResetSelection(); HideHoldMenu(); }
             // The platform's intro animates its opacity separately from its transform.
             if (_content) _content.gameObject.SetActive(GetComponent<ExhibitionIntro>().IsComplete);
         }
 
         private void OnDisable()
         {
+            if (_selectionController) _selectionController.Clear();
             if (Menu) ResetSelection();
             HideHoldMenu();
         }
