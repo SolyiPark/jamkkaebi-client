@@ -13,13 +13,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         private readonly Tile[,] _tiles;
         
         public IReadOnlyList<PolyominoGroup> PolyominoGroups { get; }
+        public ShapeSpacing AppliedShapeSpacing { get; }
 
-        public MinigameGrid(Tile[,] tiles, IReadOnlyList<PolyominoGroup> groups)
+        public MinigameGrid(Tile[,] tiles, IReadOnlyList<PolyominoGroup> groups, ShapeSpacing appliedShapeSpacing = ShapeSpacing.None)
         {
             _tiles = tiles;
             Width = tiles.GetLength(0);
             Height = tiles.GetLength(1);
             PolyominoGroups = new List<PolyominoGroup>(groups);
+            AppliedShapeSpacing = appliedShapeSpacing;
         }
 
         public Tile GetTile(int x, int y)
