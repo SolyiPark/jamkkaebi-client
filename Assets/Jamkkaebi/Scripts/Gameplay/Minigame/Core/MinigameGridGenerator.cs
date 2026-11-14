@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Codice.CM.Common.Checkin.Partial;
 using UnityEngine;
 using Random = System.Random;
 
@@ -7,59 +8,110 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
 {
     public static class MinigameGridGenerator
     {
-        private static bool TryPlacePolyomino(PolyominoShape shape, Tile[,] tiles, List<Vector2Int> emptyCells, Random rng, out List<Vector2Int> placedCoordinates, out int rotationCount)
+        // 간격 검사에 쓰이는 이웃 방향. 4방향은 상하좌우, 8방향은 대각선까지
+        private static readonly Vector2Int[] FourWayOffsets =
         {
-            // 모양 가져오고 회전하기
-            // 회전 방향은 그리드 범위 안에서 가능한 후보를 뽑고 그 안에서 무작위 선택
+            Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right
+        };
+        private static readonly Vector2Int[] EightWayOffsets =
+        {
+            Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right,
+            new Vector2Int(1, 1), new Vector2Int(1, -1), new Vector2Int(-1, 1), new Vector2Int(-1, -1)
+        };
+        
+        // 형상 배치가 막히면 이 순서로 간격 규칙을 풀어 다시 배치한다.
+        private static readonly ShapeSpacing[] SpacingRelaxOrder =
+        {
+            ShapeSpacing.EightWay, ShapeSpacing.FourWay, ShapeSpacing.None
+        };
+        
+        private static bool TryPlacePolyomino(PolyominoShape shape, Tile[,] tiles, bool[,] blocked, List<Vector2Int> emptyCells, Random rng, ShapeSpacing spacing, out List<Vector2Int> placedCoordinates, out int rotationCount)
+        {
             IReadOnlyList<Vector2Int> polyShape = PolyominoShapes.Definitions[shape];
+            int width = tiles.GetLength(0);
+            int height = tiles.GetLength(1);
 
-            List<Vector2Int[]> rotatedShapeCandidates = new List<Vector2Int[]>();
-            // 후보와 같은 인덱스에 회전 횟수를 기록해 둔다. 고른 뒤 표시용으로 돌려준다.
-            List<int> rotationCountCandidates = new List<int>();
-            
+            // 놓을 수 있는 (회전, 위치) 후보를 모두 모은다.
+            // 회전 -> x -> y 순서로 모으므로 같은 입력이면 목록 순서도 같다.
+            var candidates = new List<(Vector2Int[] Cells, int RotationCount)>();
+
             for (int n = 0; n < 4; n++)
             {
-                Vector2Int[] rotatedShapeCandidate = PolyominoRotator.Rotate(polyShape, n);
-                Vector2Int polyBoxCandidate = GetBoundingBox(rotatedShapeCandidate);
-                if (polyBoxCandidate.x <= tiles.GetLength(0) && polyBoxCandidate.y <= tiles.GetLength(1))
+                Vector2Int[] rotatedShape = PolyominoRotator.Rotate(polyShape, n);
+                Vector2Int box = GetBoundingBox(rotatedShape);
+                if (box.x > width || box.y > height)
                 {
-                    rotatedShapeCandidates.Add(rotatedShapeCandidate);
-                    rotationCountCandidates.Add(n);
+                    continue;
                 }
-            }
-            
-            // rng 호출 순서와 횟수는 바꾸지 않는다. 바뀌면 같은 시드의 보드가 달라진다.
-            int candidateIndex = rng.Next(0, rotatedShapeCandidates.Count);
-            Vector2Int[] rotatedShape = rotatedShapeCandidates[candidateIndex];
-            rotationCount = rotationCountCandidates[candidateIndex];
-            
-            // 오프셋 범위 계산하기
-            Vector2Int polyBox = GetBoundingBox(rotatedShape);
-            
-            Vector2Int offset = new Vector2Int(rng.Next(0, tiles.GetLength(0) - polyBox.x + 1),
-                rng.Next(0, tiles.GetLength(1) - polyBox.y + 1));
-            
-            // 타일 하나씩, 배치 가능한지 검사하기
-            List<Vector2Int> tryingCoordinates = new List<Vector2Int>();
-            for (int i = 0; i < rotatedShape.Length; i++){
-                tryingCoordinates.Add(rotatedShape[i]+offset);
-                
-                // 중복 배치 검사
-                if (tiles[tryingCoordinates[i].x, tryingCoordinates[i].y] != null)
+
+                for (int x = 0; x <= width - box.x; x++)
                 {
-                    placedCoordinates = new List<Vector2Int>();
-                    return false;
+                    for (int y = 0; y <= height - box.y; y++)
+                    {
+                        Vector2Int offset = new Vector2Int(x, y);
+                        List<Vector2Int> tryingCoordinates = new List<Vector2Int>();
+                        bool isFree = true;
+                        for (int i = 0; i < rotatedShape.Length; i++)
+                        {
+                            Vector2Int cell = rotatedShape[i] + offset;
+                            if (blocked[cell.x, cell.y])
+                            {
+                                isFree = false;
+                                break;
+                            }
+                            tryingCoordinates.Add(cell);
+                        }
+
+                        if (isFree)
+                        {
+                            candidates.Add((tryingCoordinates.ToArray(), n));
+                        }
+                    }
                 }
             }
 
-            // 타일 배치
-            for (int i = 0; i < rotatedShape.Length; i++)
+            if (candidates.Count == 0)
             {
-                tiles[tryingCoordinates[i].x, tryingCoordinates[i].y] = new Tile(TileContent.Target);
-                emptyCells.Remove(tryingCoordinates[i]);
+                placedCoordinates = new List<Vector2Int>();
+                rotationCount = 0;
+                return false;
             }
             
-            placedCoordinates = tryingCoordinates;
+            // 이 형상에서 rng는 여기서 한 번만 쓴다.
+            var chosen = candidates[rng.Next(0, candidates.Count)];
+            
+            foreach (Vector2Int cell in chosen.Cells)
+            {
+                tiles[cell.x, cell.y] = new Tile(TileContent.Target);
+                emptyCells.Remove(cell);
+            }
+            
+            MarkBlocked(blocked, chosen.Cells, spacing);
+            
+            placedCoordinates = new List<Vector2Int>(chosen.Cells);
+            rotationCount = chosen.RotationCount;
+            return true;
+        }
+
+        // 모든 형상을 주어진 간격 규칙으로 놓는다. 하나라도 못 놓으면 false.
+        // 실패해도 rng는 소비된 상태로 남는다. 다음 단계가 이어서 쓰므로 같은 시드면 결과도 같다.
+        private static bool TryPlaceAllPolyominoes(IReadOnlyList<PolyominoShape> shapes, Tile[,] tiles,
+            List<Vector2Int> emptyCells, Random rng, ShapeSpacing spacing, out PolyominoGroup[] groups)
+        {
+            bool[,] blocked = new bool[tiles.GetLength(0), tiles.GetLength(1)];
+            groups = new PolyominoGroup[shapes.Count];
+
+            for (int i = 0; i < shapes.Count; i++)
+            {
+                if (!TryPlacePolyomino(shapes[i], tiles, blocked, emptyCells, rng, spacing,
+                        out List<Vector2Int> polyCoordinates, out int rotationCount))
+                {
+                    return false;
+                }
+                
+                groups[i] = new PolyominoGroup(shapes[i], polyCoordinates, rotationCount);
+            }
+
             return true;
         }
 
@@ -204,6 +256,37 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             
             return new Vector2Int(maxX + 1, maxY + 1);
         }
+
+        private static Vector2Int[] GetNeighborOffsets(ShapeSpacing spacing)
+        {
+            switch (spacing)
+            {
+                case ShapeSpacing.FourWay: return FourWayOffsets;
+                case ShapeSpacing.EightWay: return EightWayOffsets;
+                default: return Array.Empty<Vector2Int>();
+            }
+        }
+
+        private static void MarkBlocked(bool[,] blocked, IReadOnlyList<Vector2Int> cells, ShapeSpacing spacing)
+        {
+            Vector2Int[] neighborOffsets = GetNeighborOffsets(spacing);
+            foreach (Vector2Int cell in cells)
+            {
+                blocked[cell.x, cell.y] = true;
+                
+                foreach (Vector2Int neighborOffset in neighborOffsets)
+                {
+                    Vector2Int neighbor = cell + neighborOffset;
+                    if (neighbor.x < 0 || neighbor.x >= blocked.GetLength(0) || neighbor.y < 0 ||
+                        neighbor.y >= blocked.GetLength(1))
+                    {
+                        continue;
+                    }
+                    
+                    blocked[neighbor.x, neighbor.y] = true;
+                }
+            }
+        }
         
         /// <summary>
         /// 호출자가 준 난수 생성기와 모양 목록으로 설정에 맞는 그리드를 생성한다.
@@ -222,38 +305,30 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             // 0. configuration 유효성 검사(이 수치대로 그리드 배치가 실제로 가능한지)
             ValidateConfig(config, shapes);
             
-            // 1. 타일, 빈 셀 리스트 준비
-            const int MaxAttempts = 1000;
+            // 1~2. 형상 배치. 기본 간격 규칙부터 시작해 막히면 한 단계씩 풀어 빈 보드에서 다시 놓는다.
+            Tile[,] tiles = null;
+            List<Vector2Int> emptyCells = null;
+            PolyominoGroup[] groups = null;
+            ShapeSpacing appliedShapeSpacing = ShapeSpacing.None;
+            bool placed = false;
             
-            Tile[,] tiles = new Tile[config.Width, config.Height];
-            List<Vector2Int> emptyCells = new List<Vector2Int>();
-            for (int x = 0; x < config.Width; x++)
+            int startIndex = Array.IndexOf(SpacingRelaxOrder, MinigameRules.DefaultShapeSpacing);
+            for (int s = startIndex; s < SpacingRelaxOrder.Length; s++)
             {
-                for (int y = 0; y < config.Height; y++)
+                tiles = new Tile[config.Width, config.Height];
+                emptyCells = CreateAllCells(config.Width, config.Height);
+
+                if (TryPlaceAllPolyominoes(shapes, tiles, emptyCells, rng, SpacingRelaxOrder[s], out groups))
                 {
-                    emptyCells.Add(new Vector2Int(x, y));
+                    appliedShapeSpacing = SpacingRelaxOrder[s];
+                    placed = true;
+                    break;
                 }
             }
-            
-            // 2. 폴리오미노 배치
-            PolyominoGroup[] groups = new PolyominoGroup[shapes.Count];
 
-            for (int i = 0; i < shapes.Count; i++) {
-                bool placed = false;
-
-                for (int attempt = 0; attempt < MaxAttempts; attempt++) {
-                    if (TryPlacePolyomino(shapes[i], tiles, emptyCells, rng, out var polyCoordinates, out int rotationCount))
-                    {
-                        groups[i] = new PolyominoGroup(shapes[i], polyCoordinates, rotationCount);
-                        placed = true;
-                        break;
-                    }
-                }
-
-                if (!placed)
-                {
-                    throw new InvalidOperationException($"폴리오미노 배치 실패: {i}번째 {shapes[i]} 모양을 {MaxAttempts}번 시도했지만 배치할 자리를 찾지 못했습니다.");
-                }
+            if (!placed)
+            {
+                throw new InvalidOperationException("폴리오미노 배치 실패: 간격 규칙을 모두 완화해도 형상을 놓을 자리가 없습니다.");
             }
             
             // 3. 위협, 도움 타일 배치
@@ -284,7 +359,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             ReinforceRandomCells(tiles, plainCells, config.ReinforcedOnFieldCount, rng);
             
             // 6. 최종 그리드 만들기
-            MinigameGrid result = new MinigameGrid(tiles, groups);
+            MinigameGrid result = new MinigameGrid(tiles, groups, appliedShapeSpacing);
             
             return result;
         }
@@ -301,7 +376,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// <param name="seed">난수 생성 시드. 같은 값이면 같은 그리드가 나온다.</param>
         /// <returns>새로 생성된 그리드.</returns>
         /// <exception cref="ArgumentException">형상 수나 칸 합이 0 이하일 때, 강화 타일 수나 보너스 타일 수가 음수일 때.</exception>
-        /// <exception cref="InvalidOperationException">형상 수와 칸 합에 맞는 모양 세트가 없을 때, 설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 배치 시도 횟수 초과).</exception>
+        /// <exception cref="InvalidOperationException">형상 수와 칸 합에 맞는 모양 세트가 없을 때, 설정대로 타일을 배치할 수 없을 때(칸 수 초과, 모양이 들어가지 않음, 간격 규칙을 모두 풀어도 형상을 놓을 자리가 없음).</exception>
         public static MinigameGrid Generate(MinigameBoardConfig config, long seed)
         {
             Random rng = CreateRng(seed);
@@ -315,6 +390,21 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         private static Random CreateRng(long seed)
         {
             return new Random(unchecked((int)(seed ^ (seed >> 32))));
+        }
+
+        private static List<Vector2Int> CreateAllCells(int width, int height)
+        {
+            List<Vector2Int> cells = new List<Vector2Int>();
+            
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    cells.Add(new Vector2Int(x, y));
+                }
+            }
+            
+            return cells;
         }
     }
 }

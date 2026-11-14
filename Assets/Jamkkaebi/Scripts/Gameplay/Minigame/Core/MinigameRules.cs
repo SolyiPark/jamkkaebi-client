@@ -15,7 +15,16 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// 서버 기준이 바뀌면 함께 바꿔야 한다.
         /// </remarks>
         public const int AllowedThreatHits = 3;
-
+        
+        /// <summary>
+        /// 목표 형상을 놓을 때 처음 적용하는 간격 규칙.
+        /// </summary>
+        /// <remarks>
+        /// 이 규칙으로 자리를 못 찾으면 생성기에서 한 단계씩 완화해서 다시 배치한다.
+        /// 서버에는 존재하지 않는 규칙이며 클라이언트 고정으로 둔다.
+        /// </remarks>
+        public const ShapeSpacing DefaultShapeSpacing = ShapeSpacing.EightWay;
+        
         /// <summary>
         /// 목표 폴리오미노를 고를 때 쓰는 모양 풀. 서로 다른 모양만 들어 있다.
         /// </summary>
