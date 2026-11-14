@@ -343,6 +343,115 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<ArgumentException>(() => MinigameGridGenerator.Generate(negativeConfig, seed));
         }
 
+        // ==============================
+        //      형상 간격
+        // ==============================
+
+        [Test]
+        public void Generate_AnySeed_ShapesDoNotTouchUnderAppliedSpacing()
+        {
+            for (long seed = 0; seed < 200; seed++)
+            {
+                // Act
+                MinigameGrid grid = MinigameGridGenerator.Generate(_config, seed);
+
+                // Assert: 완화된 판이라도 적용된 규칙만큼은 지킨다
+                Assert.IsFalse(HasContactBetweenShapes(grid, grid.AppliedShapeSpacing),
+                    $"seed: {seed}, spacing: {grid.AppliedShapeSpacing}");
+            }
+        }
+
+        [Test]
+        public void Generate_RoomyBoard_KeepsEightWaySpacing()
+        {
+            // Arrange: 6×6에서는 두 형상이 어디에 놓여도 8방향 간격을 지킬 자리가 남는다
+            MinigameBoardConfig roomyConfig = CreateTwoShapeConfig(6, 6);
+
+            for (long seed = 0; seed < 100; seed++)
+            {
+                // Act
+                MinigameGrid grid = MinigameGridGenerator.Generate(roomyConfig, seed);
+
+                // Assert
+                Assert.AreEqual(ShapeSpacing.EightWay, grid.AppliedShapeSpacing, $"seed: {seed}");
+                Assert.IsFalse(HasContactBetweenShapes(grid, ShapeSpacing.EightWay), $"seed: {seed}");
+            }
+        }
+
+        [Test]
+        public void Generate_DenseBoard_RelaxesSpacingWithoutThrowing()
+        {
+            // Arrange: 3×3에서는 8방향 간격이 불가능하다.
+            //          4방향은 첫 형상 위치에 따라 되기도 하고 안 되기도 하며, 간격 규칙 없음은 항상 된다.
+            MinigameBoardConfig denseConfig = CreateTwoShapeConfig(3, 3);
+            bool foundFourWay = false;
+            bool foundNone = false;
+
+            for (long seed = 0; seed < 200; seed++)
+            {
+                // Act
+                MinigameGrid grid = null;
+                Assert.DoesNotThrow(() => grid = MinigameGridGenerator.Generate(denseConfig, seed), $"seed: {seed}");
+
+                // Assert
+                Assert.AreNotEqual(ShapeSpacing.EightWay, grid.AppliedShapeSpacing, $"seed: {seed}");
+                Assert.IsFalse(HasContactBetweenShapes(grid, grid.AppliedShapeSpacing),
+                    $"seed: {seed}, spacing: {grid.AppliedShapeSpacing}");
+
+                foundFourWay |= grid.AppliedShapeSpacing == ShapeSpacing.FourWay;
+                foundNone |= grid.AppliedShapeSpacing == ShapeSpacing.None;
+            }
+
+            // 완화 순서의 두 단계가 모두 실제로 쓰여야 한다
+            Assert.IsTrue(foundFourWay, "4방향으로 완화된 시드가 없습니다.");
+            Assert.IsTrue(foundNone, "간격 규칙 없음까지 완화된 시드가 없습니다.");
+        }
+
+        // 형상 2개, 칸 합 5. 풀에서 이 조합은 Line2 + LShape3뿐이라 보드 크기만으로 빽빽함을 조절할 수 있다.
+        private static MinigameBoardConfig CreateTwoShapeConfig(int width, int height)
+        {
+            return new MinigameBoardConfig(width, height, 2, 5, 0, 0, 0, 0, 0, 19, 3, 3);
+        }
+
+        // 서로 다른 형상의 칸이 주어진 간격 규칙 기준으로 맞닿아 있으면 true.
+        // 생성기 코드와 독립된 판정이어야 하므로 이웃 방향을 여기서 따로 정의한다.
+        private static bool HasContactBetweenShapes(MinigameGrid grid, ShapeSpacing spacing)
+        {
+            Vector2Int[] offsets = spacing switch
+            {
+                ShapeSpacing.FourWay => new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right },
+                ShapeSpacing.EightWay => new[]
+                {
+                    Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right,
+                    new Vector2Int(1, 1), new Vector2Int(1, -1), new Vector2Int(-1, 1), new Vector2Int(-1, -1)
+                },
+                _ => Array.Empty<Vector2Int>()
+            };
+
+            // 칸 → 형상 번호 지도
+            Dictionary<Vector2Int, int> owner = new Dictionary<Vector2Int, int>();
+            for (int g = 0; g < grid.PolyominoGroups.Count; g++)
+            {
+                foreach (Vector2Int cell in grid.PolyominoGroups[g].Coordinates)
+                {
+                    owner[cell] = g;
+                }
+            }
+
+            foreach (KeyValuePair<Vector2Int, int> pair in owner)
+            {
+                foreach (Vector2Int offset in offsets)
+                {
+                    if (owner.TryGetValue(pair.Key + offset, out int other) && other != pair.Value)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private MinigameBoardConfig WithBonus(int bonus, int onField)
         {
             return new MinigameBoardConfig(
