@@ -32,18 +32,18 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
 
             if (!relic.IsCompleted)
                 return new PlayPlan(EntryRoute.First, PhaseExtensions.From(relic.CurrentPhase),
-                    new List<MinigameDifficulty> { _firstRouteDifficulty });
+                    new List<MinigameDifficulty> { _firstRouteDifficulty }, null);
 
-            var clarity = _clarityPolicy.ClarityOf(relic.LastPurifiedAt.Value, now);
+            Clarity clarity = _clarityPolicy.ClarityOf(relic.LastPurifiedAt.Value, now);
 
             // 서버는 relic.restorePhase를 그대로 넘기지만,
             // 여기서는 복구를 시작한 선명도와 지금 선명도가 같을 때만 진행을 인정한다(복구 도중 재봉인되면 봉인 해제부터 다시).
             // RestorePhaseFor는 Guard를 돌려주지 않으므로 Guard가 항상 남아, 서버처럼 빈 목록을 처리할 필요가 없다.
-            var remaining = _clarityPolicy.RemainingPhases(clarity, relic.RestorePhaseFor(clarity));
+            IReadOnlyList<Phase> remaining = _clarityPolicy.RemainingPhases(clarity, relic.RestorePhaseFor(clarity));
 
-            var difficulties = _restorePolicy.AllowedFor(clarity);
+            IReadOnlyList<MinigameDifficulty> difficulties = _restorePolicy.AllowedFor(clarity);
 
-            return new PlayPlan(EntryRoute.Care, remaining, difficulties);
+            return new PlayPlan(EntryRoute.Care, remaining, difficulties, clarity);
         }
     }
 }

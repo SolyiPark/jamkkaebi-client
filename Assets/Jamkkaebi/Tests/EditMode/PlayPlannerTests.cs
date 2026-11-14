@@ -38,6 +38,7 @@ namespace Jamkkaebi.Tests.EditMode
             PlayPlan plan = _planner.PlanFor(OwnedRelic.Acquired(RelicId, AcquiredAt), AcquiredAt);
 
             Assert.AreEqual(EntryRoute.First, plan.Route);
+            Assert.IsNull(plan.Clarity);
             Assert.AreEqual(Phase.Unseal, plan.Phase);
             CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, plan.RemainingPhases);
             CollectionAssert.AreEqual(new[] { MinigameDifficulty.Normal }, plan.AllowedDifficulties);
@@ -77,6 +78,7 @@ namespace Jamkkaebi.Tests.EditMode
             PlayPlan plan = _planner.PlanFor(CreateCompleted(), LastPurifiedAt + TimeSpan.FromDays(3));
 
             Assert.AreEqual(EntryRoute.Care, plan.Route);
+            Assert.AreEqual(Clarity.Clear, plan.Clarity);
             CollectionAssert.AreEqual(new[] { Phase.Guard }, plan.RemainingPhases);
             CollectionAssert.AreEqual(
                 new[] { MinigameDifficulty.Easy, MinigameDifficulty.Normal, MinigameDifficulty.Hard },
@@ -91,6 +93,7 @@ namespace Jamkkaebi.Tests.EditMode
             PlayPlan plan = _planner.PlanFor(CreateCompleted(), LastPurifiedAt + TimeSpan.FromDays(8));
 
             Assert.AreEqual(EntryRoute.Care, plan.Route);
+            Assert.AreEqual(Clarity.Faded, plan.Clarity);
             CollectionAssert.AreEqual(new[] { Phase.Recall, Phase.Guard }, plan.RemainingPhases);
             CollectionAssert.AreEqual(
                 new[] { MinigameDifficulty.Normal, MinigameDifficulty.Hard }, plan.AllowedDifficulties);
@@ -103,6 +106,7 @@ namespace Jamkkaebi.Tests.EditMode
             PlayPlan plan = _planner.PlanFor(CreateCompleted(), LastPurifiedAt + TimeSpan.FromDays(15));
 
             Assert.AreEqual(Phase.Unseal, plan.Phase);
+            Assert.AreEqual(Clarity.Resealed, plan.Clarity);
             CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, plan.RemainingPhases);
             CollectionAssert.AreEqual(
                 new[] { MinigameDifficulty.Normal, MinigameDifficulty.Hard }, plan.AllowedDifficulties);
