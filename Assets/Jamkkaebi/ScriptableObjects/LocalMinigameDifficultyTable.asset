@@ -13,19 +13,6 @@ MonoBehaviour:
   m_Name: LocalMinigameDifficultyTable
   m_EditorClassIdentifier: Jamkkaebi.Gameplay::Jamkkaebi.Scripts.Gameplay.Data.MinigameDifficultyTable
   _entries:
-  - _difficulty: 0
-    _board:
-      _width: 5
-      _height: 6
-      _shapeCount: 2
-      _shapeCellTotal: 7
-      _threatTileCount: 2
-      _helperTileCount: 1
-      _bonusTileCount: 1
-      _reinforcedOnShapeCount: 1
-      _reinforcedOnFieldCount: 1
-      _destructiveToolLimit: 12
-      _scoutToolLimit: 3
   - _difficulty: 1
     _board:
       _width: 6

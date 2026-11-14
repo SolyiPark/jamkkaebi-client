@@ -37,7 +37,7 @@ namespace Jamkkaebi.Tests.EditMode
         {
             // Arrange: 난이도마다 가로 크기를 다르게 해서 바꿔치기를 잡는다
             MinigameDifficultyTable table = CreateTable(
-                CreateEntry(MinigameDifficulty.VeryEasy, 5),
+                CreateEntry(MinigameDifficulty.Easy, 5),
                 CreateEntry(MinigameDifficulty.Normal, 7),
                 CreateEntry(MinigameDifficulty.Hard, 8));
 
@@ -97,7 +97,6 @@ namespace Jamkkaebi.Tests.EditMode
         //      로컬 테이블 에셋 검증
         // ==============================
 
-        [TestCase(MinigameDifficulty.VeryEasy)]
         [TestCase(MinigameDifficulty.Easy)]
         [TestCase(MinigameDifficulty.Normal)]
         [TestCase(MinigameDifficulty.Hard)]
