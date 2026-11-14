@@ -4,9 +4,9 @@ ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
   serializedVersion: 2
-  userData:
-  assetBundleName:
-  assetBundleVariant:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
   script: {fileID: 11500000, guid: b2a9591990af98743ba3ff7cf1000886, type: 3}
   textureImporterSettings:
     alphaSource: 1
@@ -71,12 +71,12 @@ ScriptedImporter:
     textureFormatSet: 0
     applyGammaDecoding: 0
   singleSpriteImportData:
-  - name:
-    originalName:
+  - name: 
+    originalName: 
     pivot: {x: 0, y: 0}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 0
@@ -88,7 +88,7 @@ ScriptedImporter:
     spriteOutline: []
     vertices: []
     spritePhysicsOutline: []
-    indices:
+    indices: 
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 0, y: 0}
@@ -96,11 +96,11 @@ ScriptedImporter:
   multiSpriteImportData: []
   layeredSpriteImportData:
   - name: horn
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 783
@@ -1614,11 +1614,11 @@ ScriptedImporter:
     uvTransform: {x: 783, y: 1368}
     spritePosition: {x: 816, y: 706}
   - name: glow
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 4
@@ -5133,11 +5133,11 @@ ScriptedImporter:
     uvTransform: {x: 4, y: 1368}
     spritePosition: {x: 707, y: 603}
   - name: eye_L_closed
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 687
@@ -6227,11 +6227,11 @@ ScriptedImporter:
     uvTransform: {x: 687, y: 1720}
     spritePosition: {x: 719, y: 552}
   - name: eye_L_open
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 929
@@ -7255,11 +7255,11 @@ ScriptedImporter:
     uvTransform: {x: 929, y: 1592}
     spritePosition: {x: 717, y: 525}
   - name: eye_R_closed
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 687
@@ -9099,11 +9099,11 @@ ScriptedImporter:
     uvTransform: {x: 687, y: 1752}
     spritePosition: {x: 913, y: 496}
   - name: eye_R_open
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 687
@@ -10251,11 +10251,11 @@ ScriptedImporter:
     uvTransform: {x: 687, y: 1619}
     spritePosition: {x: 915, y: 462}
   - name: nose
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 753
@@ -11732,11 +11732,11 @@ ScriptedImporter:
     uvTransform: {x: 753, y: 825}
     spritePosition: {x: 766, y: 454}
   - name: mouth
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 507
@@ -15078,11 +15078,11 @@ ScriptedImporter:
     uvTransform: {x: 507, y: 1619}
     spritePosition: {x: 731, y: 390}
   - name: blush
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 358
@@ -18597,11 +18597,11 @@ ScriptedImporter:
     uvTransform: {x: 358, y: 1368}
     spritePosition: {x: 645, y: 352}
   - name: hand_R
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 358
@@ -19812,11 +19812,11 @@ ScriptedImporter:
     uvTransform: {x: 358, y: 1619}
     spritePosition: {x: 1118, y: 297}
   - name: body
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 4
@@ -22690,11 +22690,11 @@ ScriptedImporter:
     uvTransform: {x: 4, y: 4}
     spritePosition: {x: 564, y: 73}
   - name: hat
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 4
@@ -29428,11 +29428,11 @@ ScriptedImporter:
     uvTransform: {x: 4, y: 825}
     spritePosition: {x: 624, y: 523}
   - name: hand_L
-    originalName:
+    originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
     border: {x: 0, y: 0, z: 0, w: 0}
-    customData:
+    customData: 
     rect:
       serializedVersion: 2
       x: 783
@@ -30864,7 +30864,7 @@ ScriptedImporter:
         width: 139
         height: 216
       spriteId: c934fba8778f64c59a4fac663d55f7f3
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30873,7 +30873,7 @@ ScriptedImporter:
         width: 346
         height: 406
       spriteId: ae79483ace52549d6988f5d3d5c3db4d
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30882,7 +30882,7 @@ ScriptedImporter:
         width: 41
         height: 24
       spriteId: 6d4532dae1e734bedb2b7a518706062a
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30891,7 +30891,7 @@ ScriptedImporter:
         width: 46
         height: 88
       spriteId: 1967c6fc4de0349b1888b18b5f612daf
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30900,7 +30900,7 @@ ScriptedImporter:
         width: 51
         height: 17
       spriteId: 63654ca528d4246289123607fe7a44e7
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30909,7 +30909,7 @@ ScriptedImporter:
         width: 48
         height: 93
       spriteId: 81ed886c717954316a32c2ba30e25b51
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30918,7 +30918,7 @@ ScriptedImporter:
         width: 108
         height: 92
       spriteId: a342d01e485ea40d6891c8cadf8942f7
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30927,7 +30927,7 @@ ScriptedImporter:
         width: 172
         height: 74
       spriteId: ada6ed4b88453455080d1075a6e0989d
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30936,7 +30936,7 @@ ScriptedImporter:
         width: 417
         height: 243
       spriteId: 31f1a3654fa6144169ec212ce8d4a098
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30945,7 +30945,7 @@ ScriptedImporter:
         width: 141
         height: 147
       spriteId: 7951708d9891f4569a03ce5694a30f6d
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30954,7 +30954,7 @@ ScriptedImporter:
         width: 808
         height: 813
       spriteId: d3783e80866a74e44b2975adc614b993
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30963,7 +30963,7 @@ ScriptedImporter:
         width: 741
         height: 535
       spriteId: 837b1218fe1594950b793037de709b3b
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     - spritePosition:
@@ -30972,7 +30972,7 @@ ScriptedImporter:
         width: 138
         height: 152
       spriteId: eb55f98e932ef4bf2933ef7198744e5a
-      bones:
+      bones: 
       parentGroup: 0
       order: 0
     dimension: {x: 0, y: 0}
@@ -31049,10 +31049,10 @@ ScriptedImporter:
   spriteSizeExpand: 0
   skeletonAssetReferenceID: 2e764d42e64a645e8a3a83c8415fdbfe
   pipeline: {instanceID: 0}
-  pipelineVersion:
+  pipelineVersion: 
   spriteCategoryList:
     categories: []
-  spritePackingTag:
+  spritePackingTag: 
   resliceFromLayer: 0
   pSDLayerImportSetting: []
   psdLayers:
@@ -31193,8 +31193,8 @@ ScriptedImporter:
   platformSettingsDirtyTick: 0
   spriteSizeExpandChanged: 0
   generateGOHierarchy: 1
-  textureAssetName:
-  prefabAssetName:
-  spriteLibAssetName:
-  skeletonAssetName:
+  textureAssetName: 
+  prefabAssetName: 
+  spriteLibAssetName: 
+  skeletonAssetName: 
   secondarySpriteTextures: []
