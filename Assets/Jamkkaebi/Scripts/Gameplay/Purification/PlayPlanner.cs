@@ -6,8 +6,8 @@ using Jamkkaebi.Scripts.Gameplay.Relic;
 namespace Jamkkaebi.Scripts.Gameplay.Purification
 {
     /// <summary>
-    ///     유물 상태로 다음 판을 정한다. 서버 PlayPlanner에 해당한다.
-    ///     최초 정화는 순서와 난이도가 고정이고, 관리 플레이는 선명도가 순서와 고를 수 있는 난이도를 정한다.
+    /// 유물 상태로 다음 판을 정한다. 서버 PlayPlanner에 해당한다.
+    /// 최초 정화는 순서와 난이도가 고정이고, 관리 플레이는 선명도가 순서와 고를 수 있는 난이도를 정한다.
     /// </summary>
     public sealed class PlayPlanner
     {
@@ -36,9 +36,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
 
             var clarity = _clarityPolicy.ClarityOf(relic.LastPurifiedAt.Value, now);
 
-            // 서버에서는 남은 페이즈가 비었을 경우 오염 관리 한 판으로 바꾸지만, RestorePhase는 Guard가 될 수 없어 Guard가 항상 남는다.
-            // 따라서 빈 remaining에 대한 처리는 하지 않는다.
-            var remaining = _clarityPolicy.RemainingPhases(clarity, relic.RestorePhase);
+            // 서버는 relic.restorePhase를 그대로 넘기지만,
+            // 여기서는 복구를 시작한 선명도와 지금 선명도가 같을 때만 진행을 인정한다(복구 도중 재봉인되면 봉인 해제부터 다시).
+            // RestorePhaseFor는 Guard를 돌려주지 않으므로 Guard가 항상 남아, 서버처럼 빈 목록을 처리할 필요가 없다.
+            var remaining = _clarityPolicy.RemainingPhases(clarity, relic.RestorePhaseFor(clarity));
 
             var difficulties = _restorePolicy.AllowedFor(clarity);
 

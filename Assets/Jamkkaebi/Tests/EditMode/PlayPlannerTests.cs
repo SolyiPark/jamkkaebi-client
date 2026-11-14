@@ -24,11 +24,11 @@ namespace Jamkkaebi.Tests.EditMode
                 MinigameDifficulty.Normal);
         }
 
-        /// <summary>최초 정화를 마친 유물. 복구 진행 위치를 줄 수 있다.</summary>
-        private static OwnedRelic CreateCompleted(Phase? restorePhase = null)
+        /// <summary>최초 정화를 마친 유물. 복구 진행 위치와 그 복구를 시작한 선명도를 줄 수 있다.</summary>
+        private static OwnedRelic CreateCompleted(Phase? restorePhase = null, Clarity? restoreClarity = null)
         {
             return new OwnedRelic(RelicId, AcquiredAt, RelicStatus.Completed, Phase.Guard,
-                LastPurifiedAt, restorePhase, 0);
+                LastPurifiedAt, restorePhase, restoreClarity, 0);
         }
 
         /// <summary>새로 획득한 유물은 최초 정화로 봉인 해제부터, 난이도 고정으로 시작하는지 검사합니다.</summary>
@@ -112,10 +112,25 @@ namespace Jamkkaebi.Tests.EditMode
         [Test]
         public void PlanFor_ResealedMidRestore_SkipsClearedPhase()
         {
-            PlayPlan plan = _planner.PlanFor(CreateCompleted(Phase.Unseal), LastPurifiedAt + TimeSpan.FromDays(15));
+            PlayPlan plan = _planner.PlanFor(CreateCompleted(Phase.Unseal, Clarity.Resealed),
+                LastPurifiedAt + TimeSpan.FromDays(15));
 
             Assert.AreEqual(Phase.Recall, plan.Phase);
             CollectionAssert.AreEqual(new[] { Phase.Recall, Phase.Guard }, plan.RemainingPhases);
+        }
+
+        /// <summary>
+        /// 흐려짐에서 기억 회복까지 복구한 뒤 재봉인되면, 지난 진행을 버리고 봉인 해제부터 다시 하는지 검사합니다.
+        /// (서버 수정 요청 7번: 서버는 오염 관리만 남겨 두 페이즈를 건너뛴다)
+        /// </summary>
+        [Test]
+        public void PlanFor_ResealedAfterFadedProgress_RestartsFromUnseal()
+        {
+            PlayPlan plan = _planner.PlanFor(CreateCompleted(Phase.Recall, Clarity.Faded),
+                LastPurifiedAt + TimeSpan.FromDays(15));
+
+            Assert.AreEqual(Phase.Unseal, plan.Phase);
+            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, plan.RemainingPhases);
         }
 
         /// <summary>null 유물·null 정책을 거부하는지 검사합니다.</summary>

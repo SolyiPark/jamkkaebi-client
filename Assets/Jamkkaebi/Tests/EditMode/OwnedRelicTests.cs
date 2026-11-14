@@ -89,61 +89,119 @@ namespace Jamkkaebi.Tests.EditMode
 
         /// <summary>완료되지 않은 유물의 관리 플레이를 거부하고 상태를 바꾸지 않는지 검사합니다.</summary>
         [Test]
-        public void ClearCarePlay_NotCompleted_ThrowsWithoutChange()
+        public void CarePlay_NotCompleted_ThrowsWithoutChange()
         {
             OwnedRelic relic = OwnedRelic.Acquired(RelicId, AcquiredAt);
 
-            Assert.Throws<InvalidOperationException>(() => relic.ClearCarePlay(Phase.Guard, CompletedAt));
+            Assert.Throws<InvalidOperationException>(() => relic.ClearCarePlay(Phase.Guard, Clarity.Clear, CompletedAt));
+            Assert.Throws<InvalidOperationException>(() => relic.RestoreFully(CompletedAt));
             Assert.AreEqual(0, relic.CareCount);
             Assert.IsNull(relic.LastPurifiedAt);
         }
 
-        /// <summary>중간 페이즈를 클리어하면 복구 위치만 기록하고 선명도는 회복하지 않는지 검사합니다.</summary>
-        [TestCase(Phase.Unseal)]
-        [TestCase(Phase.Recall)]
-        public void ClearCarePlay_MiddlePhase_RecordsRestorePhase(Phase phase)
+        /// <summary>중간 페이즈를 클리어하면 복구 위치와 시작 선명도만 기록하고 선명도는 회복하지 않는지 검사합니다.</summary>
+        [TestCase(Phase.Unseal, Clarity.Resealed)]
+        [TestCase(Phase.Recall, Clarity.Resealed)]
+        [TestCase(Phase.Recall, Clarity.Faded)]
+        public void ClearCarePlay_MiddlePhase_RecordsProgress(Phase phase, Clarity clarity)
         {
             OwnedRelic relic = CreateCompleted();
             DateTime now = CompletedAt + TimeSpan.FromDays(20);
 
-            relic.ClearCarePlay(phase, now);
+            relic.ClearCarePlay(phase, clarity, now);
 
             Assert.AreEqual(phase, relic.RestorePhase);
+            Assert.AreEqual(clarity, relic.RestoreClarity);
             Assert.AreEqual(CompletedAt, relic.LastPurifiedAt);
             Assert.AreEqual(1, relic.CareCount);
         }
 
-        /// <summary>오염 관리를 클리어하면 선명도를 회복하고 복구 위치를 비우는지 검사합니다.</summary>
+        /// <summary>오염 관리를 클리어하면 선명도를 회복하고 복구 진행을 비우는지 검사합니다.</summary>
         [Test]
         public void ClearCarePlay_LastPhase_RestoresClarity()
         {
             OwnedRelic relic = CreateCompleted();
             DateTime now = CompletedAt + TimeSpan.FromDays(3);
 
-            relic.ClearCarePlay(Phase.Guard, now);
+            relic.ClearCarePlay(Phase.Guard, Clarity.Clear, now);
 
             Assert.AreEqual(now, relic.LastPurifiedAt);
             Assert.IsNull(relic.RestorePhase);
+            Assert.IsNull(relic.RestoreClarity);
             Assert.AreEqual(1, relic.CareCount);
         }
 
         /// <summary>재봉인 유물을 세 판에 걸쳐 복구하면 판마다 돌봄이 오르고 마지막에 선명도가 회복되는지 검사합니다.</summary>
         [Test]
-        public void ClearCarePlay_FullRestore_CountsEveryPlay()
+        public void ClearCarePlay_StepByStepRestore_CountsEveryPlay()
         {
             OwnedRelic relic = CreateCompleted();
             DateTime now = CompletedAt + TimeSpan.FromDays(20);
 
-            relic.ClearCarePlay(Phase.Unseal, now);
-            relic.ClearCarePlay(Phase.Recall, now);
+            relic.ClearCarePlay(Phase.Unseal, Clarity.Resealed, now);
+            relic.ClearCarePlay(Phase.Recall, Clarity.Resealed, now);
             Assert.AreEqual(Phase.Recall, relic.RestorePhase);
             Assert.AreEqual(CompletedAt, relic.LastPurifiedAt);
 
-            relic.ClearCarePlay(Phase.Guard, now);
+            relic.ClearCarePlay(Phase.Guard, Clarity.Resealed, now);
 
             Assert.AreEqual(3, relic.CareCount);
             Assert.AreEqual(now, relic.LastPurifiedAt);
             Assert.IsNull(relic.RestorePhase);
+            Assert.IsNull(relic.RestoreClarity);
+        }
+
+        /// <summary>더 나쁜 선명도에서 새로 클리어하면 지난 진행을 덮어쓰는지 검사합니다.</summary>
+        [Test]
+        public void ClearCarePlay_AfterClarityWorsened_OverwritesProgress()
+        {
+            OwnedRelic relic = CreateCompleted();
+            relic.ClearCarePlay(Phase.Recall, Clarity.Faded, CompletedAt + TimeSpan.FromDays(8));
+
+            relic.ClearCarePlay(Phase.Unseal, Clarity.Resealed, CompletedAt + TimeSpan.FromDays(20));
+
+            Assert.AreEqual(Phase.Unseal, relic.RestorePhase);
+            Assert.AreEqual(Clarity.Resealed, relic.RestoreClarity);
+            Assert.AreEqual(2, relic.CareCount);
+        }
+
+        /// <summary>전체 복구는 진행 중이던 복구와 관계없이 바로 선명도를 회복하고 돌봄을 1 올리는지 검사합니다.</summary>
+        [Test]
+        public void RestoreFully_RestoresAndCountsOnce()
+        {
+            OwnedRelic relic = CreateCompleted();
+            relic.ClearCarePlay(Phase.Unseal, Clarity.Resealed, CompletedAt + TimeSpan.FromDays(20));
+            DateTime now = CompletedAt + TimeSpan.FromDays(21);
+
+            relic.RestoreFully(now);
+
+            Assert.AreEqual(now, relic.LastPurifiedAt);
+            Assert.IsNull(relic.RestorePhase);
+            Assert.IsNull(relic.RestoreClarity);
+            Assert.AreEqual(2, relic.CareCount);
+        }
+
+        /// <summary>시작한 선명도와 지금 선명도가 같을 때만 복구 진행을 인정하는지 검사합니다.</summary>
+        [Test]
+        public void RestorePhaseFor_AcceptsOnlySameClarity()
+        {
+            OwnedRelic relic = CreateCompleted();
+            relic.ClearCarePlay(Phase.Recall, Clarity.Faded, CompletedAt + TimeSpan.FromDays(8));
+
+            Assert.AreEqual(Phase.Recall, relic.RestorePhaseFor(Clarity.Faded));
+            // 복구 도중 재봉인됨 → 처음부터
+            Assert.IsNull(relic.RestorePhaseFor(Clarity.Resealed));
+            // 기기 시계를 과거로 돌려 선명으로 계산됨 → 진행을 끼워 넣지 않음
+            Assert.IsNull(relic.RestorePhaseFor(Clarity.Clear));
+        }
+
+        /// <summary>복구 중이 아니면 어떤 선명도에서도 null인지 검사합니다.</summary>
+        [TestCase(Clarity.Clear)]
+        [TestCase(Clarity.Faded)]
+        [TestCase(Clarity.Resealed)]
+        public void RestorePhaseFor_NoProgress_IsNull(Clarity clarity)
+        {
+            Assert.IsNull(CreateCompleted().RestorePhaseFor(clarity));
         }
 
         /// <summary>정상 조합의 저장 상태로 다시 만들 수 있는지 검사합니다.</summary>
@@ -151,10 +209,11 @@ namespace Jamkkaebi.Tests.EditMode
         public void Constructor_ValidCompletedState_Restores()
         {
             OwnedRelic relic = new OwnedRelic(RelicId, AcquiredAt, RelicStatus.Completed, Phase.Guard,
-                CompletedAt, Phase.Recall, 5);
+                CompletedAt, Phase.Recall, Clarity.Resealed, 5);
 
             Assert.IsTrue(relic.IsCompleted);
             Assert.AreEqual(Phase.Recall, relic.RestorePhase);
+            Assert.AreEqual(Clarity.Resealed, relic.RestoreClarity);
             Assert.AreEqual(CompletedAt, relic.LastPurifiedAt);
             Assert.AreEqual(5, relic.CareCount);
         }
@@ -166,7 +225,7 @@ namespace Jamkkaebi.Tests.EditMode
         public void Constructor_OutOfRange_Throws(int relicId, int careCount)
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new OwnedRelic(relicId, AcquiredAt,
-                RelicStatus.Completed, Phase.Guard, CompletedAt, null, careCount));
+                RelicStatus.Completed, Phase.Guard, CompletedAt, null, null, careCount));
         }
 
         /// <summary>정의되지 않은 열거형 값을 거부하는지 검사합니다.</summary>
@@ -174,9 +233,9 @@ namespace Jamkkaebi.Tests.EditMode
         public void Constructor_UndefinedEnum_Throws()
         {
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                (RelicStatus)7, Phase.Unseal, null, null, 0));
+                (RelicStatus)7, Phase.Unseal, null, null, null, 0));
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                RelicStatus.InProgress, (Phase)9, null, null, 0));
+                RelicStatus.InProgress, (Phase)9, null, null, null, 0));
         }
 
         /// <summary>진행 중인 유물에 있으면 안 되는 값을 거부하는지 검사합니다.</summary>
@@ -184,11 +243,11 @@ namespace Jamkkaebi.Tests.EditMode
         public void Constructor_InProgressWithCompletedValues_Throws()
         {
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                RelicStatus.InProgress, Phase.Recall, null, Phase.Unseal, 0));
+                RelicStatus.InProgress, Phase.Recall, null, Phase.Unseal, Clarity.Resealed, 0));
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                RelicStatus.InProgress, Phase.Recall, CompletedAt, null, 0));
+                RelicStatus.InProgress, Phase.Recall, CompletedAt, null, null, 0));
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                RelicStatus.InProgress, Phase.Recall, null, null, 1));
+                RelicStatus.InProgress, Phase.Recall, null, null, null, 1));
         }
 
         /// <summary>완료된 유물에 없으면 안 되는 값과 나올 수 없는 값을 거부하는지 검사합니다.</summary>
@@ -196,11 +255,23 @@ namespace Jamkkaebi.Tests.EditMode
         public void Constructor_InvalidCompletedState_Throws()
         {
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                RelicStatus.Completed, Phase.Recall, CompletedAt, null, 0));
+                RelicStatus.Completed, Phase.Recall, CompletedAt, null, null, 0));
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                RelicStatus.Completed, Phase.Guard, null, null, 0));
+                RelicStatus.Completed, Phase.Guard, null, null, null, 0));
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
-                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Guard, 0));
+                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Guard, Clarity.Resealed, 0));
+        }
+
+        /// <summary>복구 위치와 시작 선명도 중 하나만 있거나, 시작 선명도가 선명이면 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_InvalidRestoreProgress_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Unseal, null, 0));
+            Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, null, Clarity.Faded, 0));
+            Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Unseal, Clarity.Clear, 0));
         }
     }
 }

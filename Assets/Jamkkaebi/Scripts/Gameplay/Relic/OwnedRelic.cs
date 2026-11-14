@@ -23,6 +23,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
 
         /// <summary>이번 복구 순서에서 마지막으로 클리어한 페이즈. 복구 중이 아니면 null.</summary>
         public Phase? RestorePhase { get; private set; }
+        
+        /// <summary>이번 복구를 시작할 때의 선명도. RestorePhase와 함께 존재하고, 복구 중이 아니면 null.</summary>
+        public Clarity? RestoreClarity { get; private set; }
 
         /// <summary>관리 플레이 성공 횟수. 친밀도 계산에 쓴다.</summary>
         public int CareCount { get; private set; }
@@ -37,7 +40,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
         /// <exception cref="ArgumentOutOfRangeException">relicId가 1 미만이거나 careCount가 음수인 경우.</exception>
         /// <exception cref="ArgumentException">클라이언트에 정의되지 않은 열거형이 입력되거나, 상태 조합이 맞지 않는 경우.</exception>
         public OwnedRelic(int relicId, DateTime acquiredAt, RelicStatus status, Phase currentPhase,
-                          DateTime? lastPurifiedAt, Phase? restorePhase, int careCount)
+                          DateTime? lastPurifiedAt, Phase? restorePhase, Clarity? restoreClarity, int careCount)
         {
             if (relicId <= 0) throw new ArgumentOutOfRangeException(nameof(relicId));
             if (!Enum.IsDefined(typeof(RelicStatus), status)) throw new ArgumentException("존재하지 않는 status 종류입니다.", nameof(status));
@@ -56,6 +59,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
                 if (!lastPurifiedAt.HasValue) throw new ArgumentException("최초 정화가 완료된 유물은 마지막 정화 시각이 있어야 합니다.", nameof(lastPurifiedAt));
                 if (restorePhase == Phase.Guard) throw new ArgumentException("마지막 단계(오염 관리)는 복구 페이즈일 수 없습니다.", nameof(restorePhase));
             }
+
+            if (restorePhase.HasValue ^ restoreClarity.HasValue)
+                throw new ArgumentException("마지막 복원 페이즈와 복원 시작 선명도는 함께 존재하거나 존재하지 않아야 합니다. 현재 한 쪽만 존재합니다.");
+            if (restoreClarity == Clarity.Clear) throw new ArgumentException("선명한 상태에서는 복구를 진행 할 수 없습니다.", nameof(restoreClarity));
             
             RelicId = relicId;
             AcquiredAt = acquiredAt;
@@ -63,13 +70,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
             CurrentPhase = currentPhase;
             LastPurifiedAt = lastPurifiedAt;
             RestorePhase = restorePhase;
+            RestoreClarity = restoreClarity;
             CareCount = careCount;
         }
 
         /// <summary>상자에서 새로 획득한 유물. 봉인 해제부터 시작한다.</summary>
         public static OwnedRelic Acquired(int relicId, DateTime acquiredAt)
         {
-            return new OwnedRelic(relicId, acquiredAt, RelicStatus.InProgress, Phase.Unseal, null, null, 0);
+            return new OwnedRelic(relicId, acquiredAt, RelicStatus.InProgress, Phase.Unseal, null, null, null, 0);
         }
 
         /// <summary>최초 정화 한 판 성공. 마지막 페이즈였으면 완료한다.</summary>
@@ -90,21 +98,58 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
             return true;
         }
 
-        /// <summary>관리 플레이 한 판 성공. 순서의 마지막 페이즈면 선명도를 회복한다.</summary>
-        public void ClearCarePlay(Phase phase, DateTime now)
+        /// <summary>관리 플레이 한 판 성공으로 한 단계 복구한다. 순서의 마지막 페이즈면 선명도를 회복한다.</summary>
+        /// <param name="clarity">이 판을 플레이한 선명도.</param>
+        public void ClearCarePlay(Phase phase, Clarity clarity, DateTime now)
         {
-            if (Status != RelicStatus.Completed) throw new InvalidOperationException("최초 정화가 완료되지 않은 유물은 관리할 수 없습니다.");
-
-            CareCount++;
+            BeginCarePlay();
 
             if (phase.IsLast())
             {
-                LastPurifiedAt = now;
-                RestorePhase = null;
+                Refresh(now);
                 return;
             }
 
             RestorePhase = phase;
+            RestoreClarity = clarity;
+        }
+
+        /// <summary>
+        /// 지금 선명도로 복구할 때 이미 클리어했다고 인정하는 마지막 페이즈. 인정할 진행이 없으면 null.
+        /// </summary>
+        /// <remarks>
+        /// 복구를 시작한 선명도와 지금 선명도가 같을 때만 저장된 진행을 이어 간다.
+        /// 다르면(복구 도중 더 흐려졌거나 재봉인된 경우) 지난 진행을 버리고 null을 돌려준다.
+        /// null은 "지금 선명도가 정한 순서의 첫 판부터"라는 뜻이며, 몇 판인지는 선명도가 정한다
+        /// (선명 1판, 흐려짐 2판, 재봉인 3판. <see cref="ClarityPolicy.RemainingPhases"/> 참고).
+        /// </remarks>
+        /// <param name="current">지금 선명도.</param>
+        /// <returns><see cref="ClarityPolicy.RemainingPhases"/>의 lastClearedPhase로 넘길 값.</returns>
+        public Phase? RestorePhaseFor(Clarity current)
+        {
+            return RestoreClarity == current ? RestorePhase : null;
+        }
+
+        /// <summary>관리 플레이 한 판 성공으로 바로 선명까지 복구한다.</summary>
+        public void RestoreFully(DateTime now)
+        {
+            BeginCarePlay();
+            Refresh(now);
+        }
+
+        // 관리 플레이 성공 공통: 완료 검사, 돌봄 +1
+        private void BeginCarePlay()
+        {
+            if (!IsCompleted) throw new InvalidOperationException("최초 정화가 완료되지 않은 유물은 관리할 수 없습니다.");
+            CareCount++;
+        }
+
+        // 선명도 회복: 마지막 정화 시각 갱신, 복구 진행 비우기
+        private void Refresh(DateTime now)
+        {
+            LastPurifiedAt = now;
+            RestorePhase = null;
+            RestoreClarity = null;
         }
     }
 }
