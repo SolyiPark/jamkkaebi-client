@@ -131,6 +131,44 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(Phase.Unseal, relic.CurrentPhase);
         }
 
+        /// <summary>정의되지 않은 결과면 최초 정화를 진행하지 않고 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Settle_FirstUndefinedResult_ThrowsWithoutChange()
+        {
+            OwnedRelic relic = OwnedRelic.Acquired(RelicId, AcquiredAt);
+            PlayPlan plan = _planner.PlanFor(relic, AcquiredAt);
+
+            Assert.Throws<ArgumentException>(() => _settlement.Settle(relic, plan, MinigameDifficulty.Normal,
+                (PlayResult)99, AcquiredAt));
+            Assert.AreEqual(Phase.Unseal, relic.CurrentPhase);
+            Assert.AreEqual(RelicStatus.InProgress, relic.Status);
+        }
+
+        /// <summary>정의되지 않은 결과면 관리 플레이의 돌봄·선명도 회복을 반영하지 않고 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Settle_CareUndefinedResult_ThrowsWithoutChange()
+        {
+            OwnedRelic relic = CreateCompleted();
+            PlayPlan plan = _planner.PlanFor(relic, DaysAfterPurified(3));
+
+            Assert.Throws<ArgumentException>(() => _settlement.Settle(relic, plan, MinigameDifficulty.Hard,
+                (PlayResult)99, DaysAfterPurified(3)));
+            Assert.AreEqual(0, relic.CareCount);
+            Assert.AreEqual(LastPurifiedAt, relic.LastPurifiedAt);
+        }
+
+        /// <summary>정의되지 않은 결과는 이미 정산한 계획인지 보기 전에 입력 오류로 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Settle_UndefinedResultWithStalePlan_ThrowsArgumentFirst()
+        {
+            OwnedRelic relic = OwnedRelic.Acquired(RelicId, AcquiredAt);
+            PlayPlan plan = _planner.PlanFor(relic, AcquiredAt);
+            _settlement.Settle(relic, plan, MinigameDifficulty.Normal, PlayResult.Success, AcquiredAt);
+
+            Assert.Throws<ArgumentException>(() => _settlement.Settle(relic, plan, MinigameDifficulty.Normal,
+                (PlayResult)99, AcquiredAt));
+        }
+
         // ==============================
         //      관리 플레이
         // ==============================

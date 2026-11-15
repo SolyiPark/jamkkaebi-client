@@ -29,7 +29,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         /// </remarks>
         /// <param name="plan">이 판을 시작할 때 받은 계획.</param>
         /// <param name="difficulty">이 판에서 실제로 고른 난이도.</param>
-        /// <exception cref="ArgumentException">계획이 허용하지 않는 난이도인 경우.</exception>
+        /// <exception cref="ArgumentException">계획이 허용하지 않는 난이도인 경우, 정의되지 않은 결과인 경우.</exception>
         /// <exception cref="InvalidOperationException">계획이 유물의 지금 상태와 맞지 않는 경우(이미 정산한 결과 등).</exception>
         public SettlementResult Settle(OwnedRelic relic, PlayPlan plan, MinigameDifficulty difficulty,
             PlayResult result, DateTime now)
@@ -38,6 +38,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
             if (plan == null) throw new ArgumentNullException(nameof(plan));
             if (!plan.Allows(difficulty))
                 throw new ArgumentException("계획이 허용하지 않는 난이도입니다.", nameof(difficulty));
+            if (!Enum.IsDefined(typeof(PlayResult), result)) throw new ArgumentException($"정화 결과 {result}는 정의되지 않았습니다.", nameof(result));
             if (plan.Route == EntryRoute.First)
             {
                 if (relic.IsCompleted) throw new InvalidOperationException("완료된 유물에는 최초 정화 경로의 계획을 적용할 수 없습니다.");
