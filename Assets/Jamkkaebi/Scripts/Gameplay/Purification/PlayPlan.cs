@@ -27,6 +27,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         public PlayPlan(EntryRoute route, IReadOnlyList<Phase> remainingPhases,
             IReadOnlyList<MinigameDifficulty> allowedDifficulties, Clarity? clarity)
         {
+            if (!Enum.IsDefined(typeof(EntryRoute), route))
+                throw new ArgumentException("존재하지 않는 진입 경로입니다.", nameof(route));
             if (remainingPhases == null) throw new ArgumentNullException(nameof(remainingPhases));
             if (remainingPhases.Count < 1)
                 throw new ArgumentException("남은 페이즈는 하나 이상 존재해야 합니다.", nameof(remainingPhases));

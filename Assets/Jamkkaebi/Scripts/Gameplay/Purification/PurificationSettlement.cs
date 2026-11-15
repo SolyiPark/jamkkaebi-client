@@ -13,13 +13,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         private readonly PlayPlanner _planner;
         private readonly RestorePolicy _restorePolicy;
 
-        public PurificationSettlement(PlayPlanner planner, RestorePolicy restorePolicy)
+        /// <remarks>복구 정책은 따로 받지 않고 계획기의 것을 쓴다. 계획이 허용한 난이도와 정산이 적용하는 효과가 어긋나지 않게 한다.</remarks>
+        public PurificationSettlement(PlayPlanner planner)
         {
             if (planner == null) throw new ArgumentNullException(nameof(planner));
-            if (restorePolicy == null) throw new ArgumentNullException(nameof(restorePolicy));
-            
+
             _planner = planner;
-            _restorePolicy = restorePolicy;
+            _restorePolicy = planner.RestorePolicy;
         }
 
         /// <remarks>

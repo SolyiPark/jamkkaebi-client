@@ -26,6 +26,21 @@ namespace Jamkkaebi.Tests.EditMode
                 () => new RestorePolicy(new Dictionary<MinigameDifficulty, RestoreEffect>()));
         }
 
+        /// <summary>정의되지 않은 난이도·복구 효과를 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_UndefinedKeyOrValue_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new RestorePolicy(new Dictionary<MinigameDifficulty, RestoreEffect>
+            {
+                { MinigameDifficulty.Normal, RestoreEffect.OneStep },
+                { (MinigameDifficulty)99, RestoreEffect.Full }
+            }));
+            Assert.Throws<ArgumentException>(() => new RestorePolicy(new Dictionary<MinigameDifficulty, RestoreEffect>
+            {
+                { MinigameDifficulty.Normal, (RestoreEffect)99 }
+            }));
+        }
+
         /// <summary>생성 후 원본 대응표를 바꿔도 정책이 바뀌지 않는지(방어적 복사) 검사합니다.</summary>
         [Test]
         public void Constructor_CopiesSource()

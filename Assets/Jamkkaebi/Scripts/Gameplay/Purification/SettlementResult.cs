@@ -24,8 +24,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
             if ((next == NextAction.Done) ^ (nextPlan == null))
                 throw new ArgumentException("최초 정화 또는 관리가 모두 완료되었다면 다음 계획이 존재하지 않아야 합니다.", nameof(nextPlan));
 
-            if (result == PlayResult.Failure && next != NextAction.Retry)
-                throw new ArgumentException("실패한 세션에서는 다음 액션이 재시도여야 합니다.", nameof(next));
+            if (!Enum.IsDefined(typeof(PlayResult), result))
+                throw new ArgumentException("존재하지 않는 결과입니다.", nameof(result));
+            if (!Enum.IsDefined(typeof(NextAction), next))
+                throw new ArgumentException("존재하지 않는 다음 행동입니다.", nameof(next));
+            // 실패면 재시도만, 성공이면 재시도가 아닌 행동만
+            if ((result == PlayResult.Failure) ^ (next == NextAction.Retry))
+                throw new ArgumentException("실패한 판만 다음 행동이 재시도이고, 성공한 판은 재시도일 수 없습니다.", nameof(next));
             if (completedNow && next != NextAction.Done)
                 throw new ArgumentException("최초 정화가 또는 관리가 모두 완료되었다면 다음 액션이 완료여야 합니다.", nameof(next));
 

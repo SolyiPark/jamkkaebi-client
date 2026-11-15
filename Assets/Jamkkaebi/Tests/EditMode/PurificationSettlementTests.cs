@@ -23,7 +23,7 @@ namespace Jamkkaebi.Tests.EditMode
                 new ClarityPolicy(TimeSpan.FromDays(7), TimeSpan.FromDays(14)),
                 RestorePolicy.Default,
                 MinigameDifficulty.Normal);
-            _settlement = new PurificationSettlement(_planner, RestorePolicy.Default);
+            _settlement = new PurificationSettlement(_planner);
         }
 
         /// <summary>최초 정화를 마친 유물(마지막 정화 시각 LastPurifiedAt).</summary>
@@ -345,12 +345,40 @@ namespace Jamkkaebi.Tests.EditMode
             OwnedRelic relic = OwnedRelic.Acquired(RelicId, AcquiredAt);
             PlayPlan plan = _planner.PlanFor(relic, AcquiredAt);
 
-            Assert.Throws<ArgumentNullException>(() => new PurificationSettlement(null, RestorePolicy.Default));
-            Assert.Throws<ArgumentNullException>(() => new PurificationSettlement(_planner, null));
+            Assert.Throws<ArgumentNullException>(() => new PurificationSettlement(null));
             Assert.Throws<ArgumentNullException>(() => _settlement.Settle(null, plan,
                 MinigameDifficulty.Normal, PlayResult.Success, AcquiredAt));
             Assert.Throws<ArgumentNullException>(() => _settlement.Settle(relic, null,
                 MinigameDifficulty.Normal, PlayResult.Success, AcquiredAt));
+        }
+
+        /// <summary>
+        /// 정산이 계획기와 같은 복구 정책을 쓰는지 검사합니다.
+        /// (쉬움을 전체 복구로 정한 정책이면, 흐려진 정령에 쉬움이 허용되고 한 판에 회복된다)
+        /// </summary>
+        [Test]
+        public void Settle_UsesPlannersRestorePolicy()
+        {
+            RestorePolicy easyFull = new RestorePolicy(new System.Collections.Generic.Dictionary<MinigameDifficulty, RestoreEffect>
+            {
+                { MinigameDifficulty.Easy, RestoreEffect.Full },
+                { MinigameDifficulty.Normal, RestoreEffect.OneStep }
+            });
+            PlayPlanner planner = new PlayPlanner(
+                new ClarityPolicy(TimeSpan.FromDays(7), TimeSpan.FromDays(14)), easyFull, MinigameDifficulty.Normal);
+            PurificationSettlement settlement = new PurificationSettlement(planner);
+            OwnedRelic relic = CreateCompleted();
+            PlayPlan plan = planner.PlanFor(relic, DaysAfterPurified(8));
+
+            Assert.AreSame(easyFull, planner.RestorePolicy);
+            Assert.IsTrue(plan.Allows(MinigameDifficulty.Easy));
+
+            SettlementResult result = settlement.Settle(relic, plan, MinigameDifficulty.Easy,
+                PlayResult.Success, DaysAfterPurified(8));
+
+            Assert.AreEqual(NextAction.Done, result.Next);
+            Assert.AreEqual(DaysAfterPurified(8), relic.LastPurifiedAt);
+            Assert.AreEqual(1, relic.CareCount);
         }
     }
 }

@@ -48,6 +48,24 @@ namespace Jamkkaebi.Tests.EditMode
                 NextPlan, false, null));
         }
 
+        /// <summary>성공한 판이면 Retry일 수 없는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_SuccessWithRetry_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new SettlementResult(PlayResult.Success, NextAction.Retry,
+                NextPlan, false, null));
+        }
+
+        /// <summary>정의되지 않은 결과·다음 행동을 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_UndefinedEnum_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new SettlementResult((PlayResult)99, NextAction.NextPhase,
+                NextPlan, false, null));
+            Assert.Throws<ArgumentException>(() => new SettlementResult(PlayResult.Success, (NextAction)99,
+                NextPlan, false, null));
+        }
+
         /// <summary>이번에 최초 정화를 마쳤으면 Done이어야 하는지 검사합니다.</summary>
         [Test]
         public void Constructor_CompletedNowWithoutDone_Throws()
