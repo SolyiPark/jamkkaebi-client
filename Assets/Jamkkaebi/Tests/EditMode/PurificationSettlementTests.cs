@@ -282,6 +282,26 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(LastPurifiedAt, relic.LastPurifiedAt);
         }
 
+        /// <summary>
+        /// 흐려짐에서 시작한 판이 재봉인 경계를 넘어 실패하면, 재시도 계획은 지금 상태(봉인 해제부터)로 만들어지는지 검사합니다.
+        /// (기획 결정: 다음 계획은 정산 시점 상태로)
+        /// </summary>
+        [Test]
+        public void Settle_CareFailureAcrossBoundary_RetryPlanUsesCurrentState()
+        {
+            OwnedRelic relic = CreateCompleted();
+            PlayPlan fadedPlan = _planner.PlanFor(relic, DaysAfterPurified(13.9));
+            Assert.AreEqual(Phase.Recall, fadedPlan.Phase);
+
+            SettlementResult result = _settlement.Settle(relic, fadedPlan, MinigameDifficulty.Normal,
+                PlayResult.Failure, DaysAfterPurified(14.1));
+
+            Assert.AreEqual(NextAction.Retry, result.Next);
+            Assert.AreEqual(Clarity.Resealed, result.NextPlan.Clarity);
+            Assert.AreEqual(Phase.Unseal, result.NextPlan.Phase);
+            Assert.AreEqual(0, relic.CareCount);
+        }
+
         /// <summary>관리 플레이 계획을 최초 정화 중인 유물에 정산하면 거부하는지 검사합니다.</summary>
         [Test]
         public void Settle_CarePlanOnInProgressRelic_Throws()

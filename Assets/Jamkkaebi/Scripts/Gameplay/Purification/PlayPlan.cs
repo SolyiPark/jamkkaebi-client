@@ -32,9 +32,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
             if (remainingPhases == null) throw new ArgumentNullException(nameof(remainingPhases));
             if (remainingPhases.Count < 1)
                 throw new ArgumentException("남은 페이즈는 하나 이상 존재해야 합니다.", nameof(remainingPhases));
+            if (remainingPhases.Any(phase => !Enum.IsDefined(typeof(Phase), phase)))
+                throw new ArgumentException("남은 페이즈에 존재하지 않는 페이즈가 있습니다.", nameof(remainingPhases));
             if (allowedDifficulties == null) throw new ArgumentNullException(nameof(allowedDifficulties));
             if (allowedDifficulties.Count < 1)
                 throw new ArgumentException("가능한 난이도는 하나 이상 존재해야 합니다.", nameof(allowedDifficulties));
+            if (allowedDifficulties.Any(difficulty => !Enum.IsDefined(typeof(MinigameDifficulty), difficulty)))
+                throw new ArgumentException("가능한 난이도에 존재하지 않는 난이도가 있습니다.", nameof(allowedDifficulties));
+            if (clarity.HasValue && !Enum.IsDefined(typeof(Clarity), clarity.Value))
+                throw new ArgumentException("존재하지 않는 선명도입니다.", nameof(clarity));
             if (route == EntryRoute.First && clarity.HasValue)
                 throw new ArgumentException("최초 정화시에는 관리 플레이 선명도가 존재하지 않습니다.", nameof(clarity));
             if (route == EntryRoute.Care && !clarity.HasValue)

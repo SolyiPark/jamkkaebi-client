@@ -10,6 +10,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         public NextAction Next { get; }
 
         /// <summary>다음에 할 판. Done이면 null.</summary>
+        /// <remarks>
+        /// 재시도 계획도 정산 시점의 상태로 새로 만든다. 플레이 도중 7·14일 경계를 넘어 실패하면
+        /// 실패한 판과 다른 페이즈(예: 기억 회복 실패 → 봉인 해제부터)가 될 수 있으므로, 결과 화면은 이 계획의 Phase를 보여 준다.
+        /// </remarks>
         public PlayPlan NextPlan { get; }
 
         /// <summary>이번 판으로 최초 정화를 마쳤는지. 전시관 배치·도감 등록 연출에 쓴다.</summary>

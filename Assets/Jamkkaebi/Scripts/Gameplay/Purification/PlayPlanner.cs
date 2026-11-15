@@ -23,6 +23,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         {
             if (clarityPolicy == null) throw new ArgumentNullException(nameof(clarityPolicy));
             if (restorePolicy == null) throw new ArgumentNullException(nameof(restorePolicy));
+            if (!Enum.IsDefined(typeof(MinigameDifficulty), firstRouteDifficulty))
+                throw new ArgumentException("존재하지 않는 최초 정화 난이도입니다.", nameof(firstRouteDifficulty));
 
             _clarityPolicy = clarityPolicy;
             _restorePolicy = restorePolicy;
