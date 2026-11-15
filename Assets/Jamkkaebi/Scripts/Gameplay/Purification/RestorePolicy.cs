@@ -22,6 +22,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         {
             if (effects == null) throw new ArgumentNullException(nameof(effects));
             if (effects.Count <= 0) throw new ArgumentException("난이도별 복구 효과 데이터가 비어 있습니다.", nameof(effects));
+            foreach (KeyValuePair<MinigameDifficulty, RestoreEffect> pair in effects)
+            {
+                if (!Enum.IsDefined(typeof(MinigameDifficulty), pair.Key))
+                    throw new ArgumentException($"존재하지 않는 난이도({(int)pair.Key})입니다.", nameof(effects));
+                if (!Enum.IsDefined(typeof(RestoreEffect), pair.Value))
+                    throw new ArgumentException($"존재하지 않는 복구 효과({(int)pair.Value})입니다.", nameof(effects));
+            }
 
             _effects = effects.ToDictionary(x => x.Key, x => x.Value);
         }

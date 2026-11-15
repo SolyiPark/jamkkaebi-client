@@ -73,6 +73,29 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsFalse(plan.Allows(MinigameDifficulty.Easy));
         }
 
+        /// <summary>정의되지 않은 진입 경로를 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_UndefinedRoute_Throws()
+        {
+            Assert.Throws<ArgumentException>(
+                () => new PlayPlan((EntryRoute)5, FullOrder, NormalOnly, null));
+            Assert.Throws<ArgumentException>(
+                () => new PlayPlan((EntryRoute)5, new[] { Phase.Guard }, NormalOnly, Clarity.Clear));
+        }
+
+        /// <summary>목록 안의 정의되지 않은 페이즈·난이도와 정의되지 않은 선명도를 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_UndefinedItems_Throws()
+        {
+            Assert.Throws<ArgumentException>(
+                () => new PlayPlan(EntryRoute.First, new[] { Phase.Recall, (Phase)9 }, NormalOnly, null));
+            Assert.Throws<ArgumentException>(
+                () => new PlayPlan(EntryRoute.First, FullOrder,
+                    new[] { MinigameDifficulty.Normal, (MinigameDifficulty)99 }, null));
+            Assert.Throws<ArgumentException>(
+                () => new PlayPlan(EntryRoute.Care, new[] { Phase.Guard }, NormalOnly, (Clarity)7));
+        }
+
         /// <summary>최초 정화에는 선명도가 없고, 관리 플레이에는 반드시 있는지 검사합니다.</summary>
         [Test]
         public void Constructor_ClarityMismatchWithRoute_Throws()

@@ -147,5 +147,13 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<ArgumentNullException>(
                 () => new PlayPlanner(ClarityPolicy.Default, null, MinigameDifficulty.Normal));
         }
+
+        /// <summary>정의되지 않은 최초 정화 난이도를 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_UndefinedFirstRouteDifficulty_Throws()
+        {
+            Assert.Throws<ArgumentException>(
+                () => new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default, (MinigameDifficulty)99));
+        }
     }
 }
