@@ -15,6 +15,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         private readonly MinigameDifficulty _firstRouteDifficulty;
         private readonly RestorePolicy _restorePolicy;
 
+        /// <summary>선명도 계산 정책. 정산도 같은 정책으로 정산 시각의 선명도를 구한다.</summary>
+        public ClarityPolicy ClarityPolicy => _clarityPolicy;
+
         /// <summary>계획에서 고를 수 있는 난이도를 정한 복구 정책. 정산도 같은 정책을 써야 한다.</summary>
         public RestorePolicy RestorePolicy => _restorePolicy;
 

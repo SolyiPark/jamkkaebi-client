@@ -25,7 +25,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         /// <remarks>
         /// 한 판의 결과는 한 번만 정산한다. 같은 결과의 중복·지난 보고는 여기서가 아니라 세션 계층에서 막는다
         /// (서버처럼 판을 시작할 때 1회용 세션 토큰을 발급하고, 보고는 그 토큰으로 한 번만 받는다).
-        /// 관리 경로는 시작 시점 계획을 그대로 인정하므로(7·14일 경계 통과 허용) 지금 상태와 비교해 거르지 않는다.
+        /// 관리 경로는 시작 시점 계획의 페이즈를 그대로 인정하므로(7·14일 경계 통과 허용) 지금 상태와 비교해 거르지 않는다.
+        /// 다만 복구 진행에 함께 저장하는 선명도는 정산 순간의 값이다(서버와 같음).
         /// </remarks>
         /// <param name="plan">이 판을 시작할 때 받은 계획.</param>
         /// <param name="difficulty">이 판에서 실제로 고른 난이도.</param>
@@ -84,7 +85,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
             }
             else
             {
-                relic.ClearCarePlay(plan.Phase, plan.Clarity.Value, now);
+                // 페이즈는 계획값, 복구 진행의 선명도는 정산 순간의 값으로 저장한다(서버와 같음, 2026-11-16).
+                // 플레이 도중 재봉인 경계를 넘어도 이번 판 진행이 지금 선명도에서 인정된다.
+                Clarity settledClarity = _planner.ClarityPolicy.ClarityOf(relic.LastPurifiedAt.Value, now);
+                relic.ClearCarePlay(plan.Phase, settledClarity, now);
             }
             
             bool restored = effect == RestoreEffect.Full || plan.Phase.IsLast();

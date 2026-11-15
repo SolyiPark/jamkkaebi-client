@@ -333,25 +333,42 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         /// <summary>
-        /// 흐려짐에서 시작한 기억 회복이 재봉인 경계를 넘어 끝나면, 판은 인정(돌봄 +1)되지만
-        /// 다음 계획은 지금 상태(재봉인) 기준으로 봉인 해제부터인지 검사합니다.
+        /// 흐려짐에서 시작한 기억 회복이 재봉인 경계를 넘어 끝나면, 진행이 정산 순간의 선명도(재봉인)로 저장되어
+        /// 다음 계획은 오염 관리만 남는지 검사합니다. (서버와 같은 관대한 규칙, 2026-11-16)
         /// </summary>
         [Test]
-        public void Settle_MiddlePhaseCrossesResealedBoundary_CountsButRestarts()
+        public void Settle_MiddlePhaseCrossesResealedBoundary_KeepsProgressAtSettledClarity()
         {
             OwnedRelic relic = CreateCompleted();
             PlayPlan plan = _planner.PlanFor(relic, DaysAfterPurified(14) - TimeSpan.FromMinutes(1));
             DateTime now = DaysAfterPurified(14) + TimeSpan.FromMinutes(1);
+            Assert.AreEqual(Phase.Recall, plan.Phase);
 
             SettlementResult result = _settlement.Settle(relic, plan, MinigameDifficulty.Normal,
                 PlayResult.Success, now);
 
             Assert.AreEqual(1, relic.CareCount);
             Assert.AreEqual(Phase.Recall, relic.RestorePhase);
-            Assert.AreEqual(Clarity.Faded, relic.RestoreClarity);
+            Assert.AreEqual(Clarity.Resealed, relic.RestoreClarity);
             Assert.AreEqual(NextAction.ContinueRestore, result.Next);
-            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard },
-                result.NextPlan.RemainingPhases);
+            CollectionAssert.AreEqual(new[] { Phase.Guard }, result.NextPlan.RemainingPhases);
+        }
+
+        /// <summary>
+        /// 판과 판 사이에 재봉인 경계를 넘으면(이번 판은 흐려짐 안에서 끝남) 지난 진행을 버리고 봉인 해제부터인지 검사합니다.
+        /// (7번 규칙은 그대로)
+        /// </summary>
+        [Test]
+        public void Settle_ResealedBetweenPlays_RestartsFromUnseal()
+        {
+            OwnedRelic relic = CreateCompleted();
+            PlayPlan plan = _planner.PlanFor(relic, DaysAfterPurified(10));
+            _settlement.Settle(relic, plan, MinigameDifficulty.Normal, PlayResult.Success, DaysAfterPurified(10));
+            Assert.AreEqual(Clarity.Faded, relic.RestoreClarity);
+
+            PlayPlan next = _planner.PlanFor(relic, DaysAfterPurified(15));
+
+            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, next.RemainingPhases);
         }
 
         // ==============================
