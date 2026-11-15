@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Jamkkaebi/Scenes/Home.unity
     guid: 16ad0c9fcfd69cf4b93ca4a7b5251468
   - enabled: 1
-    path: Assets/Jamkkaebi/Scenes/Workshop.unity
+    path: Assets/Jamkkaebi/Scenes/Workbench.unity
     guid: d4d45efed82424649ba372348a14cc95
   - enabled: 1
     path: Assets/Jamkkaebi/Scenes/Collection.unity

@@ -798,9 +798,16 @@ MonoBehaviour:
   _usePointerEvents: 1
   _useFixedSeed: 0
   _fixedSeed: 0
+  _relic: {fileID: 0}
+  _phase: 1
+  _chainStepDelay: 0.05
+  _endRevealDelay: 0.4
+  _endRevealInterval: 0.04
+  _resultDelay: 0.8
   _sealMediumCatalog: {fileID: 11400000, guid: d4d36a2ec02a9409bba0818e256cf6db, type: 2}
   _backgroundView: {fileID: 1909907361}
   _sealMedium: 1
+  _phaseCatalog: {fileID: 0}
 --- !u!4 &1276415656
 Transform:
   m_ObjectHideFlags: 0
@@ -951,7 +958,7 @@ GameObject:
   - component: {fileID: 1413304334}
   - component: {fileID: 1413304333}
   m_Layer: 9
-  m_Name: Workshop UI
+  m_Name: Workbench UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1179,7 +1186,7 @@ GameObject:
   - component: {fileID: 1620724646}
   - component: {fileID: 1620724645}
   m_Layer: 9
-  m_Name: Workshop Root
+  m_Name: Workbench Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
