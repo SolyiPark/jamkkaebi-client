@@ -1,0 +1,48 @@
+using System;
+using Jamkkaebi.Scripts.Gameplay.Data;
+
+namespace Jamkkaebi.Scripts.Gameplay.Purification
+{
+    /// <summary>한 판을 정산한 결과. 결과 팝업이 이 값으로 다음 버튼을 정한다.</summary>
+    public sealed class SettlementResult
+    {
+        public PlayResult Result { get; }
+        public NextAction Next { get; }
+
+        /// <summary>다음에 할 판. Done이면 null.</summary>
+        /// <remarks>
+        /// 재시도 계획도 정산 시점의 상태로 새로 만든다. 플레이 도중 7·14일 경계를 넘어 실패하면
+        /// 실패한 판과 다른 페이즈(예: 기억 회복 실패 → 봉인 해제부터)가 될 수 있으므로, 결과 화면은 이 계획의 Phase를 보여 준다.
+        /// </remarks>
+        public PlayPlan NextPlan { get; }
+
+        /// <summary>이번 판으로 최초 정화를 마쳤는지. 전시관 배치·도감 등록 연출에 쓴다.</summary>
+        public bool CompletedNow { get; }
+
+        /// <summary>이번 판으로 오른 공개 단계. 최초 정화 성공일 때만 값이 있다.</summary>
+        public RevealLevel? Revealed { get; }
+
+        public SettlementResult(PlayResult result, NextAction next, PlayPlan nextPlan,
+            bool completedNow, RevealLevel? revealed)
+        {
+            if ((next == NextAction.Done) ^ (nextPlan == null))
+                throw new ArgumentException("최초 정화 또는 관리가 모두 완료되었다면 다음 계획이 존재하지 않아야 합니다.", nameof(nextPlan));
+
+            if (!Enum.IsDefined(typeof(PlayResult), result))
+                throw new ArgumentException("존재하지 않는 결과입니다.", nameof(result));
+            if (!Enum.IsDefined(typeof(NextAction), next))
+                throw new ArgumentException("존재하지 않는 다음 행동입니다.", nameof(next));
+            // 실패면 재시도만, 성공이면 재시도가 아닌 행동만
+            if ((result == PlayResult.Failure) ^ (next == NextAction.Retry))
+                throw new ArgumentException("실패한 판만 다음 행동이 재시도이고, 성공한 판은 재시도일 수 없습니다.", nameof(next));
+            if (completedNow && next != NextAction.Done)
+                throw new ArgumentException("최초 정화가 또는 관리가 모두 완료되었다면 다음 액션이 완료여야 합니다.", nameof(next));
+
+            Result = result;
+            Next = next;
+            NextPlan = nextPlan;
+            CompletedNow = completedNow;
+            Revealed = revealed;
+        }
+    }
+}
