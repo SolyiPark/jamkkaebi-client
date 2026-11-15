@@ -45,6 +45,10 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
             if (relicId <= 0) throw new ArgumentOutOfRangeException(nameof(relicId));
             if (!Enum.IsDefined(typeof(RelicStatus), status)) throw new ArgumentException("존재하지 않는 status 종류입니다.", nameof(status));
             if (!Enum.IsDefined(typeof(Phase), currentPhase)) throw new ArgumentException("존재하지 않는 phase 종류입니다.", nameof(currentPhase));
+            if (restorePhase.HasValue && !Enum.IsDefined(typeof(Phase), restorePhase.Value))
+                throw new ArgumentException("존재하지 않는 복구 페이즈 종류입니다.", nameof(restorePhase));
+            if (restoreClarity.HasValue && !Enum.IsDefined(typeof(Clarity), restoreClarity.Value))
+                throw new ArgumentException("존재하지 않는 복구 시작 선명도 종류입니다.", nameof(restoreClarity));
             if (careCount < 0) throw new ArgumentOutOfRangeException(nameof(careCount));
 
             if (status == RelicStatus.InProgress)
@@ -63,7 +67,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
             if (restorePhase.HasValue ^ restoreClarity.HasValue)
                 throw new ArgumentException("마지막 복원 페이즈와 복원 시작 선명도는 함께 존재하거나 존재하지 않아야 합니다. 현재 한 쪽만 존재합니다.");
             if (restoreClarity == Clarity.Clear) throw new ArgumentException("선명한 상태에서는 복구를 진행 할 수 없습니다.", nameof(restoreClarity));
-            
+            if (restorePhase.HasValue && !IsMiddleOfRestore(restorePhase.Value, restoreClarity.Value))
+                throw new ArgumentException("복구 시작 선명도의 복구 순서에 없는 페이즈입니다.", nameof(restorePhase));
+
             RelicId = relicId;
             AcquiredAt = acquiredAt;
             Status = status;
@@ -99,10 +105,22 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
         }
 
         /// <summary>관리 플레이 한 판 성공으로 한 단계 복구한다. 순서의 마지막 페이즈면 선명도를 회복한다.</summary>
+        /// <param name="phase">이 판에서 클리어한 페이즈.</param>
         /// <param name="clarity">이 판을 플레이한 선명도.</param>
+        /// <exception cref="InvalidOperationException">최초 정화가 완료되지 않은 경우.</exception>
+        /// <exception cref="ArgumentException">
+        /// 정의되지 않은 열거형이거나, 중간 페이즈가 그 선명도의 복구 순서에 없는 경우(선명에서 중간 페이즈, 흐려짐에서 봉인 해제 등).
+        /// </exception>
         public void ClearCarePlay(Phase phase, Clarity clarity, DateTime now)
         {
-            BeginCarePlay();
+            // 상태를 바꾸기 전에 모두 검사한다. 저장 후 생성자가 거부할 상태를 만들지 않는다.
+            RequireCompleted();
+            if (!Enum.IsDefined(typeof(Phase), phase)) throw new ArgumentException("존재하지 않는 phase 종류입니다.", nameof(phase));
+            if (!Enum.IsDefined(typeof(Clarity), clarity)) throw new ArgumentException("존재하지 않는 선명도 종류입니다.", nameof(clarity));
+            if (!phase.IsLast() && !IsMiddleOfRestore(phase, clarity))
+                throw new ArgumentException("이 선명도의 복구 순서에 없는 페이즈입니다.", nameof(phase));
+
+            CareCount++;
 
             if (phase.IsLast())
             {
@@ -131,17 +149,25 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
         }
 
         /// <summary>관리 플레이 한 판 성공으로 바로 선명까지 복구한다.</summary>
+        /// <exception cref="InvalidOperationException">최초 정화가 완료되지 않은 경우.</exception>
         public void RestoreFully(DateTime now)
         {
-            BeginCarePlay();
+            RequireCompleted();
+            CareCount++;
             Refresh(now);
         }
 
-        // 관리 플레이 성공 공통: 완료 검사, 돌봄 +1
-        private void BeginCarePlay()
+        private void RequireCompleted()
         {
             if (!IsCompleted) throw new InvalidOperationException("최초 정화가 완료되지 않은 유물은 관리할 수 없습니다.");
-            CareCount++;
+        }
+
+        // 그 선명도의 복구 순서에서 마지막(오염 관리)이 아닌 페이즈인지. 선명이면 중간 페이즈가 없다.
+        private static bool IsMiddleOfRestore(Phase phase, Clarity clarity)
+        {
+            return clarity != Clarity.Clear
+                   && !phase.IsLast()
+                   && phase.Order() >= clarity.RestoreFrom().Order();
         }
 
         // 선명도 회복: 마지막 정화 시각 갱신, 복구 진행 비우기

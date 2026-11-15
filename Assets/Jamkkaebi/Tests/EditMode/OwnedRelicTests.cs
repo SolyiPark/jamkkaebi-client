@@ -165,6 +165,51 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(2, relic.CareCount);
         }
 
+        /// <summary>
+        /// 선명도의 복구 순서에 없는 중간 페이즈를 거부하고 상태를 바꾸지 않는지 검사합니다.
+        /// (저장 후 생성자가 거부할 상태를 만들지 않기 위해)
+        /// </summary>
+        [TestCase(Phase.Unseal, Clarity.Clear)]
+        [TestCase(Phase.Recall, Clarity.Clear)]
+        [TestCase(Phase.Unseal, Clarity.Faded)]
+        public void ClearCarePlay_PhaseOutsideRestoreOrder_ThrowsWithoutChange(Phase phase, Clarity clarity)
+        {
+            OwnedRelic relic = CreateCompleted();
+
+            Assert.Throws<ArgumentException>(() => relic.ClearCarePlay(phase, clarity, CompletedAt + TimeSpan.FromDays(8)));
+            Assert.AreEqual(0, relic.CareCount);
+            Assert.IsNull(relic.RestorePhase);
+            Assert.IsNull(relic.RestoreClarity);
+            Assert.AreEqual(CompletedAt, relic.LastPurifiedAt);
+        }
+
+        /// <summary>정의되지 않은 열거형을 거부하고 상태를 바꾸지 않는지 검사합니다.</summary>
+        [Test]
+        public void ClearCarePlay_UndefinedEnum_ThrowsWithoutChange()
+        {
+            OwnedRelic relic = CreateCompleted();
+
+            Assert.Throws<ArgumentException>(() => relic.ClearCarePlay((Phase)9, Clarity.Resealed, CompletedAt));
+            Assert.Throws<ArgumentException>(() => relic.ClearCarePlay(Phase.Recall, (Clarity)9, CompletedAt));
+            Assert.AreEqual(0, relic.CareCount);
+            Assert.IsNull(relic.RestorePhase);
+        }
+
+        /// <summary>오염 관리는 어느 선명도에서든 마지막 판이라 선명도를 회복하는지 검사합니다.</summary>
+        [TestCase(Clarity.Clear)]
+        [TestCase(Clarity.Faded)]
+        [TestCase(Clarity.Resealed)]
+        public void ClearCarePlay_Guard_RestoresAtAnyClarity(Clarity clarity)
+        {
+            OwnedRelic relic = CreateCompleted();
+            DateTime now = CompletedAt + TimeSpan.FromDays(20);
+
+            relic.ClearCarePlay(Phase.Guard, clarity, now);
+
+            Assert.AreEqual(now, relic.LastPurifiedAt);
+            Assert.AreEqual(1, relic.CareCount);
+        }
+
         /// <summary>전체 복구는 진행 중이던 복구와 관계없이 바로 선명도를 회복하고 돌봄을 1 올리는지 검사합니다.</summary>
         [Test]
         public void RestoreFully_RestoresAndCountsOnce()
@@ -236,6 +281,22 @@ namespace Jamkkaebi.Tests.EditMode
                 (RelicStatus)7, Phase.Unseal, null, null, null, 0));
             Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
                 RelicStatus.InProgress, (Phase)9, null, null, null, 0));
+            Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, (Phase)3, Clarity.Resealed, 0));
+            Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Unseal, (Clarity)7, 0));
+        }
+
+        /// <summary>복구 시작 선명도의 복구 순서에 없는 복구 페이즈를 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_RestorePhaseOutsideRestoreOrder_Throws()
+        {
+            Assert.Throws<ArgumentException>(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Unseal, Clarity.Faded, 0));
+            Assert.DoesNotThrow(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Recall, Clarity.Faded, 0));
+            Assert.DoesNotThrow(() => new OwnedRelic(RelicId, AcquiredAt,
+                RelicStatus.Completed, Phase.Guard, CompletedAt, Phase.Unseal, Clarity.Resealed, 0));
         }
 
         /// <summary>진행 중인 유물에 있으면 안 되는 값을 거부하는지 검사합니다.</summary>
