@@ -31,6 +31,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
 
         // ---------- 준비 도우미 ----------
 
+        /// <summary>기본 정령 이름. 서버의 유물 마스터 데이터 대신 쓴다.</summary>
+        private static string SpiritName(int relicId) => "정령" + relicId;
+
         private static PlayPlanner CreatePlanner() =>
             new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default, MinigameDifficulty.Normal);
 
@@ -38,7 +41,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         {
             _inventory = new RelicInventory(ClarityPolicy.Default, capacity, relics);
             _random = new QueuedRandom();
-            _backend = new MockWorkbenchBackend(_inventory, CreatePlanner(), totalRelics, _random, () => _now, 0f);
+            _backend = new MockWorkbenchBackend(_inventory, CreatePlanner(), totalRelics, SpiritName, _random, () => _now, 0f);
         }
 
         /// <summary>최초 정화 중인 유물. BaseTime에서 hoursLater시간 뒤에 획득했다.</summary>
@@ -131,10 +134,10 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Random random = new Random(1);
             Func<DateTime> clock = () => _now;
 
-            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(null, planner, 10, random, clock, 0f));
-            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(inventory, null, 10, random, clock, 0f));
-            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(inventory, planner, 10, null, clock, 0f));
-            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(inventory, planner, 10, random, null, 0f));
+            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(null, planner, 10, SpiritName, random, clock, 0f));
+            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(inventory, null, 10, SpiritName, random, clock, 0f));
+            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(inventory, planner, 10, SpiritName, null, clock, 0f));
+            Assert.Throws<ArgumentNullException>(() => new MockWorkbenchBackend(inventory, planner, 10, SpiritName, random, null, 0f));
         }
 
         /// <summary>전체 유물 수 1 미만, 가진 유물이 전체보다 많은 경우, 음수 지연을 거부하는지 검사합니다.</summary>
@@ -146,9 +149,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Random random = new Random(1);
             Func<DateTime> clock = () => _now;
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => new MockWorkbenchBackend(three, planner, 0, random, clock, 0f));
-            Assert.Throws<ArgumentException>(() => new MockWorkbenchBackend(three, planner, 2, random, clock, 0f));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new MockWorkbenchBackend(three, planner, 10, random, clock, -1f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new MockWorkbenchBackend(three, planner, 0, SpiritName, random, clock, 0f));
+            Assert.Throws<ArgumentException>(() => new MockWorkbenchBackend(three, planner, 2, SpiritName, random, clock, 0f));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new MockWorkbenchBackend(three, planner, 10, SpiritName, random, clock, -1f));
         }
 
         /// <summary>
@@ -161,9 +164,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
             RelicInventory inventory = new RelicInventory(ClarityPolicy.Default, 3, new[] { CompletedDaysAgo(2, 1) });
 
             Assert.Throws<ArgumentException>(() =>
-                new MockWorkbenchBackend(inventory, CreatePlanner(), 1, new Random(1), () => _now, 0f));
+                new MockWorkbenchBackend(inventory, CreatePlanner(), 1, SpiritName, new Random(1), () => _now, 0f));
             Assert.DoesNotThrow(() =>
-                new MockWorkbenchBackend(inventory, CreatePlanner(), 2, new Random(1), () => _now, 0f));
+                new MockWorkbenchBackend(inventory, CreatePlanner(), 2, SpiritName, new Random(1), () => _now, 0f));
         }
 
         /// <summary>인벤토리와 계획기의 선명도 정책이 다르면 거부하는지 검사합니다(정렬과 표시가 어긋나지 않게).</summary>
@@ -174,11 +177,11 @@ namespace Jamkkaebi.Tests.UI.EditMode
             RelicInventory inventory = new RelicInventory(other, 3, new OwnedRelic[0]);
 
             Assert.Throws<ArgumentException>(() =>
-                new MockWorkbenchBackend(inventory, CreatePlanner(), 10, new Random(1), () => _now, 0f));
+                new MockWorkbenchBackend(inventory, CreatePlanner(), 10, SpiritName, new Random(1), () => _now, 0f));
 
             PlayPlanner matching = new PlayPlanner(other, RestorePolicy.Default, MinigameDifficulty.Normal);
             Assert.DoesNotThrow(() =>
-                new MockWorkbenchBackend(inventory, matching, 10, new Random(1), () => _now, 0f));
+                new MockWorkbenchBackend(inventory, matching, 10, SpiritName, new Random(1), () => _now, 0f));
         }
 
         // ---------- GetWorkbench ----------
@@ -636,6 +639,104 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(Clarity.Resealed, relic.RestoreClarity);
             Assert.AreEqual(NextAction.ContinueRestore, result.Next);
             CollectionAssert.AreEqual(new[] { Phase.Guard }, result.NextPlan.RemainingPhases);
+        }
+
+        // ---------- 정령 이름 ----------
+
+        private CallResult<string> Rename(int relicId, string name) =>
+            Run<string>((c, f) => _backend.RenameSpirit(relicId, name, c, f));
+
+        /// <summary>기본 이름 함수가 null이면 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Constructor_NullDefaultSpiritName_Throws()
+        {
+            RelicInventory inventory = new RelicInventory(ClarityPolicy.Default, 3, new OwnedRelic[0]);
+
+            Assert.Throws<ArgumentNullException>(() =>
+                new MockWorkbenchBackend(inventory, CreatePlanner(), 10, null, new Random(1), () => _now, 0f));
+        }
+
+        /// <summary>이름을 지은 적 없으면 작업대·상세 모두 기본 이름을 주는지 검사합니다.</summary>
+        [Test]
+        public void SpiritName_DefaultsToCatalogName()
+        {
+            CreateBackend(3, 10, CompletedDaysAgo(2, 1));
+
+            Assert.AreEqual("정령2", Workbench().Value.Spirits[0].SpiritName);
+            Assert.AreEqual("정령2", Detail(2).Value.SpiritName);
+        }
+
+        /// <summary>최초 정화 중인 유물의 상세에는 이름이 공개되지 않는지 검사합니다.</summary>
+        [Test]
+        public void SpiritName_HiddenWhileInProgress()
+        {
+            CreateBackend(3, 10, InProgress(1));
+
+            Assert.IsNull(Detail(1).Value.SpiritName);
+        }
+
+        /// <summary>이름을 바꾸면 앞뒤 공백을 자른 이름이 저장되고 작업대·상세에 보이는지 검사합니다.</summary>
+        [Test]
+        public void Rename_TrimsAndStores()
+        {
+            CreateBackend(3, 10, CompletedDaysAgo(2, 1));
+
+            CallResult<string> result = Rename(2, "  깨비  ");
+
+            Assert.AreEqual("깨비", result.Value);
+            Assert.AreEqual("깨비", Workbench().Value.Spirits[0].SpiritName);
+            Assert.AreEqual("깨비", Detail(2).Value.SpiritName);
+        }
+
+        /// <summary>이름을 비워 보내면 기본 이름으로 되돌리고, 돌려받는 이름도 기본 이름인지 검사합니다.</summary>
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("   ")]
+        public void Rename_EmptyResetsToDefault(string empty)
+        {
+            CreateBackend(3, 10, CompletedDaysAgo(2, 1));
+            Rename(2, "깨비");
+
+            CallResult<string> result = Rename(2, empty);
+
+            Assert.AreEqual("정령2", result.Value);
+            Assert.AreEqual("정령2", Detail(2).Value.SpiritName);
+        }
+
+        /// <summary>규칙에 어긋난 이름은 실패하고, 이전 이름이 그대로인지 검사합니다.</summary>
+        [TestCase("깨")]
+        [TestCase("열한글자가넘는정령이름")]
+        public void Rename_InvalidLength_FailsAndKeepsName(string name)
+        {
+            CreateBackend(3, 10, CompletedDaysAgo(2, 1));
+            Rename(2, "깨비");
+
+            Assert.AreEqual(1, Rename(2, name).FailedCount);
+            Assert.AreEqual("깨비", Detail(2).Value.SpiritName);
+        }
+
+        /// <summary>가진 유물이 아니거나 최초 정화 중이면 이름을 지을 수 없는지 검사합니다.</summary>
+        [Test]
+        public void Rename_NotOwnedOrInProgress_Fails()
+        {
+            CreateBackend(3, 10, InProgress(1));
+
+            Assert.AreEqual(1, Rename(9, "깨비").FailedCount);
+            Assert.AreEqual(1, Rename(1, "깨비").FailedCount);
+        }
+
+        /// <summary>최초 정화를 마치면 그때부터 기본 이름이 보이는지 검사합니다.</summary>
+        [Test]
+        public void SpiritName_AppearsAfterFirstPurification()
+        {
+            CreateBackend(3, 10, InProgress(1));
+            for (int i = 0; i < 3; i++)
+            {
+                string token = Start(1, null).Value.SessionToken;
+                Report(token, PlayResult.Success);
+            }
+
+            Assert.AreEqual("정령1", Detail(1).Value.SpiritName);
         }
 
         // ---------- 전체 흐름 ----------

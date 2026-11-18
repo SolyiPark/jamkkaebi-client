@@ -1094,83 +1094,9 @@ namespace Jamkkaebi.Scripts.UI.Dev
             yield return VerifyCollection(host);
             host.SelectTab(3); yield return new WaitForSeconds(.35f);
             yield return VerifyFriends(host);
-            host.SelectTab(1); yield return new WaitForSeconds(.35f);
-            var adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
-            var presenter = host.GetRoot(1).GetComponent<WorkbenchPresenter>();
-            Check(adapter.Session != null && adapter.TileViews.Count == 56, "existing 7x8 excavation grid instantiated");
-            Check(adapter.TileViews.Values.All(t => t.gameObject.layer == 9 && t.gameObject.scene == adapter.gameObject.scene && t.UsesPointerEvents), "spawned tiles belong to workbench scene and render layer");
-            int beforeSwipeUses = adapter.Session.RemainingDestructiveToolUses;
-            var tilePointer = new PointerEventData(EventSystem.current)
-            { pointerId = -1, position = ScreenPoint(host, CoveredEmpty(adapter).transform.position), button = PointerEventData.InputButton.Left };
-            host.input.OnPointerDown(tilePointer);
-            tilePointer.position += Vector2.right * Screen.width * .4f;
-            host.input.OnDrag(tilePointer); host.input.OnPointerUp(tilePointer);
-            yield return new WaitForSeconds(.35f);
-            Check(host.ActiveIndex == 0 && adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses,
-                "swiping from excavation tile does not click it");
-            var hiddenSession = adapter.Session;
-            dragPointer = PointerAt(host, new Vector2(.5f, .8f));
-            host.input.OnPointerDown(dragPointer);
-            dragPointer.position -= Vector2.right * Screen.width * .1f;
-            host.input.OnDrag(dragPointer);
-            yield return new WaitForSeconds(.2f);
-            Check(!adapter.CanAcceptInput && adapter.Session == hiddenSession, "preview does not resume hidden workbench");
-            host.input.Cancel();
-            yield return null;
-            Check(host.ActiveIndex == 0 && !host.IsBusy, "input cancellation restores tab");
-            host.SelectTab(1); yield return new WaitForSeconds(.35f);
-            var tileView = CoveredEmpty(adapter);
-            int uses = adapter.Session.RemainingDestructiveToolUses;
-            Click(host, tileView.transform.position);
-            Check(adapter.Session.RemainingDestructiveToolUses == uses - 1, "mirrored tile click consumes exactly one tool use");
-            Check(adapter.Session.Grid.GetTile(tileView.Coordinate.x, tileView.Coordinate.y).IsRevealed, "tile click updates existing core model");
-            Check(tileView.GetComponent<SpriteRenderer>().color == Color.white, "tile model event updates sprite");
-            Click(host, presenter.toolButtons[2].transform.position);
-            Check(adapter.SelectedTool == ToolMode.Scout, "touch tool selection chooses scout");
-            int scouts = adapter.Session.RemainingScoutToolUses;
-            Click(host, CoveredEmpty(adapter).transform.position);
-            Check(adapter.Session.RemainingScoutToolUses == scouts - 1 && presenter.feedback.text.StartsWith("정찰:"), "scout updates count and UI feedback");
-            Time.timeScale = 0;
-            adapter.SelectTool(ToolMode.AttackDestroy);
-            Check(adapter.SelectedTool == ToolMode.Scout, "global pause blocks tool selection");
-            int pausedUses = adapter.Session.RemainingScoutToolUses;
-            Click(host, CoveredEmpty(adapter).transform.position);
-            Check(adapter.Session.RemainingScoutToolUses == pausedUses, "global pause blocks tile input");
-            Time.timeScale = 1;
-            host.SelectTab(0); yield return new WaitForSeconds(.35f);
-            var retainedSession = adapter.Session;
-            yield return new WaitForSeconds(.15f);
-            Check(host.catalog.tabs[1].backgroundPolicy == BackgroundPolicy.PauseWhileHidden &&
-                !adapter.CanAcceptInput && adapter.Session == retainedSession,
-                "default hidden workbench pauses and retains session");
-            adapter.SelectTool(ToolMode.AttackDestroy);
-            Check(adapter.SelectedTool == ToolMode.Scout && !adapter.CanAcceptInput, "hidden workbench rejects input");
-            Check(exhibition.Intro.IsComplete, "minigame input does not replay home intro");
-            host.SelectTab(1); yield return new WaitForSeconds(.35f);
-            host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
-            host.SelectTab(0); yield return new WaitForSeconds(.35f);
-            yield return new WaitForSeconds(.35f);
-            Check(!adapter.CanAcceptInput && adapter.Session.RemainingDestructiveToolUses == uses - 1, "hidden pause retains workbench state");
-            host.SelectTab(1); yield return new WaitForSeconds(.45f);
-            Check(adapter.CanAcceptInput && adapter.Session.RemainingDestructiveToolUses == uses - 1, "resume retains state and accepts input");
-            Click(host, presenter.toolButtons[0].transform.position);
-            tileView = CoveredEmpty(adapter); Click(host, tileView.transform.position);
-            Check(tileView.GetComponent<SpriteRenderer>().color == Color.white, "tile event subscription restored after pause");
-            var previousSession = adapter.Session;
-            host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.RestartOnReturn;
-            host.SelectTab(0); host.SelectTab(1);
-            deadline = Time.realtimeSinceStartup + 20;
-            while (host.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
-            yield return new WaitForSeconds(.3f);
-            adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
-            presenter = host.GetRoot(1).GetComponent<WorkbenchPresenter>();
-            // 재시작은 현재 난이도의 초기 횟수로 돌아가야 합니다. 과거 고정값 30을 기대하면 Normal=19인 정상 세션도 실패합니다.
-            Check(!host.IsBusy && adapter.Session != previousSession && adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses, "return restart creates fresh minigame session");
-            host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
-            Click(host, CoveredEmpty(adapter).transform.position);
-            Click(host, presenter.restartButton.transform.position);
-            yield return null;
-            Check(adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses && adapter.TileViews.Count == 56, "new excavation resets session without duplicate tiles");
+            // 3단계: 작업대 탭은 기존 미니게임 대신 작업대 화면(모의 백엔드)을 띄운다. 미니게임 검사는 4단계에서 Minigame 씬으로 옮긴다.
+            yield return VerifyWorkbench(host);
+            Check(exhibition.Intro.IsComplete, "workbench input does not replay home intro");
             foreach (var size in new[] { new Vector2Int(480, 1040), new Vector2Int(768, 1024) })
             {
                 Screen.SetResolution(size.x, size.y, FullScreenMode.Windowed);
@@ -1217,13 +1143,26 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 host.SelectTab(1); yield return new WaitForSeconds(.4f);
                 var texture = host.ActiveRoot.sceneCamera.targetTexture;
                 Check(Mathf.Abs((float)texture.width / texture.height - host.viewport.rect.width / host.viewport.rect.height) < .01f, "render texture matches viewport " + size);
-                var corners = new[] { new Vector2Int(0, 0), new Vector2Int(6, 7) };
-                Check(corners.All(c => { var uv = host.ActiveRoot.sceneCamera.WorldToViewportPoint(adapter.TileViews[c].transform.position); return uv.x > .03f && uv.x < .97f && uv.y > .20f && uv.y < .80f; }), "grid stays between controls " + size);
-                uses = adapter.Session.RemainingDestructiveToolUses;
-                Click(host, CoveredEmpty(adapter).transform.position);
-                Check(adapter.Session.RemainingDestructiveToolUses == uses - 1, "tile mapping after resize " + size);
+                var resizedWorkbench = host.GetRoot(1).GetComponent<WorkbenchScreenController>();
+                resizedWorkbench.ShowHome();
+                yield return WaitFor(() => FindUi(host.GetRoot(1), "Tab_Spirits") != null, 3);
+                Check(new[] { "Tab_Spirits", "Tab_Buildings", "Spirit_2" }.All(name =>
+                    FindUi(host.GetRoot(1), name) is RectTransform rect && IsInsideViewport(host, rect)),
+                    "workbench home tabs and first spirit card fit inside viewport " + size);
                 yield return new WaitForEndOfFrame(); CheckRender(host);
                 Capture($"Workbench_{size.x}x{size.y}.png");
+                // 가장 긴 상세(난이도 선택이 있는 흐려진 정령)를 끝까지 내려 버튼과 안내 문구가 화면 안에 오는지 본다.
+                Click(host, FindUi(host.GetRoot(1), "Spirit_8").position);
+                yield return WaitFor(() => resizedWorkbench.Detail.Buttons.ContainsKey("Purify"), 3);
+                resizedWorkbench.Detail.Scroll.verticalNormalizedPosition = 0;
+                yield return null;
+                Check(IsInsideViewport(host, (RectTransform)resizedWorkbench.Detail.Buttons["Purify"].transform) &&
+                    FindUi(host.GetRoot(1), "Status") is RectTransform status && IsInsideViewport(host, status),
+                    "scrolled spirit detail shows purify button and status inside viewport " + size);
+                yield return new WaitForEndOfFrame(); CheckRender(host);
+                Capture($"Workbench_SpiritDetail_{size.x}x{size.y}.png");
+                Click(host, resizedWorkbench.Detail.Buttons["Back"].transform.position);
+                yield return WaitFor(() => resizedWorkbench.CurrentPage == WorkbenchScreenController.Page.Home, 3);
                 yield return null;
             }
             yield return VerifyCollectionArtwork(host);
@@ -1232,6 +1171,126 @@ namespace Jamkkaebi.Scripts.UI.Dev
             Check(_errors.Count == 0, "no runtime errors during integration checks");
             yield return new WaitForSeconds(.3f);
         }
+        /// <summary>조건이 참이 될 때까지 최대 seconds초 기다립니다(모의 백엔드 지연 0.3초 대비).</summary>
+        private static IEnumerator WaitFor(Func<bool> condition, float seconds)
+        {
+            float deadline = Time.realtimeSinceStartup + seconds;
+            while (!condition() && Time.realtimeSinceStartup < deadline) yield return null;
+        }
+
+        /// <summary>콘텐츠 루트 아래에서 이름이 같은 활성 UI를 찾습니다. 없으면 null입니다.</summary>
+        private static Transform FindUi(MirrorSceneRoot root, string name) =>
+            root.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name == name);
+
+        private static Transform FindUiPrefix(MirrorSceneRoot root, string prefix) =>
+            root.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.StartsWith(prefix));
+
+        /// <summary>
+        /// 작업대 화면을 미러 입력으로 검증합니다. 기존 미니게임 숨김, 실행 중 생성 UI의 레이어, 카드에서 시작한 스와이프,
+        /// 상자 등록, 유물 상세 → 정화 → 임시 보고 → 결과, 정화 중 탭 잠금, 숨김 일시정지 뒤 화면 복원, 정령 상세, 복귀 시 재시작.
+        /// </summary>
+        private IEnumerator VerifyWorkbench(TabHost host)
+        {
+            host.SelectTab(1); yield return new WaitForSeconds(.35f);
+            var root = host.GetRoot(1);
+            var presenter = root.GetComponent<WorkbenchPresenter>();
+            var screen = root.GetComponent<WorkbenchScreenController>();
+            var legacy = root.GetComponentInChildren<MinigameSessionAdapter>(true);
+            Check(screen != null && legacy != null && !legacy.gameObject.activeInHierarchy &&
+                !presenter.summary.canvas.rootCanvas.gameObject.activeSelf,
+                "workbench screen replaces hidden legacy minigame");
+            yield return WaitFor(() => FindUi(root, "Spirit_9") != null, 3);
+            Check(new[] { "Spirit_2", "Spirit_8", "Spirit_9" }.All(name => FindUi(root, name) != null),
+                "workbench home lists demo spirits");
+            var screenCanvas = root.transform.Find("Workbench Screen UI");
+            Check(screenCanvas && screenCanvas.GetComponentsInChildren<Transform>(true).All(t =>
+                    t.gameObject.layer == root.RenderLayer && t.gameObject.scene == root.gameObject.scene),
+                "runtime workbench UI stays in workbench scene and render layer");
+
+            var card = FindUi(root, "Spirit_8");
+            var swipe = new PointerEventData(EventSystem.current)
+            { pointerId = -1, position = ScreenPoint(host, card.position), button = PointerEventData.InputButton.Left };
+            host.input.OnPointerDown(swipe);
+            swipe.position += Vector2.right * Screen.width * .4f;
+            host.input.OnDrag(swipe); host.input.OnPointerUp(swipe);
+            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 0 && screen.CurrentPage == WorkbenchScreenController.Page.Home,
+                "swiping from spirit card changes tab without opening detail");
+            Check(host.catalog.tabs[1].backgroundPolicy == BackgroundPolicy.PauseWhileHidden && root.IsPaused,
+                "hidden workbench pauses");
+
+            host.SelectTab(1); yield return new WaitForSeconds(.35f);
+            yield return WaitFor(() => FindUi(root, "Register") != null, 3);
+            // 모의 상자는 9종 중에서 뽑으므로 이미 가진 정령이 나오면 슬롯이 늘지 않는다. 새 유물이 나올 때까지 몇 번 누른다.
+            for (int i = 0; i < 12 && FindUiPrefix(root, "Slot_") == null; i++)
+            {
+                var register = FindUi(root, "Register");
+                if (register == null) break;
+                Click(host, register.position);
+                yield return WaitFor(() => !screen.Busy, 3);
+                yield return new WaitForSeconds(.5f);
+            }
+            var slot = FindUiPrefix(root, "Slot_");
+            Check(slot != null, "register opens a box and shows a new slot");
+            if (slot == null) yield break;
+
+            Click(host, slot.position);
+            yield return WaitFor(() => screen.Detail.Buttons.ContainsKey("Purify"), 3);
+            Check(screen.CurrentPage == WorkbenchScreenController.Page.RelicDetail &&
+                FindUi(root, "Step_Unseal")?.Find("State")?.GetComponent<Text>().text == "진행",
+                "slot opens relic detail at unseal");
+            Click(host, screen.Detail.Buttons["Purify"].transform.position);
+            // 정화 시작 응답을 기다리는 동안 뒤로가기는 무시되어야 한다(늦은 응답이 홈을 덮거나 잠금만 남지 않게).
+            Click(host, screen.Detail.Buttons["Back"].transform.position);
+            yield return WaitFor(() => screen.CurrentPage == WorkbenchScreenController.Page.Playing, 3);
+            Check(screen.Detail.Buttons.ContainsKey("ReportSuccess"), "back while purification starts is ignored");
+            yield return null; // 탭 호스트가 LateUpdate에서 잠금을 반영해 하단 탭을 숨길 때까지 한 프레임 기다린다.
+            Check(root.NavigationLocked && !host.toolbar.gameObject.activeSelf, "purification locks tab navigation");
+            yield return Swipe(host, 1);
+            Check(host.ActiveIndex == 1, "locked purification ignores tab swipe");
+            Click(host, screen.Detail.Buttons["ReportSuccess"].transform.position);
+            // 보고를 보내는 동안 그만두기는 무시되어야 한다(재전송 토큰을 잃지 않게).
+            Click(host, screen.Detail.Buttons["QuitPlay"].transform.position);
+            yield return WaitFor(() => screen.CurrentPage == WorkbenchScreenController.Page.Result, 3);
+            Check(screen.CurrentPage == WorkbenchScreenController.Page.Result, "quit while report is sending is ignored");
+            Check(FindUi(root, "Lines")?.GetComponent<Text>().text.Contains("기억 회복") == true,
+                "success report shows settlement with next phase");
+            Click(host, screen.Detail.Buttons["Confirm"].transform.position);
+            yield return WaitFor(() => screen.Detail.Buttons.ContainsKey("Purify"), 3);
+            Check(screen.CurrentPage == WorkbenchScreenController.Page.RelicDetail && !root.NavigationLocked &&
+                FindUi(root, "Step_Unseal")?.Find("State")?.GetComponent<Text>().text == "완료",
+                "confirm returns to detail with unseal done and unlocks navigation");
+
+            host.SelectTab(0); yield return new WaitForSeconds(.35f);
+            Check(root.IsPaused && !screen.Busy, "hidden detail pauses without pending command");
+            host.SelectTab(1); yield return new WaitForSeconds(.35f);
+            yield return WaitFor(() => screen.Detail.Buttons.ContainsKey("Purify"), 3);
+            Check(screen.CurrentPage == WorkbenchScreenController.Page.RelicDetail, "returning restores relic detail");
+
+            Click(host, screen.Detail.Buttons["Back"].transform.position);
+            yield return WaitFor(() => FindUi(root, "Spirit_8") != null, 3);
+            Click(host, FindUi(root, "Spirit_8").position);
+            yield return WaitFor(() => screen.CurrentPage == WorkbenchScreenController.Page.SpiritDetail &&
+                screen.Detail.Buttons.ContainsKey("Purify"), 3);
+            Check(screen.Detail.Buttons.ContainsKey("Difficulty_Normal") && screen.Detail.Buttons.ContainsKey("Difficulty_Hard") &&
+                !screen.Detail.Buttons.ContainsKey("Difficulty_Easy") && screen.Detail.Buttons.ContainsKey("Rename"),
+                "faded spirit detail offers normal and hard care difficulties and rename");
+            yield return new WaitForEndOfFrame(); CheckRender(host);
+            Capture("Workbench_SpiritDetail.png");
+            Click(host, screen.Detail.Buttons["Back"].transform.position);
+            yield return WaitFor(() => screen.CurrentPage == WorkbenchScreenController.Page.Home, 3);
+
+            host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.RestartOnReturn;
+            host.SelectTab(0); host.SelectTab(1);
+            float deadline = Time.realtimeSinceStartup + 20;
+            while (host.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
+            host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
+            var restarted = host.GetRoot(1).GetComponent<WorkbenchScreenController>();
+            yield return WaitFor(() => restarted && FindUi(host.GetRoot(1), "Spirit_9") != null, 3);
+            Check(!host.IsBusy && restarted != screen && FindUiPrefix(host.GetRoot(1), "Slot_") == null,
+                "return restart creates fresh workbench screen with demo state");
+        }
+
         /// <summary>실제 서버 모드의 친구 UI·요청·취소·방문·격자 오류·인증 실패와 재접속을 검증합니다.</summary>
         private IEnumerator VerifyServerFriends(TabHost host)
         {

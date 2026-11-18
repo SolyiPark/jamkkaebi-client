@@ -24,6 +24,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private readonly PlayPlanner _planner;
         private readonly PurificationSettlement _settlement;
         private readonly int _totalRelics;
+        private readonly Func<int, string> _defaultSpiritName;
         private readonly System.Random _random;
         private readonly Func<DateTime> _clock;
         private readonly float _delaySeconds;
@@ -34,12 +35,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private readonly Dictionary<string, PendingPlay> _pending = new();
         // sessionToken → 이미 정산한 판
         private readonly Dictionary<string, SettledPlay> _settled = new();
+        // relicId → 사용자가 지은 정령 이름. 없으면 기본 이름을 쓴다.
+        private readonly Dictionary<int, string> _customNames = new();
 
         /// <param name="totalRelics">전체 유물 수. relicId는 1..totalRelics에서 뽑는다.</param>
+        /// <param name="defaultSpiritName">relicId의 기본 정령 이름. 서버의 유물 마스터 데이터 대신 주입한다.</param>
         /// <param name="clock">지금 시각. 테스트에서 시간을 움직이려고 주입한다.</param>
         /// <param name="delaySeconds">가짜 네트워크 지연. 테스트에서는 0.</param>
         public MockWorkbenchBackend(RelicInventory inventory, PlayPlanner planner, int totalRelics,
-            System.Random random, Func<DateTime> clock, float delaySeconds = 0.3f)
+            Func<int, string> defaultSpiritName, System.Random random, Func<DateTime> clock, float delaySeconds = 0.3f)
         {
             if (inventory  == null) throw new ArgumentNullException(nameof(inventory));
             if (planner  == null) throw new ArgumentNullException(nameof(planner));
@@ -52,6 +56,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             // 정령 정렬(인벤토리)과 응답의 선명도(계획기)가 같은 기준을 쓰도록 짝을 맞춘다.
             if (!ReferenceEquals(inventory.ClarityPolicy, planner.ClarityPolicy))
                 throw new ArgumentException("인벤토리와 계획기는 같은 선명도 정책을 써야 합니다.", nameof(planner));
+            if (defaultSpiritName == null) throw new ArgumentNullException(nameof(defaultSpiritName));
             if (random  == null) throw new ArgumentNullException(nameof(random));
             if (clock  == null) throw new ArgumentNullException(nameof(clock));
             if (delaySeconds < 0f) throw new ArgumentOutOfRangeException(nameof(delaySeconds));
@@ -60,6 +65,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _planner = planner;
             _settlement = new PurificationSettlement(planner);
             _totalRelics = totalRelics;
+            _defaultSpiritName = defaultSpiritName;
             _random  = random;
             _clock = clock;
             _delaySeconds = delaySeconds;
@@ -76,7 +82,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             IEnumerable<WorkbenchSlot> slots =
                 slotRelics.Select(r => new WorkbenchSlot(r.RelicId, r.RevealLevel, r.CurrentPhase));
             IEnumerable<WorkbenchSpirit> spirits = ownedSpirits.Select(s =>
-                new WorkbenchSpirit(s.RelicId, _planner.ClarityPolicy.ClarityOf(s.LastPurifiedAt.Value, now),
+                new WorkbenchSpirit(s.RelicId, SpiritNameOf(s.RelicId), _planner.ClarityPolicy.ClarityOf(s.LastPurifiedAt.Value, now),
                     s.CareCount));
 
             WorkbenchSnapshot snapshot;
@@ -119,8 +125,21 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 resealAt = _planner.ClarityPolicy.ResealAt(lastPurifiedAt, now);
             }
 
-            RelicDetail detail = new RelicDetail(relic.RelicId, relic.Status, clarity, resealAt, relic.CareCount,
-                _planner.PlanFor(relic, now));
+            // 정령 이름은 최초 정화를 마친 뒤에만 공개한다(서버 RelicCard와 같음).
+            string spiritName = relic.IsCompleted ? SpiritNameOf(relic.RelicId) : null;
+
+            RelicDetail detail;
+            try
+            {
+                detail = new RelicDetail(relic.RelicId, relic.Status, spiritName, clarity, relic.LastPurifiedAt,
+                    resealAt, relic.CareCount, _planner.PlanFor(relic, now));
+            }
+            catch (Exception e)
+            {
+                // 기본 이름 함수가 빈 이름을 주는 등 응답을 만들 수 없으면 실패로 알린다.
+                failed(e.Message);
+                yield break;
+            }
             
             completed(detail);
         }
@@ -273,6 +292,39 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _settled.Add(sessionToken, play);
 
             completed(settlement);
+        }
+
+        public IEnumerator RenameSpirit(int relicId, string name, Action<string> completed, Action<string> failed)
+        {
+            yield return Delay();
+
+            if (!_inventory.TryGet(relicId, out OwnedRelic relic))
+            {
+                failed("가진 유물이 아니에요.");
+                yield break;
+            }
+            // 이름은 최초 정화를 마친 정령에게만 있다(서버 requireCompleted).
+            if (!relic.IsCompleted)
+            {
+                failed("정화를 모두 마친 정령만 이름을 지을 수 있어요.");
+                yield break;
+            }
+            if (!SpiritNameRule.TryNormalize(name, out string normalized, out string error))
+            {
+                failed(error);
+                yield break;
+            }
+
+            if (normalized == null) _customNames.Remove(relicId);
+            else _customNames[relicId] = normalized;
+
+            completed(SpiritNameOf(relicId));
+        }
+
+        /// <summary>서버 spiritNameOf와 같다. 사용자 이름이 있으면 그것, 없으면 기본 이름.</summary>
+        private string SpiritNameOf(int relicId)
+        {
+            return _customNames.TryGetValue(relicId, out string custom) ? custom : _defaultSpiritName(relicId);
         }
 
         private IEnumerator Delay()

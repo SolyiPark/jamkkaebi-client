@@ -16,7 +16,8 @@ namespace Jamkkaebi.Editor
     /// </summary>
     public sealed class WorkbenchMockConsole : EditorWindow
     {
-        private const int TotalRelics = 10;
+        // 서버 시드와 같은 유물 9종
+        private static int TotalRelics => WorkbenchRelicSeed.Instance.Count;
 
         private MockWorkbenchBackend _backend;
         private DateTime _startTime;
@@ -29,6 +30,7 @@ namespace Jamkkaebi.Editor
         private MinigameDifficulty _difficulty = MinigameDifficulty.Normal;
         private bool _difficultyNull = true;  // 최초 정화처럼 난이도를 비워 보내기
         private string _lastToken;
+        private string _renameText = "";
         private bool _autoRefresh = true;     // 동작 뒤 작업대를 자동으로 조회
 
         private readonly StringBuilder _log = new StringBuilder();
@@ -55,10 +57,13 @@ namespace Jamkkaebi.Editor
             PlayPlanner planner = new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default,
                 MinigameDifficulty.Normal);
             _backend = new MockWorkbenchBackend(inventory, planner, TotalRelics,
-                new System.Random(_seed), () => Now, 0f);
+                DefaultSpiritName, new System.Random(_seed), () => Now, 0f);
 
             Log($"새 모의 백엔드 (전체 유물 {TotalRelics}개, 용량 {RelicInventory.DefaultWorkbenchCapacity}, 시드 {_seed})");
         }
+
+        private static string DefaultSpiritName(int relicId) =>
+            WorkbenchRelicSeed.Instance.TryFind(relicId, out WorkbenchRelicInfo info) ? info.DefaultSpiritName : $"정령{relicId}";
 
         private void OnGUI()
         {
@@ -119,6 +124,11 @@ namespace Jamkkaebi.Editor
                 if (GUILayout.Button("성공 보고")) Report(PlayResult.Success);
                 if (GUILayout.Button("실패 보고")) Report(PlayResult.Failure);
             }
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                _renameText = EditorGUILayout.TextField("정령 이름", _renameText);
+                if (GUILayout.Button("이름 바꾸기", GUILayout.Width(90))) Rename(_selectedRelicId, _renameText);
+            }
 
             // 6) 로그
             EditorGUILayout.Space();
@@ -145,7 +155,7 @@ namespace Jamkkaebi.Editor
                 foreach (WorkbenchSlot slot in snapshot.Slots)
                     Log($"    슬롯 #{slot.RelicId} · {slot.RevealLevel} · 다음 {slot.CurrentPhase}");
                 foreach (WorkbenchSpirit spirit in snapshot.Spirits)
-                    Log($"    정령 #{spirit.RelicId} · {spirit.Clarity} · 돌봄 {spirit.CareCount}회");
+                    Log($"    정령 #{spirit.RelicId} {spirit.SpiritName} · {spirit.Clarity} · 돌봄 {spirit.CareCount}회");
             });
         }
 
@@ -155,7 +165,7 @@ namespace Jamkkaebi.Editor
             {
                 string clarity = detail.Clarity.HasValue ? detail.Clarity.Value.ToString() : "-";
                 string resealAt = detail.ResealAt.HasValue ? $"{detail.ResealAt.Value:MM-dd HH:mm}" : "-";
-                Log($"  {detail.Status} · 선명도 {clarity} · 재봉인 {resealAt} · 돌봄 {detail.CareCount}회");
+                Log($"  {detail.Status} · 이름 {detail.SpiritName ?? "-"} · 선명도 {clarity} · 재봉인 {resealAt} · 돌봄 {detail.CareCount}회");
                 Log($"  다음: {Describe(detail.NextPlay)}");
             });
         }
@@ -183,6 +193,12 @@ namespace Jamkkaebi.Editor
                     _lastToken = session.SessionToken;
                     Log($"  토큰 {Short(session.SessionToken)} · {session.Route} · {session.Phase} · {session.Difficulty}");
                 });
+        }
+
+        private void Rename(int relicId, string name)
+        {
+            Call<string>($"이름 #{relicId} \"{name}\"", (c, f) => _backend.RenameSpirit(relicId, name, c, f),
+                saved => Log($"  저장된 이름: {saved}"));
         }
 
         private void Report(PlayResult result)

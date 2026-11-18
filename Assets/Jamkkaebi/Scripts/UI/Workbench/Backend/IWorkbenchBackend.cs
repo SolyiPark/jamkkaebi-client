@@ -28,5 +28,11 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         /// <summary>POST /api/purifications/{sessionToken}/result</summary>
         IEnumerator ReportPurification(string sessionToken, PlayResult result, Action<SettlementResult> completed,
             Action<string> failed);
+
+        /// <summary>
+        /// PATCH /api/relics/{relicId}/spirit-name. 이름을 비우면 기본 이름으로 되돌린다.
+        /// 성공하면 실제로 저장된 이름(사용자 이름 또는 기본 이름)을 돌려준다.
+        /// </summary>
+        IEnumerator RenameSpirit(int relicId, string name, Action<string> completed, Action<string> failed);
     }
 }

@@ -47,3 +47,11 @@ UI의 자산과 .meta는 `Assets/Jamkkaebi`로 옮겼으며 원래 GUID를 유�
 2026-10-11 서버 검증 후 `JamkkaebiApiClient`, `ServerExhibitionBackend`, `FriendsServerMapper`를 추가하고 친구 탭 조회·변경 동작에 HTTP 모드를 연결했다. 주소 미설정 시에는 모의 모드를 유지한다. Unity 공식 Newtonsoft Json 3.2.2 패키지를 사용한다. 인증·서버 응답·실제 통신 검증과 배포 전 남은 조건은 `friends-server-verification.md`, 재현은 `Tools/VerifyServerContract.ps1`을 따른다. 이전 모의 테스트 결과와 실제 HTTP 검증 결과를 구분한다.
 
 도감 이미지 교체는 `CollectionCatalog.asset`의 시대·유물 그림 슬롯과 `CollectionAppearance.asset`의 공통 UI 그림 슬롯을 사용한다. 이미지가 없으면 기존 색상·벡터 표현을 유지한다. 실제 그림은 원본 색상과 종횡비를 사용하고, 배경·프레임은 Sprite Border가 있으면 9-slice로 표시한다. `Sync Catalog From Confirmed Data`는 같은 시대·유물 ID의 모든 그림 참조를 보존한다. 슬롯별 적용 위치와 우선순위는 `collection-integration.md`에 기록한다.
+
+## 작업대 화면 3단계 (2026-11-19)
+
+작업대 탭의 기존 미니게임을 숨기고 시안 기준 작업대 화면을 실행 중에 생성한다. 코드는 `Scripts/UI/Workbench/Backend`(서버 API와 1:1인 `IWorkbenchBackend`, 모의 구현)와 `Scripts/UI/Workbench/Screen`(화면 데이터 빌더, 홈·상세 View, 컨트롤러)에 있다. 유물 이름·별칭·기본 정령 이름은 서버 `ContentSeedData`를 옮긴 `WorkbenchRelicSeed`를 쓴다. 도감 카탈로그는 relicId 대응과 별칭이 없고 일부가 서버와 달라 쓰지 않는다. 미니게임 자리는 임시 성공·실패 보고 버튼이다.
+
+`IntegratedVerification`의 작업대 구간은 미니게임 타일·도구·재시작 검사 대신 `VerifyWorkbench`로 바꿨다. 기존 미니게임 숨김, 실행 중 UI의 씬·레이어, 정령 카드에서 시작한 스와이프, 상자 등록, 유물 상세 → 정화 → 임시 보고 → 결과, 정화 중 탭 잠금, 숨김 일시정지 뒤 상세 복원, 흐려진 정령의 난이도 선택지, 복귀 재시작, 두 해상도의 홈 배치와 끝까지 내린 정령 상세의 버튼·안내 문구 위치를 확인한다. PR #31 리뷰 후 명령 응답을 기다리는 동안 뒤로가기·그만두기를 막고 화면 전환 뒤 늦은 응답을 버리는지도 확인한다. 상세·결과 패널은 세로가 짧은 화면을 위해 세로 스크롤을 쓴다. 미니게임 입력 검사(타일 클릭, 도구 전환, 전역 timeScale 차단)는 4단계에서 Minigame 씬 기준으로 다시 넣는다.
+
+검증 범위: EditMode 테스트(작업대 계약·모의 백엔드·화면 데이터·View)는 macOS Unity Editor에서 통과했다. 바꾼 `IntegratedVerification`과 Windows Development Player 검증(`Tools/VerifyIntegration.ps1`)은 이 작업 환경(macOS)에서 실행하지 못했으므로 Windows에서 다시 실행해야 한다. 실제 기기 터치·키보드 입력은 확인하지 않았다.
