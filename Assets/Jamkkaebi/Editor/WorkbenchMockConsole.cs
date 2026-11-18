@@ -24,6 +24,7 @@ namespace Jamkkaebi.Editor
         private int _seed = 1;
 
         private string _lastRequestId;        // "같은 번호로 다시 보내기" 용
+        private BoxSource _lastSource;        // 다시 보낼 때 원래 경로를 그대로 쓴다
         private int _selectedRelicId = 1;
         private MinigameDifficulty _difficulty = MinigameDifficulty.Normal;
         private bool _difficultyNull = true;  // 최초 정화처럼 난이도를 비워 보내기
@@ -96,7 +97,7 @@ namespace Jamkkaebi.Editor
             {
                 // 응답을 놓친 상황을 흉내 낸다. 성공 뒤에 눌러도 같은 결과가 와야 한다.
                 if (GUILayout.Button("같은 번호로 다시 보내기 (응답 유실 흉내)"))
-                    OpenBox(BoxSource.Free, _lastRequestId);
+                    OpenBox(_lastSource, _lastRequestId);
             }
 
             // 5) 정화
@@ -162,6 +163,7 @@ namespace Jamkkaebi.Editor
         private void OpenBox(BoxSource source, string requestId)
         {
             _lastRequestId = requestId;
+            _lastSource = source;
             Call<BoxOpenOutcome>($"상자 {source} {Short(requestId)}",
                 (c, f) => _backend.OpenBox(source, requestId, c, f), outcome =>
                 {

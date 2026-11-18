@@ -151,6 +151,36 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.Throws<ArgumentOutOfRangeException>(() => new MockWorkbenchBackend(three, planner, 10, random, clock, -1f));
         }
 
+        /// <summary>
+        /// 개수는 맞아도 뽑기 범위 밖 relicId가 있으면 거부하는지 검사합니다.
+        /// (받아들이면 범위 안 유물을 뽑은 뒤 lockedCount가 음수가 된다)
+        /// </summary>
+        [Test]
+        public void Constructor_RelicIdOutOfRange_Throws()
+        {
+            RelicInventory inventory = new RelicInventory(ClarityPolicy.Default, 3, new[] { CompletedDaysAgo(2, 1) });
+
+            Assert.Throws<ArgumentException>(() =>
+                new MockWorkbenchBackend(inventory, CreatePlanner(), 1, new Random(1), () => _now, 0f));
+            Assert.DoesNotThrow(() =>
+                new MockWorkbenchBackend(inventory, CreatePlanner(), 2, new Random(1), () => _now, 0f));
+        }
+
+        /// <summary>인벤토리와 계획기의 선명도 정책이 다르면 거부하는지 검사합니다(정렬과 표시가 어긋나지 않게).</summary>
+        [Test]
+        public void Constructor_DifferentClarityPolicies_Throws()
+        {
+            ClarityPolicy other = new ClarityPolicy(TimeSpan.FromDays(3), TimeSpan.FromDays(5));
+            RelicInventory inventory = new RelicInventory(other, 3, new OwnedRelic[0]);
+
+            Assert.Throws<ArgumentException>(() =>
+                new MockWorkbenchBackend(inventory, CreatePlanner(), 10, new Random(1), () => _now, 0f));
+
+            PlayPlanner matching = new PlayPlanner(other, RestorePolicy.Default, MinigameDifficulty.Normal);
+            Assert.DoesNotThrow(() =>
+                new MockWorkbenchBackend(inventory, matching, 10, new Random(1), () => _now, 0f));
+        }
+
         // ---------- GetWorkbench ----------
 
         /// <summary>

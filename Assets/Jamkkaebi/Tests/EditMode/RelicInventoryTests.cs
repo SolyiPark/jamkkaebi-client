@@ -108,6 +108,26 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsNull(missing);
         }
 
+        /// <summary>RelicIds가 가진 유물의 relicId를 모두 담고, 획득하면 늘어나는지 검사합니다.</summary>
+        [Test]
+        public void RelicIds_ListsOwnedIds()
+        {
+            RelicInventory inventory = Create(3, InProgress(4), Completed(9, 1));
+
+            CollectionAssert.AreEquivalent(new[] { 4, 9 }, inventory.RelicIds);
+
+            inventory.Acquire(2, Now);
+
+            CollectionAssert.AreEquivalent(new[] { 2, 4, 9 }, inventory.RelicIds);
+        }
+
+        /// <summary>생성자에 넘긴 선명도 정책을 그대로 돌려주는지 검사합니다.</summary>
+        [Test]
+        public void ClarityPolicy_ReturnsGivenPolicy()
+        {
+            Assert.AreSame(Policy, Create(3).ClarityPolicy);
+        }
+
         /// <summary>진행 중 유물만 세고, 용량에 닿으면 가득 찬 것으로 보는지 검사합니다.</summary>
         [Test]
         public void InProgressCount_CountsOnlyInProgress()

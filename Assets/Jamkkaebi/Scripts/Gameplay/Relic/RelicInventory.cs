@@ -40,7 +40,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
             }
         }
 
+        /// <summary>선명도 판정과 정령 정렬에 쓰는 정책. 같은 정책을 써야 하는 쪽이 짝을 맞추는 데 쓴다.</summary>
+        public ClarityPolicy ClarityPolicy => _clarityPolicy;
+
         public int Count => _relics.Count;
+
+        /// <summary>가진 유물의 relicId. 순서는 정하지 않는다.</summary>
+        public IReadOnlyCollection<int> RelicIds => _relics.Keys;
 
         public bool Contains(int relicId) => _relics.ContainsKey(relicId);
 

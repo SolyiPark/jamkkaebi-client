@@ -44,7 +44,14 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (inventory  == null) throw new ArgumentNullException(nameof(inventory));
             if (planner  == null) throw new ArgumentNullException(nameof(planner));
             if (totalRelics <= 0) throw new ArgumentOutOfRangeException(nameof(totalRelics));
-            if (inventory.Count > totalRelics) throw new ArgumentException("인벤토리의 유물 개수가 전체 유물 개수보다 많습니다.", nameof(totalRelics));
+            // 가진 유물이 모두 뽑기 범위 안에 있어야 lockedCount(전체 - 보유)가 음수가 되지 않는다.
+            // relicId는 OwnedRelic이 1 이상을 보장하므로 위쪽 경계만 본다. 0은 "범위 밖 없음"이다.
+            int outOfRange = inventory.RelicIds.FirstOrDefault(id => id > totalRelics);
+            if (outOfRange != 0)
+                throw new ArgumentException($"relicId {outOfRange}가 뽑기 범위 1..{totalRelics} 밖에 있습니다.", nameof(inventory));
+            // 정령 정렬(인벤토리)과 응답의 선명도(계획기)가 같은 기준을 쓰도록 짝을 맞춘다.
+            if (!ReferenceEquals(inventory.ClarityPolicy, planner.ClarityPolicy))
+                throw new ArgumentException("인벤토리와 계획기는 같은 선명도 정책을 써야 합니다.", nameof(planner));
             if (random  == null) throw new ArgumentNullException(nameof(random));
             if (clock  == null) throw new ArgumentNullException(nameof(clock));
             if (delaySeconds < 0f) throw new ArgumentOutOfRangeException(nameof(delaySeconds));
