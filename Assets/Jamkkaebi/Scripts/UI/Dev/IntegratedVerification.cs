@@ -99,8 +99,8 @@ namespace Jamkkaebi.Scripts.UI.Dev
         private Vector2 ScreenPoint(TabHost host, Vector3 world)
         {
             var uv = host.ActiveRoot.sceneCamera.WorldToViewportPoint(world);
-            var rect = host.viewport.rect;
-            return RectTransformUtility.WorldToScreenPoint(null, host.viewport.TransformPoint(new Vector3(
+            var rect = host.DisplayRect.rect;
+            return RectTransformUtility.WorldToScreenPoint(null, host.DisplayRect.TransformPoint(new Vector3(
                 Mathf.Lerp(rect.xMin, rect.xMax, uv.x), Mathf.Lerp(rect.yMin, rect.yMax, uv.y))));
         }
         /// <summary>
@@ -155,7 +155,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             host.input.OnDrag(pointer);
             host.input.OnDrag(pointer);
             Check(host.ActiveIndex == 0 && !host.Transition.IsActive && housing.Menu.IsVisible,
-                "radial action owns swipe until release " + action);
+                "radial action owns drag until release " + action);
             host.input.OnPointerUp(pointer);
             Check(!housing.Menu.IsVisible, "all housing UI closes on release " + action);
         }
@@ -187,7 +187,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             host.input.OnDrag(pointer);
             host.input.OnDrag(pointer);
             Check(housing.IsPlacing == (action == HousingAction.Place) && !host.Transition.IsActive,
-                "empty floor swipe executes local action once " + action);
+                "empty floor drag executes local action once " + action);
             host.input.OnPointerUp(pointer);
             Check(!housing.Menu.IsVisible && housing.IsPlacing == (action == HousingAction.Place),
                 "empty floor menu hides while action state persists " + action);
@@ -245,19 +245,20 @@ namespace Jamkkaebi.Scripts.UI.Dev
         /// <returns>해당 화면 좌표에서 시작할 단일 왼쪽 포인터 이벤트입니다.</returns>
         private PointerEventData PointerAt(TabHost host, Vector2 uv)
         {
-            var rect = host.viewport.rect;
-            var screen = RectTransformUtility.WorldToScreenPoint(null, host.viewport.TransformPoint(new Vector3(
+            var rect = host.DisplayRect.rect;
+            var screen = RectTransformUtility.WorldToScreenPoint(null, host.DisplayRect.TransformPoint(new Vector3(
                 Mathf.Lerp(rect.xMin, rect.xMax, uv.x), Mathf.Lerp(rect.yMin, rect.yMax, uv.y))));
             return new PointerEventData(EventSystem.current)
             { pointerId = -1, position = screen, button = PointerEventData.InputButton.Left };
         }
         /// <summary>
-        /// 화면 폭의 40%만큼 지정 방향으로 포인터를 이동·해제하고 탭 전환 정착을 기다립니다. 음수 방향은 왼쪽입니다.
+        /// 화면 폭의 40%만큼 지정 방향으로 포인터를 이동·해제하고 전환 시간만큼 기다립니다. 음수 방향은 왼쪽입니다.
+        /// 가로 드래그가 탭을 바꾸지 않는지 확인할 때 씁니다.
         /// </summary>
-        /// <param name="host">탭 스와이프 입력을 전달할 호스트입니다.</param>
+        /// <param name="host">입력을 전달할 호스트입니다.</param>
         /// <param name="direction">왼쪽은 음수, 오른쪽은 양수로 지정하는 이동 방향입니다.</param>
-        /// <returns>스와이프 전달과 전환 정착 대기를 포함한 코루틴입니다.</returns>
-        private IEnumerator Swipe(TabHost host, float direction)
+        /// <returns>드래그 전달과 대기를 포함한 코루틴입니다.</returns>
+        private IEnumerator HorizontalDrag(TabHost host, float direction)
         {
             var pointer = PointerAt(host, new Vector2(.5f, .8f));
             host.input.OnPointerDown(pointer);
@@ -359,9 +360,9 @@ namespace Jamkkaebi.Scripts.UI.Dev
             yield return SharedExhibitionVerification.Visit(host, world => Click(host, world),
                 world => host.input.MapPosition(ScreenPoint(host, world), null), Check, Capture);
             host.SelectTab(0);
-            yield return Swipe(host, -1);
+            yield return HorizontalDrag(host, -1);
             Check(host.ActiveIndex == 3 && !host.IsBusy && root.NavigationLocked,
-                "visit rejects both bottom navigation and swipe without queuing a tab");
+                "visit rejects bottom navigation and horizontal drag without queuing a tab");
             var anchors = friends.VisitSession.Scene.Objects.Select(o => o.Placement.Anchor).ToArray();
             yield return new WaitForSeconds(2.1f);
             Check(friends.VisitSession.Scene.Objects.Any(o => o.Cell != o.Placement.Anchor) &&
@@ -567,10 +568,8 @@ namespace Jamkkaebi.Scripts.UI.Dev
             host.input.OnDrag(cardSwipe);
             host.input.OnPointerUp(cardSwipe);
             yield return new WaitForSeconds(.35f);
-            Check(host.ActiveIndex == 3 && collection.Page == CollectionPage.Era,
-                "horizontal swipe on relic card changes tab and cancels card click");
-            host.SelectTab(2);
-            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 2 && !host.Transition.IsActive && collection.Page == CollectionPage.Era,
+                "horizontal drag on relic card keeps tab and cancels card click");
             Click(host, collection.BackButton.transform.position);
             yield return new WaitForEndOfFrame();
             Check(collection.Page == CollectionPage.Overview, "era back returns to collection overview");
@@ -968,7 +967,8 @@ namespace Jamkkaebi.Scripts.UI.Dev
             quickSwipe.position -= Vector2.right * Screen.width * .12f;
             host.input.OnDrag(quickSwipe);
             yield return new WaitForSeconds(.55f);
-            Check(!housing.Menu.IsVisible && host.Transition.IsActive, "swiping before hold keeps tab gesture ownership");
+            Check(!housing.Menu.IsVisible && !host.Transition.IsActive && host.ActiveIndex == 0,
+                "dragging before hold cancels hold without tab transition");
             host.input.OnPointerUp(quickSwipe);
             yield return new WaitForSeconds(.35f);
             yield return HousingGesture(host, housing, newCell, HousingAction.Move);
@@ -1004,7 +1004,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             host.input.OnPointerUp(floorSwipe);
             yield return new WaitForSeconds(.35f);
             Check(host.ActiveIndex == 0 && housing.Layout.Placements.Count == initialCount,
-                "floor swipe cancels click without accidental housing placement");
+                "floor drag cancels click without accidental housing placement");
             housing.ResetSelection();
             var externalItem = Instantiate(housing.DefaultItem);
             JsonUtility.FromJsonOverwrite("{\"_itemId\":\"catalog-bridge-test\",\"_footprint\":{\"x\":2,\"y\":1}}", externalItem);
@@ -1050,34 +1050,23 @@ namespace Jamkkaebi.Scripts.UI.Dev
             Check(housing.Wanderer.gameObject.scene == host.ActiveRoot.gameObject.scene &&
                 housing.Wanderer.GetComponentsInChildren<Transform>().All(child => child.gameObject.layer == host.ActiveRoot.RenderLayer),
                 "runtime dummy stays in home scene and render layer");
-            var dragPointer = PointerAt(host, new Vector2(.5f, .8f));
-            host.input.OnPointerDown(dragPointer);
-            dragPointer.position -= Vector2.right * Screen.width * .12f;
-            host.input.OnDrag(dragPointer);
-            yield return null;
-            Check(host.Transition.IsActive && exhibition.TransitionOffset < 0 && exhibition.Intro.IsComplete,
-                "swipe parallax operates independently after introduction");
-            yield return new WaitForEndOfFrame();
-            Capture("Home_Swipe_Preview.png");
-            yield return new WaitForSeconds(.15f);
-            host.input.OnPointerUp(dragPointer);
-            yield return new WaitForSeconds(.35f);
+            yield return HorizontalDrag(host, -1);
             Check(host.ActiveIndex == 0 && !host.IsBusy && exhibition.TransitionOffset == 0,
-                "short held swipe cancels and resets parallax");
-            for (int i = 1; i < 4; i++)
-            {
-                yield return Swipe(host, -1);
-                Check(host.ActiveIndex == i, "swipe left selects tab " + i);
-            }
-            yield return Swipe(host, -1);
-            Check(host.ActiveIndex == 3, "last tab does not wrap");
-            for (int i = 2; i >= 0; i--)
-            {
-                yield return Swipe(host, 1);
-                Check(host.ActiveIndex == i, "swipe right selects tab " + i);
-            }
-            yield return Swipe(host, 1);
-            Check(host.ActiveIndex == 0 && exhibition.Intro.IsComplete, "first tab does not wrap or replay intro");
+                "horizontal drag on home does not start a tab transition");
+            var homeTexture = host.GetRoot(0).sceneCamera.targetTexture;
+            host.SelectTab(1);
+            yield return null; yield return null;
+            Check(host.Transition.IsActive && exhibition.TransitionOffset < 0 && exhibition.Intro.IsComplete,
+                "bottom tab transition drives home parallax after introduction");
+            yield return new WaitForEndOfFrame();
+            Capture("Home_Transition_Preview.png");
+            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 1 && exhibition.TransitionOffset == 0, "bottom tab transition settles and resets parallax");
+            host.SelectTab(0);
+            yield return new WaitForSeconds(.35f);
+            yield return null;
+            Check(host.ActiveIndex == 0 && exhibition.Intro.IsComplete && host.GetRoot(0).sceneCamera.targetTexture == homeTexture,
+                "switching between profile and non-profile tabs keeps render textures without replaying intro");
             for (int i = 0; i < 4; i++)
             {
                 var button = host.toolbar.GetChild(i).GetComponent<Button>();
@@ -1142,7 +1131,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
                     "resized visit exit restores entire bottom toolbar " + size);
                 host.SelectTab(1); yield return new WaitForSeconds(.4f);
                 var texture = host.ActiveRoot.sceneCamera.targetTexture;
-                Check(Mathf.Abs((float)texture.width / texture.height - host.viewport.rect.width / host.viewport.rect.height) < .01f, "render texture matches viewport " + size);
+                Check(Mathf.Abs((float)texture.width / texture.height - host.DisplayRect.rect.width / host.DisplayRect.rect.height) < .01f, "render texture matches display " + size);
                 var resizedWorkbench = host.GetRoot(1).GetComponent<WorkbenchScreenController>();
                 resizedWorkbench.ShowHome();
                 yield return WaitFor(() => FindUi(host.GetRoot(1), "Tab_Spirits") != null, 3);
@@ -1186,7 +1175,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             root.GetComponentsInChildren<Transform>().FirstOrDefault(t => t.name.StartsWith(prefix));
 
         /// <summary>
-        /// 작업대 화면을 미러 입력으로 검증합니다. 기존 미니게임 숨김, 실행 중 생성 UI의 레이어, 카드에서 시작한 스와이프,
+        /// 작업대 화면을 미러 입력으로 검증합니다. 기존 미니게임 숨김, 실행 중 생성 UI의 레이어, 카드에서 시작한 가로 드래그,
         /// 상자 등록, 유물 상세 → 정화 → 임시 보고 → 결과, 정화 중 탭 잠금, 숨김 일시정지 뒤 화면 복원, 정령 상세, 복귀 시 재시작.
         /// </summary>
         private IEnumerator VerifyWorkbench(TabHost host)
@@ -1208,14 +1197,15 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 "runtime workbench UI stays in workbench scene and render layer");
 
             var card = FindUi(root, "Spirit_8");
-            var swipe = new PointerEventData(EventSystem.current)
+            var cardDrag = new PointerEventData(EventSystem.current)
             { pointerId = -1, position = ScreenPoint(host, card.position), button = PointerEventData.InputButton.Left };
-            host.input.OnPointerDown(swipe);
-            swipe.position += Vector2.right * Screen.width * .4f;
-            host.input.OnDrag(swipe); host.input.OnPointerUp(swipe);
+            host.input.OnPointerDown(cardDrag);
+            cardDrag.position += Vector2.right * Screen.width * .4f;
+            host.input.OnDrag(cardDrag); host.input.OnPointerUp(cardDrag);
             yield return new WaitForSeconds(.35f);
-            Check(host.ActiveIndex == 0 && screen.CurrentPage == WorkbenchScreenController.Page.Home,
-                "swiping from spirit card changes tab without opening detail");
+            Check(host.ActiveIndex == 1 && !host.Transition.IsActive && screen.CurrentPage == WorkbenchScreenController.Page.Home,
+                "horizontal drag from spirit card keeps tab without opening detail");
+            host.SelectTab(0); yield return new WaitForSeconds(.35f);
             Check(host.catalog.tabs[1].backgroundPolicy == BackgroundPolicy.PauseWhileHidden && root.IsPaused,
                 "hidden workbench pauses");
 
@@ -1246,8 +1236,9 @@ namespace Jamkkaebi.Scripts.UI.Dev
             Check(screen.Detail.Buttons.ContainsKey("ReportSuccess"), "back while purification starts is ignored");
             yield return null; // 탭 호스트가 LateUpdate에서 잠금을 반영해 하단 탭을 숨길 때까지 한 프레임 기다린다.
             Check(root.NavigationLocked && !host.toolbar.gameObject.activeSelf, "purification locks tab navigation");
-            yield return Swipe(host, 1);
-            Check(host.ActiveIndex == 1, "locked purification ignores tab swipe");
+            host.SelectTab(0);
+            yield return new WaitForSeconds(.35f);
+            Check(host.ActiveIndex == 1, "locked purification ignores tab selection");
             Click(host, screen.Detail.Buttons["ReportSuccess"].transform.position);
             // 보고를 보내는 동안 그만두기는 무시되어야 한다(재전송 토큰을 잃지 않게).
             Click(host, screen.Detail.Buttons["QuitPlay"].transform.position);

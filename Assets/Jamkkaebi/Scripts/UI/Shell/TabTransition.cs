@@ -5,11 +5,12 @@ using UnityEngine.UI;
 
 namespace Jamkkaebi.Scripts.UI.Shell
 {
+    /// <summary>
+    /// 하단 탭 선택으로 시작한 전환을 일정 시간 동안 수평 이동으로 보여 줍니다. 손가락 스와이프 전환은 지원하지 않습니다.
+    /// </summary>
     public sealed class TabTransition : MonoBehaviour
     {
-        [SerializeField] private float _settleDuration = .24f;
-        [SerializeField] private float _distanceThreshold = .22f;
-        [SerializeField] private float _velocityThreshold = .8f;
+        [SerializeField] private float _duration = .24f;
         private TabHost _host;
         private RawImage _current;
         private RawImage _next;
@@ -17,13 +18,9 @@ namespace Jamkkaebi.Scripts.UI.Shell
         private int _target;
         private int _direction;
         private float _progress;
-        private float _startProgress;
-        private float _destination;
         private float _elapsed;
         private Vector2 _screenSize;
-        private bool _settling;
         public bool IsActive { get; private set; }
-        public float Progress => _progress;
 
         /// <summary>
         /// 입력 뷰포트는 고정한 채 현재·다음 탭을 표시할 이미지를 생성하고 프로필 전환 상태를 준비합니다.
@@ -31,7 +28,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
         public void Initialize(TabHost host)
         {
             _host = host;
-            // Keep the original viewport as a fixed raycast surface, move only its children.
+            // 원래 뷰포트는 고정된 입력 표면으로 두고, 자식 이미지만 움직입니다.
             host.mirror.color = Color.clear;
             if (!host.viewport.GetComponent<RectMask2D>()) host.viewport.gameObject.AddComponent<RectMask2D>();
             _current = UIFactory.Rect("Current tab", host.viewport, Vector2.zero, Vector2.one).gameObject.AddComponent<RawImage>();
@@ -44,94 +41,69 @@ namespace Jamkkaebi.Scripts.UI.Shell
             if (!_profile) _profile = host.profileBar.AddComponent<CanvasGroup>();
         }
         /// <summary>
-        /// 진행 중 전환이 없고 호스트가 준비되었을 때 전환을 시작합니다. 숨김 탭은 저장된 화면을 사용하며 범위 밖 대상은 끝 경계 연출로 처리합니다.
+        /// 진행 중 전환이 없고 대상이 현재와 다른 유효한 탭일 때 전환을 시작합니다. 숨김 탭은 저장된 마지막 화면을 사용합니다.
         /// </summary>
-        public bool Begin(int target)
+        /// <returns>전환을 시작했으면 true입니다.</returns>
+        public bool Play(int target)
         {
             if (IsActive || !_host.IsReady) return false;
+            if (target < 0 || target >= _host.catalog.tabs.Count || target == _host.ActiveIndex) return false;
             _target = target;
             _direction = target > _host.ActiveIndex ? 1 : -1;
             _progress = 0;
-            _settling = false;
+            _elapsed = 0;
             _screenSize = new Vector2(Screen.width, Screen.height);
             IsActive = true;
-            bool valid = target >= 0 && target < _host.catalog.tabs.Count;
-            _next.gameObject.SetActive(valid);
-            if (valid)
-            {
-                var root = _host.GetRoot(target);
-                _next.texture = root.sceneCamera.targetTexture;
-                // Paused scenes use their last frame; never resume gameplay just for a preview.
-                if (root.gameObject.activeInHierarchy) root.sceneCamera.enabled = true;
-            }
+            var root = _host.GetRoot(target);
+            _host.FitDisplay(_next, target);
+            _next.texture = root.sceneCamera.targetTexture;
+            _next.gameObject.SetActive(true);
+            // 일시정지한 씬은 마지막 화면을 씁니다. 미리보기만을 위해 게임 진행을 재개하지 않습니다.
+            if (root.gameObject.activeInHierarchy) root.sceneCamera.enabled = true;
             Apply();
             return true;
         }
         /// <summary>
-        /// 뷰포트 너비 단위의 수평 이동을 전환 진행률로 반영합니다. 오른쪽 이동은 양수이며 끝 경계에서는 이동량을 제한합니다.
-        /// </summary>
-        public void Drag(float distanceInViewportWidths)
-        {
-            if (!IsActive || _settling) return;
-            float progress = Mathf.Clamp01(-distanceInViewportWidths * _direction);
-            if (_target < 0 || _target >= _host.catalog.tabs.Count) progress = Mathf.Min(.1f, progress * .18f);
-            _progress = progress;
-            Apply();
-        }
-        /// <summary>
-        /// 뷰포트 너비/초 단위의 수평 속도와 누적 이동량으로 전환 확정 여부를 결정합니다. 범위 밖 대상은 항상 복귀합니다.
-        /// </summary>
-        public void Release(float velocityInViewportWidths)
-        {
-            if (!IsActive || _settling) return;
-            bool valid = _target >= 0 && _target < _host.catalog.tabs.Count;
-            bool commit = valid && (_progress >= _distanceThreshold ||
-                (_progress > .025f && -velocityInViewportWidths * _direction >= _velocityThreshold));
-            Settle(commit);
-        }
-        /// <summary>
-        /// 현재 진행률에서 확정이면 1, 취소이면 0으로 정착할 보간 상태를 준비합니다. 시작된 전환에서 호출합니다.
-        /// </summary>
-        public void Settle(bool commit)
-        {
-            _settling = true;
-            _startProgress = _progress;
-            _destination = commit ? 1 : 0;
-            _elapsed = 0;
-        }
-        /// <summary>
-        /// 시간 배율과 무관하게 정착 애니메이션을 진행하고 완료 시 탭을 확정합니다. 화면 크기가 바뀌면 전환을 취소합니다.
+        /// 시간 배율과 무관하게 전환을 진행하고 완료 시 탭을 확정합니다. 화면 크기가 바뀌면 전환을 취소합니다.
         /// </summary>
         private void Update()
         {
             if (!IsActive) return;
             if (_screenSize != new Vector2(Screen.width, Screen.height))
             { Cancel(); return; }
-            if (!_settling) return;
             _elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(_elapsed / Mathf.Max(.01f, _settleDuration));
-            _progress = Mathf.Lerp(_startProgress, _destination, 1 - Mathf.Pow(1 - t, 3));
+            float t = Mathf.Clamp01(_elapsed / Mathf.Max(.01f, _duration));
+            _progress = 1 - Mathf.Pow(1 - t, 3);
             Apply();
-            if (t >= 1) Finish(_destination > .5f);
+            if (t >= 1) Finish(true);
         }
         /// <summary>
-        /// 전환 진행률로 두 탭 이미지의 위치·홈 시차·프로필 투명도와 뷰포트 높이를 함께 갱신합니다.
+        /// 전환 진행률로 두 탭 이미지의 수평 위치·홈 시차·프로필 투명도를 갱신합니다.
+        /// 뷰포트 크기는 바꾸지 않으므로 렌더 텍스처를 다시 만들지 않습니다.
         /// </summary>
         private void Apply()
         {
             float width = _host.viewport.rect.width;
-            _current.rectTransform.anchoredPosition = new Vector2(-_direction * _progress * width, 0);
-            _next.rectTransform.anchoredPosition = new Vector2(_direction * (1 - _progress) * width, 0);
+            SetX(_current, -_direction * _progress * width);
+            SetX(_next, _direction * (1 - _progress) * width);
             SetParallax(_host.ActiveIndex, -_direction * _progress);
-            bool valid = _target >= 0 && _target < _host.catalog.tabs.Count;
-            if (valid) SetParallax(_target, _direction * (1 - _progress));
+            SetParallax(_target, _direction * (1 - _progress));
             float from = _host.catalog.tabs[_host.ActiveIndex].showProfile ? 1 : 0;
-            float to = valid ? (_host.catalog.tabs[_target].showProfile ? 1 : 0) : from;
+            float to = _host.catalog.tabs[_target].showProfile ? 1 : 0;
             float profile = Mathf.Lerp(from, to, _progress);
             _host.profileBar.SetActive(profile > 0);
             _profile.alpha = profile;
             _profile.blocksRaycasts = false;
-            _host.viewport.offsetMax = new Vector2(0, -_host.headerHeight * profile);
+        }
+        /// <summary>
+        /// 이미지의 세로 여백은 그대로 두고 수평 위치만 바꿉니다.
+        /// 위쪽 여백이 있는 이미지에 anchoredPosition 전체를 대입하면 세로 위치가 함께 어긋나기 때문입니다.
+        /// </summary>
+        private static void SetX(RawImage image, float x)
+        {
+            var position = image.rectTransform.anchoredPosition;
+            position.x = x;
+            image.rectTransform.anchoredPosition = position;
         }
         /// <summary>
         /// 해당 탭에 전시관 뷰가 있으면 시차 오프셋을 전달하며 다른 탭에는 영향을 주지 않습니다.
@@ -148,10 +120,9 @@ namespace Jamkkaebi.Scripts.UI.Shell
         {
             int target = commit ? _target : _host.ActiveIndex;
             SetParallax(_host.ActiveIndex, 0);
-            if (_target >= 0 && _target < _host.catalog.tabs.Count) SetParallax(_target, 0);
+            SetParallax(_target, 0);
             IsActive = false;
-            _settling = false;
-            _current.rectTransform.anchoredPosition = Vector2.zero;
+            SetX(_current, 0);
             _next.gameObject.SetActive(false);
             _profile.alpha = 1;
             _profile.blocksRaycasts = true;

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
-    /// 세로 스크롤을 소유하고 가로 드래그는 공통 탭 전환에 맡깁니다.
+    /// 세로 스크롤을 소유하고 가로 드래그는 무시합니다(카드 클릭만 취소).
     /// </summary>
     public sealed class CollectionScrollRect : ScrollRect, IMirrorGestureOwner
     {
