@@ -16,7 +16,8 @@ namespace Jamkkaebi.Editor
     /// </summary>
     public sealed class WorkbenchMockConsole : EditorWindow
     {
-        private const int TotalRelics = 10;
+        // 서버 시드와 같은 유물 9종
+        private static int TotalRelics => WorkbenchRelicSeed.Instance.Count;
 
         private MockWorkbenchBackend _backend;
         private DateTime _startTime;
@@ -56,10 +57,13 @@ namespace Jamkkaebi.Editor
             PlayPlanner planner = new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default,
                 MinigameDifficulty.Normal);
             _backend = new MockWorkbenchBackend(inventory, planner, TotalRelics,
-                id => $"정령{id}", new System.Random(_seed), () => Now, 0f);
+                DefaultSpiritName, new System.Random(_seed), () => Now, 0f);
 
             Log($"새 모의 백엔드 (전체 유물 {TotalRelics}개, 용량 {RelicInventory.DefaultWorkbenchCapacity}, 시드 {_seed})");
         }
+
+        private static string DefaultSpiritName(int relicId) =>
+            WorkbenchRelicSeed.Instance.TryFind(relicId, out WorkbenchRelicInfo info) ? info.DefaultSpiritName : $"정령{relicId}";
 
         private void OnGUI()
         {
