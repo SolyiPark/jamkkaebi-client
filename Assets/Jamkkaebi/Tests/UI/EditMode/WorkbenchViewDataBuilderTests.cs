@@ -258,6 +258,57 @@ namespace Jamkkaebi.Tests.UI.EditMode
                 _builder.BoxResult(new BoxOpenOutcome(AcquireResult.New, 99, 0, 0, 0)));
         }
 
+        // ---------- 정산 결과 ----------
+
+        private static PlayPlan Plan(Phase from) => FirstPlan(from);
+
+        /// <summary>봉인 해제 성공: 형태 공개와 다음 단계를 알리고, 확인하면 상세로 돌아가는지(Finished 아님) 검사합니다.</summary>
+        [Test]
+        public void Settlement_FirstSuccess()
+        {
+            SettlementData data = _builder.Settlement(2,
+                new SettlementResult(PlayResult.Success, NextAction.NextPhase, Plan(Phase.Recall), false, RevealLevel.Form));
+
+            Assert.IsTrue(data.Succeeded);
+            Assert.AreEqual("정화 성공", data.Title);
+            CollectionAssert.AreEqual(new[] { "유물의 형태가 드러났어요.", "다음 단계 · 기억 회복" }, data.Lines);
+            Assert.IsFalse(data.Finished);
+        }
+
+        /// <summary>기억 회복 성공: 실제 이름을 공개하는지 검사합니다.</summary>
+        [Test]
+        public void Settlement_RecallReveal()
+        {
+            SettlementData data = _builder.Settlement(2,
+                new SettlementResult(PlayResult.Success, NextAction.NextPhase, Plan(Phase.Guard), false, RevealLevel.Named));
+
+            Assert.AreEqual("정체가 드러났어요 · 금동대향로", data.Lines[0]);
+        }
+
+        /// <summary>오염 관리까지 마치면 정령이 깨어났다고 알리고 홈으로 가는지(Finished) 검사합니다.</summary>
+        [Test]
+        public void Settlement_CompletedNow()
+        {
+            SettlementData data = _builder.Settlement(2,
+                new SettlementResult(PlayResult.Success, NextAction.Done, null, true, RevealLevel.Named));
+
+            Assert.IsTrue(data.Finished);
+            CollectionAssert.Contains(data.Lines, "최초 정화를 모두 마쳤어요. 정령이 깨어났어요!");
+        }
+
+        /// <summary>실패는 다시 도전할 페이즈를 알리는지 검사합니다.</summary>
+        [Test]
+        public void Settlement_Failure()
+        {
+            SettlementData data = _builder.Settlement(2,
+                new SettlementResult(PlayResult.Failure, NextAction.Retry, Plan(Phase.Unseal), false, null));
+
+            Assert.IsFalse(data.Succeeded);
+            Assert.AreEqual("정화 실패", data.Title);
+            CollectionAssert.AreEqual(new[] { "다시 도전하세요 · 봉인 해제" }, data.Lines);
+            Assert.IsFalse(data.Finished);
+        }
+
         // ---------- 서버 시드 ----------
 
         /// <summary>서버 시드와 같은 유물 9종이 relicId 1~9로 들어 있는지 검사합니다.</summary>

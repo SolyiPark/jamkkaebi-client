@@ -65,6 +65,47 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             return $"이미 가진 유물이 나왔어요 · 정성 +{outcome.JeongseongGained} · 결정 +{outcome.CrystalGained}{spent}";
         }
 
+        /// <summary>정산 결과를 결과 화면 문장으로 바꾼다. 다음 페이즈는 정산이 새로 만든 계획을 따른다.</summary>
+        public SettlementData Settlement(int relicId, SettlementResult result)
+        {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+
+            bool succeeded = result.Result == PlayResult.Success;
+            List<string> lines = new List<string>();
+            _catalog.TryFind(relicId, out WorkbenchRelicInfo info);
+
+            if (result.Revealed == RevealLevel.Form) lines.Add("유물의 형태가 드러났어요.");
+            if (result.Revealed == RevealLevel.Named)
+                lines.Add($"정체가 드러났어요 · {info?.RealName ?? WorkbenchText.UnknownRelic}");
+
+            if (result.CompletedNow)
+            {
+                lines.Add("최초 정화를 모두 마쳤어요. 정령이 깨어났어요!");
+                lines.Add("이제 전시관에 배치할 수 있어요.");
+            }
+            else
+            {
+                switch (result.Next)
+                {
+                    case NextAction.NextPhase:
+                        lines.Add($"다음 단계 · {WorkbenchText.PhaseName(result.NextPlan.Phase)}");
+                        break;
+                    case NextAction.ContinueRestore:
+                        lines.Add($"남은 복구 · {WorkbenchText.PhaseName(result.NextPlan.Phase)}");
+                        break;
+                    case NextAction.Retry:
+                        lines.Add($"다시 도전하세요 · {WorkbenchText.PhaseName(result.NextPlan.Phase)}");
+                        break;
+                    case NextAction.Done:
+                        lines.Add("정령이 다시 선명해졌어요.");
+                        break;
+                }
+            }
+
+            return new SettlementData(relicId, succeeded, succeeded ? "정화 성공" : "정화 실패", lines.AsReadOnly(),
+                result.NextPlan == null);
+        }
+
         /// <summary>최초 정화 중인 유물의 상세. 완료한 정령은 SpiritDetail을 쓴다.</summary>
         public RelicDetailData RelicDetail(RelicDetail detail)
         {

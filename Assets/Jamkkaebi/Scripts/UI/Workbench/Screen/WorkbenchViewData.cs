@@ -172,4 +172,25 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             Difficulties = difficulties;
         }
     }
+
+    /// <summary>정화 한 판의 정산 결과 화면.</summary>
+    public sealed class SettlementData
+    {
+        public int RelicId { get; }
+        public bool Succeeded { get; }
+        public string Title { get; }
+        public IReadOnlyList<string> Lines { get; }
+
+        /// <summary>더 할 판이 없는지(최초 정화 완료 또는 관리 완료). 확인을 누르면 홈으로 간다.</summary>
+        public bool Finished { get; }
+
+        public SettlementData(int relicId, bool succeeded, string title, IReadOnlyList<string> lines, bool finished)
+        {
+            RelicId = relicId;
+            Succeeded = succeeded;
+            Title = title;
+            Lines = lines;
+            Finished = finished;
+        }
+    }
 }
