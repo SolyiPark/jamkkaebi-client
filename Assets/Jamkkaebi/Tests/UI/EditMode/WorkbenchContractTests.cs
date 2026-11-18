@@ -15,6 +15,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
     public sealed class WorkbenchContractTests
     {
         private static readonly DateTime ResealAt = new DateTime(2026, 11, 30, 9, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTime LastPurifiedAt = ResealAt - TimeSpan.FromDays(14);
 
         private static readonly PlayPlan FirstPlan = new PlayPlan(EntryRoute.First,
             new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, new[] { MinigameDifficulty.Normal }, null);
@@ -56,14 +57,17 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [Test]
         public void Spirit_ValidatesValues()
         {
-            WorkbenchSpirit spirit = new WorkbenchSpirit(2, Clarity.Resealed, 0);
+            WorkbenchSpirit spirit = new WorkbenchSpirit(2, "정령2", Clarity.Resealed, 0);
             Assert.AreEqual(2, spirit.RelicId);
             Assert.AreEqual(Clarity.Resealed, spirit.Clarity);
             Assert.AreEqual(0, spirit.CareCount);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => new WorkbenchSpirit(0, Clarity.Clear, 0));
-            Assert.Throws<ArgumentException>(() => new WorkbenchSpirit(1, (Clarity)99, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new WorkbenchSpirit(1, Clarity.Clear, -1));
+            Assert.AreEqual("정령2", spirit.SpiritName);
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WorkbenchSpirit(0, "정령0", Clarity.Clear, 0));
+            Assert.Throws<ArgumentException>(() => new WorkbenchSpirit(1, null, Clarity.Clear, 0));
+            Assert.Throws<ArgumentException>(() => new WorkbenchSpirit(1, "", Clarity.Clear, 0));
+            Assert.Throws<ArgumentException>(() => new WorkbenchSpirit(1, "정령1", (Clarity)99, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WorkbenchSpirit(1, "정령1", Clarity.Clear, -1));
         }
 
         // ---------- WorkbenchSnapshot ----------
@@ -119,11 +123,11 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Snapshot_CopiesListsInOrder()
         {
             WorkbenchSlot[] slots = { Slot(7), Slot(2) };
-            WorkbenchSpirit[] spirits = { new WorkbenchSpirit(5, Clarity.Resealed, 1), new WorkbenchSpirit(3, Clarity.Clear, 0) };
+            WorkbenchSpirit[] spirits = { new WorkbenchSpirit(5, "정령5", Clarity.Resealed, 1), new WorkbenchSpirit(3, "정령3", Clarity.Clear, 0) };
             WorkbenchSnapshot snapshot = new WorkbenchSnapshot(3, slots, spirits, 4);
 
             slots[0] = Slot(9);
-            spirits[0] = new WorkbenchSpirit(9, Clarity.Clear, 0);
+            spirits[0] = new WorkbenchSpirit(9, "정령9", Clarity.Clear, 0);
 
             CollectionAssert.AreEqual(new[] { 7, 2 }, snapshot.Slots.Select(s => s.RelicId));
             CollectionAssert.AreEqual(new[] { 5, 3 }, snapshot.Spirits.Select(s => s.RelicId));
@@ -147,7 +151,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [Test]
         public void Detail_InProgress_WithoutClarity()
         {
-            RelicDetail detail = new RelicDetail(1, RelicStatus.InProgress, null, null, 0, FirstPlan);
+            RelicDetail detail = new RelicDetail(1, RelicStatus.InProgress, null, null, null, null, 0, FirstPlan);
 
             Assert.AreEqual(1, detail.RelicId);
             Assert.AreEqual(RelicStatus.InProgress, detail.Status);
@@ -162,18 +166,18 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Detail_InProgress_WithCompletedFields_Throws()
         {
             Assert.Throws<ArgumentException>(() =>
-                new RelicDetail(1, RelicStatus.InProgress, Clarity.Clear, null, 0, FirstPlan));
+                new RelicDetail(1, RelicStatus.InProgress, null, Clarity.Clear, null, null, 0, FirstPlan));
             Assert.Throws<ArgumentException>(() =>
-                new RelicDetail(1, RelicStatus.InProgress, null, ResealAt, 0, FirstPlan));
+                new RelicDetail(1, RelicStatus.InProgress, null, null, null, ResealAt, 0, FirstPlan));
             Assert.Throws<ArgumentException>(() =>
-                new RelicDetail(1, RelicStatus.InProgress, null, null, 2, FirstPlan));
+                new RelicDetail(1, RelicStatus.InProgress, null, null, null, null, 2, FirstPlan));
         }
 
         /// <summary>완료한 유물은 선명도와 재봉인 시각을 담는지 검사합니다.</summary>
         [Test]
         public void Detail_Completed_WithClarity()
         {
-            RelicDetail detail = new RelicDetail(2, RelicStatus.Completed, Clarity.Faded, ResealAt, 3, CarePlan);
+            RelicDetail detail = new RelicDetail(2, RelicStatus.Completed, "정령", Clarity.Faded, LastPurifiedAt, ResealAt, 3, CarePlan);
 
             Assert.AreEqual(Clarity.Faded, detail.Clarity);
             Assert.AreEqual(ResealAt, detail.ResealAt);
@@ -184,9 +188,39 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [Test]
         public void Detail_CompletedResealed_AllowsNoResealAt()
         {
-            RelicDetail detail = new RelicDetail(2, RelicStatus.Completed, Clarity.Resealed, null, 1, CarePlan);
+            RelicDetail detail = new RelicDetail(2, RelicStatus.Completed, "정령", Clarity.Resealed, LastPurifiedAt, null, 1, CarePlan);
 
             Assert.IsNull(detail.ResealAt);
+        }
+
+        /// <summary>정령 이름은 완료한 유물에만 있고, 진행 중이면 null이어야 하는지 검사합니다.</summary>
+        [Test]
+        public void Detail_SpiritNameOnlyAfterCompleted()
+        {
+            RelicDetail completed = new RelicDetail(2, RelicStatus.Completed, "깨비", Clarity.Clear, LastPurifiedAt,
+                ResealAt, 0, CarePlan);
+            Assert.AreEqual("깨비", completed.SpiritName);
+            Assert.AreEqual(LastPurifiedAt, completed.LastPurifiedAt);
+
+            // 진행 중에는 이름이 공개되지 않는다. 봉인 해제를 클리어했다면 마지막 정화 시각은 있을 수 있다.
+            RelicDetail inProgress = new RelicDetail(1, RelicStatus.InProgress, null, null, LastPurifiedAt, null, 0, FirstPlan);
+            Assert.IsNull(inProgress.SpiritName);
+            Assert.AreEqual(LastPurifiedAt, inProgress.LastPurifiedAt);
+
+            Assert.Throws<ArgumentException>(() =>
+                new RelicDetail(1, RelicStatus.InProgress, "깨비", null, null, null, 0, FirstPlan));
+            Assert.Throws<ArgumentException>(() =>
+                new RelicDetail(2, RelicStatus.Completed, null, Clarity.Clear, LastPurifiedAt, ResealAt, 0, CarePlan));
+            Assert.Throws<ArgumentException>(() =>
+                new RelicDetail(2, RelicStatus.Completed, "", Clarity.Clear, LastPurifiedAt, ResealAt, 0, CarePlan));
+        }
+
+        /// <summary>완료한 유물에 마지막 정화 시각이 없으면 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Detail_Completed_RequiresLastPurifiedAt()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new RelicDetail(2, RelicStatus.Completed, "깨비", Clarity.Clear, null, ResealAt, 0, CarePlan));
         }
 
         /// <summary>완료한 유물에 선명도가 없거나, 재봉인 전인데 재봉인 시각이 없으면 거부하는지 검사합니다.</summary>
@@ -194,9 +228,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Detail_Completed_MissingFields_Throws()
         {
             Assert.Throws<ArgumentException>(() =>
-                new RelicDetail(2, RelicStatus.Completed, null, ResealAt, 0, CarePlan));
+                new RelicDetail(2, RelicStatus.Completed, "정령", null, LastPurifiedAt, ResealAt, 0, CarePlan));
             Assert.Throws<ArgumentException>(() =>
-                new RelicDetail(2, RelicStatus.Completed, Clarity.Clear, null, 0, CarePlan));
+                new RelicDetail(2, RelicStatus.Completed, "정령", Clarity.Clear, LastPurifiedAt, null, 0, CarePlan));
         }
 
         /// <summary>모양이 잘못된 값을 거부하는지 검사합니다.</summary>
@@ -204,15 +238,15 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Detail_InvalidValues_Throw()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new RelicDetail(0, RelicStatus.InProgress, null, null, 0, FirstPlan));
+                new RelicDetail(0, RelicStatus.InProgress, null, null, null, null, 0, FirstPlan));
             Assert.Throws<ArgumentException>(() =>
-                new RelicDetail(1, (RelicStatus)99, null, null, 0, FirstPlan));
+                new RelicDetail(1, (RelicStatus)99, null, null, null, null, 0, FirstPlan));
             Assert.Throws<ArgumentException>(() =>
-                new RelicDetail(1, RelicStatus.Completed, (Clarity)99, ResealAt, 0, CarePlan));
+                new RelicDetail(1, RelicStatus.Completed, "정령", (Clarity)99, LastPurifiedAt, ResealAt, 0, CarePlan));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new RelicDetail(1, RelicStatus.Completed, Clarity.Clear, ResealAt, -1, CarePlan));
+                new RelicDetail(1, RelicStatus.Completed, "정령", Clarity.Clear, LastPurifiedAt, ResealAt, -1, CarePlan));
             Assert.Throws<ArgumentNullException>(() =>
-                new RelicDetail(1, RelicStatus.InProgress, null, null, 0, null));
+                new RelicDetail(1, RelicStatus.InProgress, null, null, null, null, 0, null));
         }
 
         // ---------- BoxOpenOutcome ----------
@@ -322,7 +356,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Backend_AllMethodsAreCoroutinesWithCallbacks()
         {
             MethodInfo[] methods = typeof(IWorkbenchBackend).GetMethods();
-            Assert.AreEqual(5, methods.Length);
+            Assert.AreEqual(6, methods.Length);
 
             foreach (MethodInfo method in methods)
             {
@@ -344,6 +378,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [TestCase("OpenBox", typeof(BoxOpenOutcome), typeof(BoxSource), typeof(string))]
         [TestCase("StartPurification", typeof(PurificationSession), typeof(int), typeof(MinigameDifficulty?))]
         [TestCase("ReportPurification", typeof(SettlementResult), typeof(string), typeof(PlayResult))]
+        [TestCase("RenameSpirit", typeof(string), typeof(int), typeof(string))]
         public void Backend_MethodSignature(string name, Type result, params Type[] inputs)
         {
             MethodInfo method = typeof(IWorkbenchBackend).GetMethod(name);

@@ -30,17 +30,24 @@ namespace Jamkkaebi.Scripts.UI.Workbench
     public sealed class WorkbenchSpirit
     {
         public int RelicId { get; }
+
+        /// <summary>사용자가 지은 이름, 없으면 기본 이름. 서버가 풀어서 준다.</summary>
+        public string SpiritName { get; }
+
         public Clarity Clarity { get; }
         public int CareCount { get; }
 
-        public WorkbenchSpirit(int relicId, Clarity clarity, int careCount)
+        public WorkbenchSpirit(int relicId, string spiritName, Clarity clarity, int careCount)
         {
             if (relicId <= 0) throw new ArgumentOutOfRangeException(nameof(relicId), "relicId는 1부터 시작합니다.");
+            if (string.IsNullOrEmpty(spiritName))
+                throw new ArgumentException("정령 이름이 비어 있습니다.", nameof(spiritName));
             if (!Enum.IsDefined(typeof(Clarity), clarity))
                 throw new ArgumentException($"선명도 {clarity}는 정의되지 않았습니다.", nameof(clarity));
             if (careCount < 0) throw new ArgumentOutOfRangeException(nameof(careCount), "careCount는 0 이상이어야 합니다.");
 
             RelicId = relicId;
+            SpiritName = spiritName;
             Clarity = clarity;
             CareCount = careCount;
         }
