@@ -21,6 +21,11 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private void Awake()
         {
             if (_showLegacyMinigame) return;
+            if (!adapter || !summary)
+            {
+                Debug.LogError("작업대 화면에는 미니게임 어댑터와 기존 HUD 글자(글꼴) 참조가 필요합니다.", this);
+                return;
+            }
 
             // 3단계: 기존 미니게임 보드와 HUD는 숨기고, 실행 중에 작업대 화면을 만든다(씬 파일은 바꾸지 않는다).
             adapter.gameObject.SetActive(false);
