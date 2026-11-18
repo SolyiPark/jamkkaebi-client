@@ -5,7 +5,7 @@ using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
 using Jamkkaebi.Scripts.UI.Common;
 using Jamkkaebi.Scripts.UI.Dev;
 using Jamkkaebi.Scripts.UI.Shell;
-using Jamkkaebi.Scripts.UI.Workshop;
+using Jamkkaebi.Scripts.UI.Workbench;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -16,13 +16,13 @@ using Object = UnityEngine.Object;
 
 public static class IntegratedSetup
 {
-    public const string Workshop = "Assets/Jamkkaebi/Scenes/Workshop.unity";
+    public const string Workbench = "Assets/Jamkkaebi/Scenes/Workbench.unity";
     private static readonly Color Paper = new Color(.985f, .985f, .975f);
     private static readonly Color Ink = new Color(.10f, .17f, .17f);
 
     public static void Prepare()
     {
-        // Build a connected workshop from the existing game's scene and prefab.
+        // Build a connected workbench from the existing game's scene and prefab.
         var scene = EditorSceneManager.OpenScene("Assets/Jamkkaebi/Scenes/Minigame.unity");
         var adapter = Object.FindFirstObjectByType<MinigameSessionAdapter>();
         var camera = Object.FindFirstObjectByType<Camera>();
@@ -30,7 +30,7 @@ public static class IntegratedSetup
             Object.DestroyImmediate(events.gameObject);
         foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
             Object.DestroyImmediate(canvas.gameObject);
-        var root = new GameObject("Workshop Root", typeof(MirrorSceneRoot)).GetComponent<MirrorSceneRoot>();
+        var root = new GameObject("Workbench Root", typeof(MirrorSceneRoot)).GetComponent<MirrorSceneRoot>();
         foreach (var obj in scene.GetRootGameObjects())
             if (obj != root.gameObject) obj.transform.SetParent(root.transform, true);
         root.sceneCamera = camera;
@@ -57,7 +57,7 @@ public static class IntegratedSetup
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
         instance.GetComponent<SpriteRenderer>().sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Jamkkaebi/Art/Square.png");
         instance.GetComponent<SpriteRenderer>().sharedMaterial = material;
-        var connectedPrefab = PrefabUtility.SaveAsPrefabAsset(instance, "Assets/Jamkkaebi/Prefabs/WorkshopTile.prefab");
+        var connectedPrefab = PrefabUtility.SaveAsPrefabAsset(instance, "Assets/Jamkkaebi/Prefabs/WorkbenchTile.prefab");
         Object.DestroyImmediate(instance);
         var serialized = new SerializedObject(adapter);
         serialized.FindProperty("_tilePrefab").objectReferenceValue = connectedPrefab;
@@ -66,7 +66,7 @@ public static class IntegratedSetup
         serialized.ApplyModifiedPropertiesWithoutUndo();
 
         var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Jamkkaebi/Fonts/NotoSansCJKkr-Regular.otf");
-        var ui = new GameObject("Workshop UI", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster)).GetComponent<Canvas>();
+        var ui = new GameObject("Workbench UI", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster)).GetComponent<Canvas>();
         ui.transform.SetParent(root.transform, false);
         ui.renderMode = RenderMode.ScreenSpaceCamera;
         ui.worldCamera = camera;
@@ -75,7 +75,7 @@ public static class IntegratedSetup
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1080, 1600);
         scaler.matchWidthOrHeight = 0;
-        var presenter = root.gameObject.AddComponent<WorkshopPresenter>();
+        var presenter = root.gameObject.AddComponent<WorkbenchPresenter>();
         presenter.adapter = adapter;
         presenter.sceneCamera = camera;
         UIFactory.Label("Heading", ui.transform, font, "나만의 작업대", 40, Ink,
@@ -94,7 +94,7 @@ public static class IntegratedSetup
         MirrorSceneRoot.SetLayer(root.transform, 9);
         camera.cullingMask = 1 << 9;
         root.uiRaycasters = new[] { ui.GetComponent<GraphicRaycaster>() };
-        EditorSceneManager.SaveScene(scene, Workshop);
+        EditorSceneManager.SaveScene(scene, Workbench);
 
         // Preserve the UI asset GUIDs, while converting its sprite material to URP.
         foreach (string path in new[] { "Home", "Collection", "Friends" })

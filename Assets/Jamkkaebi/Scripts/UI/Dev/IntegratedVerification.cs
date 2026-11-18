@@ -12,7 +12,7 @@ using Jamkkaebi.Scripts.UI.Common;
 using Jamkkaebi.Scripts.UI.Exhibition;
 using Jamkkaebi.Scripts.UI.Friends;
 using Jamkkaebi.Scripts.UI.Shell;
-using Jamkkaebi.Scripts.UI.Workshop;
+using Jamkkaebi.Scripts.UI.Workbench;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -1096,9 +1096,9 @@ namespace Jamkkaebi.Scripts.UI.Dev
             yield return VerifyFriends(host);
             host.SelectTab(1); yield return new WaitForSeconds(.35f);
             var adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
-            var presenter = host.GetRoot(1).GetComponent<WorkshopPresenter>();
+            var presenter = host.GetRoot(1).GetComponent<WorkbenchPresenter>();
             Check(adapter.Session != null && adapter.TileViews.Count == 56, "existing 7x8 excavation grid instantiated");
-            Check(adapter.TileViews.Values.All(t => t.gameObject.layer == 9 && t.gameObject.scene == adapter.gameObject.scene && t.UsesPointerEvents), "spawned tiles belong to workshop scene and render layer");
+            Check(adapter.TileViews.Values.All(t => t.gameObject.layer == 9 && t.gameObject.scene == adapter.gameObject.scene && t.UsesPointerEvents), "spawned tiles belong to workbench scene and render layer");
             int beforeSwipeUses = adapter.Session.RemainingDestructiveToolUses;
             var tilePointer = new PointerEventData(EventSystem.current)
             { pointerId = -1, position = ScreenPoint(host, CoveredEmpty(adapter).transform.position), button = PointerEventData.InputButton.Left };
@@ -1114,7 +1114,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             dragPointer.position -= Vector2.right * Screen.width * .1f;
             host.input.OnDrag(dragPointer);
             yield return new WaitForSeconds(.2f);
-            Check(!adapter.CanAcceptInput && adapter.Session == hiddenSession, "preview does not resume hidden workshop");
+            Check(!adapter.CanAcceptInput && adapter.Session == hiddenSession, "preview does not resume hidden workbench");
             host.input.Cancel();
             yield return null;
             Check(host.ActiveIndex == 0 && !host.IsBusy, "input cancellation restores tab");
@@ -1142,15 +1142,15 @@ namespace Jamkkaebi.Scripts.UI.Dev
             yield return new WaitForSeconds(.15f);
             Check(host.catalog.tabs[1].backgroundPolicy == BackgroundPolicy.PauseWhileHidden &&
                 !adapter.CanAcceptInput && adapter.Session == retainedSession,
-                "default hidden workshop pauses and retains session");
+                "default hidden workbench pauses and retains session");
             adapter.SelectTool(ToolMode.AttackDestroy);
-            Check(adapter.SelectedTool == ToolMode.Scout && !adapter.CanAcceptInput, "hidden workshop rejects input");
+            Check(adapter.SelectedTool == ToolMode.Scout && !adapter.CanAcceptInput, "hidden workbench rejects input");
             Check(exhibition.Intro.IsComplete, "minigame input does not replay home intro");
             host.SelectTab(1); yield return new WaitForSeconds(.35f);
             host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
             host.SelectTab(0); yield return new WaitForSeconds(.35f);
             yield return new WaitForSeconds(.35f);
-            Check(!adapter.CanAcceptInput && adapter.Session.RemainingDestructiveToolUses == uses - 1, "hidden pause retains workshop state");
+            Check(!adapter.CanAcceptInput && adapter.Session.RemainingDestructiveToolUses == uses - 1, "hidden pause retains workbench state");
             host.SelectTab(1); yield return new WaitForSeconds(.45f);
             Check(adapter.CanAcceptInput && adapter.Session.RemainingDestructiveToolUses == uses - 1, "resume retains state and accepts input");
             Click(host, presenter.toolButtons[0].transform.position);
@@ -1163,7 +1163,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
             while (host.IsBusy && Time.realtimeSinceStartup < deadline) yield return null;
             yield return new WaitForSeconds(.3f);
             adapter = host.GetRoot(1).GetComponentInChildren<MinigameSessionAdapter>();
-            presenter = host.GetRoot(1).GetComponent<WorkshopPresenter>();
+            presenter = host.GetRoot(1).GetComponent<WorkbenchPresenter>();
             // 재시작은 현재 난이도의 초기 횟수로 돌아가야 합니다. 과거 고정값 30을 기대하면 Normal=19인 정상 세션도 실패합니다.
             Check(!host.IsBusy && adapter.Session != previousSession && adapter.Session.RemainingDestructiveToolUses == beforeSwipeUses, "return restart creates fresh minigame session");
             host.catalog.tabs[1].backgroundPolicy = BackgroundPolicy.PauseWhileHidden;
@@ -1223,7 +1223,7 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 Click(host, CoveredEmpty(adapter).transform.position);
                 Check(adapter.Session.RemainingDestructiveToolUses == uses - 1, "tile mapping after resize " + size);
                 yield return new WaitForEndOfFrame(); CheckRender(host);
-                Capture($"Workshop_{size.x}x{size.y}.png");
+                Capture($"Workbench_{size.x}x{size.y}.png");
                 yield return null;
             }
             yield return VerifyCollectionArtwork(host);

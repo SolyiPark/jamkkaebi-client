@@ -4,7 +4,7 @@ using System.Linq;
 using Jamkkaebi.Scripts.UI.Common;
 using Jamkkaebi.Scripts.UI.Dev;
 using Jamkkaebi.Scripts.UI.Shell;
-using Jamkkaebi.Scripts.UI.Workshop;
+using Jamkkaebi.Scripts.UI.Workbench;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -70,9 +70,9 @@ public static class ReviewRegressionChecks
             safeAreaObject.SetActive(true);
 
             // This is the exact active-AddComponent ordering questioned in the review.
-            // WorkshopPresenter has no ExecuteAlways: edit-time creation must not subscribe.
+            // WorkbenchPresenter has no ExecuteAlways: edit-time creation must not subscribe.
             var presenterObject = new GameObject("Presenter editor lifecycle");
-            var presenter = presenterObject.AddComponent<WorkshopPresenter>();
+            var presenter = presenterObject.AddComponent<WorkbenchPresenter>();
             Check(presenter.adapter == null, "presenter created before assigning adapter in EditMode");
             Object.DestroyImmediate(presenterObject);
             Check(errors.Count == 0, "no errors during editor creation, cleanup and SafeArea reactivation: " +

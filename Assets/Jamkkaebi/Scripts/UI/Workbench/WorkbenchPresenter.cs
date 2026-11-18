@@ -3,9 +3,9 @@ using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Jamkkaebi.Scripts.UI.Workshop
+namespace Jamkkaebi.Scripts.UI.Workbench
 {
-    public class WorkshopPresenter : MonoBehaviour
+    public class WorkbenchPresenter : MonoBehaviour
     {
         public MinigameSessionAdapter adapter;
         public Camera sceneCamera;
@@ -41,7 +41,7 @@ namespace Jamkkaebi.Scripts.UI.Workshop
             if (session == null) return;
             float width = session.Grid.Width * adapter.TileSize;
             float height = session.Grid.Height * adapter.TileSize;
-            // Reserve the top 20% and bottom 20% for the workshop controls.
+            // Reserve the top 20% and bottom 20% for the workbench controls.
             sceneCamera.orthographicSize = Mathf.Max(height / 1.12f,
                 width / (1.76f * Mathf.Max(.1f, sceneCamera.aspect)));
             string state = session.State == SessionState.InProgress ? "발굴 중" :
