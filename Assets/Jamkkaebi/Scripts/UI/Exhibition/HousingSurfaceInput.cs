@@ -42,7 +42,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (_pointer == null) return;
             if (!OwnsGesture)
             {
-                // Moving before the hold threshold abandons the hold and allows tab navigation.
+                // 길게 누르기 전에 움직이면 누르기와 클릭을 함께 취소합니다.
                 if ((data.position - _press).magnitude > 12)
                 { _validPress = false; _cancelClick = true; _pointer.eligibleForClick = false; }
                 return;

@@ -17,17 +17,15 @@ namespace Jamkkaebi.Scripts.UI.Shell
         private GameObject pressed, dragged;
         private bool dragging;
         private TabHost _host;
-        private bool _swiping;
-        private bool _verticalGesture;
-        private Vector2 _screenPress;
-        private Vector2 _lastScreen;
-        private float _lastTime;
-        private float _velocity;
         /// <summary>
-        /// 수평 제스처를 탭 전환으로 전달할 호스트를 연결합니다.
+        /// 전환 중 입력 차단과 활성 탭 표시 영역을 제공할 호스트를 연결합니다.
         /// </summary>
-        public void ConfigureNavigation(TabHost host) => _host = host;
-        private float ViewportScreenWidth => Mathf.Max(1, ((RectTransform)transform).rect.width * GetComponentInParent<Canvas>().scaleFactor);
+        public void ConfigureHost(TabHost host) => _host = host;
+        /// <summary>
+        /// 화면 좌표를 렌더 텍스처로 옮길 기준 영역입니다. 호스트가 있으면 활성 탭 이미지, 없으면 이 입력 표면입니다.
+        /// 프로필 바가 있는 탭은 입력 표면보다 위쪽이 짧으므로 이미지 영역을 기준으로 해야 좌표가 맞습니다.
+        /// </summary>
+        private RectTransform MappingRect => _host && _host.mirror ? _host.DisplayRect : (RectTransform)transform;
         private readonly List<RaycastResult> hits = new List<RaycastResult>();
         /// <summary>
         /// 진행 중인 입력을 취소한 뒤 전달 대상 씬을 교체합니다. null을 전달하면 대상 연결을 해제합니다.
@@ -38,7 +36,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
         /// </summary>
         public Vector2 MapPosition(Vector2 screenPosition, Camera eventCamera)
         {
-            var rect = (RectTransform)transform;
+            var rect = MappingRect;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screenPosition, eventCamera, out var p);
             var bounds = rect.rect;
             var texture = Target.sceneCamera.targetTexture;
@@ -84,17 +82,15 @@ namespace Jamkkaebi.Scripts.UI.Shell
             return new RaycastResult();
         }
         /// <summary>
-        /// 전환 중이 아닐 때 첫 왼쪽 포인터를 캡처하고, 대상 씬의 누름 처리와 전용 드래그 핸들러를 준비합니다. 추가 포인터는 무시합니다.
+        /// 전환 중이 아닐 때 탭 화면 안에서 누른 첫 왼쪽 포인터를 캡처하고, 대상 씬의 누름 처리와 전용 드래그 핸들러를 준비합니다.
+        /// 추가 포인터와 탭 화면 밖(프로필 영역)의 누름은 무시합니다.
         /// </summary>
         public void OnPointerDown(PointerEventData input)
         {
             if (pointer.HasValue || !Target || !Target.sceneCamera.targetTexture || (_host && _host.IsBusy)) return;
             if (input.button != PointerEventData.InputButton.Left) return;
+            if (!RectTransformUtility.RectangleContainsScreenPoint(MappingRect, input.position, input.pressEventCamera)) return;
             pointer = input.pointerId;
-            _screenPress = _lastScreen = input.position;
-            _lastTime = Time.unscaledTime;
-            _velocity = 0;
-            _verticalGesture = false;
             forwarded = new PointerEventData(EventSystem.current) { pointerId = input.pointerId, button = input.button, eligibleForClick = true };
             UpdatePosition(input);
             forwarded.delta = Vector2.zero;
@@ -122,52 +118,25 @@ namespace Jamkkaebi.Scripts.UI.Shell
         /// </summary>
         public void OnEndDrag(PointerEventData data) { }
         /// <summary>
-        /// 콘텐츠의 제스처 소유권을 확인한 뒤 세로 드래그 또는 수평 탭 스와이프를 전달합니다.
-        /// 콘텐츠가 축을 판별하는 동안 드래그 시작을 보류하고, 스와이프가 시작되면 기존 클릭을 취소합니다.
+        /// 콘텐츠의 제스처 소유권을 확인한 뒤 드래그를 대상 씬에 전달합니다. 드래그는 탭을 바꾸지 않습니다.
+        /// 조건부 소유자가 축을 판별하는 동안에는 드래그 시작을 보류하고 클릭만 취소합니다.
         /// </summary>
         /// <param name="input">공통 뷰포트에서 캡처한 포인터의 현재 화면 좌표와 이동 정보입니다.</param>
         public void OnDrag(PointerEventData input)
         {
             if (pointer != input.pointerId || forwarded == null || !Target) return;
-            var screenDelta = input.position - _screenPress;
-            float now = Time.unscaledTime;
-            _velocity = (input.position.x - _lastScreen.x) / Mathf.Max(.016f, now - _lastTime) / ViewportScreenWidth;
-            _lastScreen = input.position; _lastTime = now;
             var owner = dragged ? dragged.GetComponent<IMirrorGestureOwner>() : null;
-            if (!_swiping && owner != null && !owner.OwnsGesture)
+            if (owner != null && !owner.OwnsGesture)
             {
+                // 조건부 소유자는 이 호출에서 축을 고릅니다. 아직 소유하지 않으면 드래그를 시작하지 않습니다:
+                // dragging을 먼저 켜면 나중에 세로 소유가 정해져도 시작 콜백을 놓칩니다.
                 UpdatePosition(input);
                 ExecuteEvents.Execute(dragged, forwarded, ExecuteEvents.dragHandler);
-            }
-            bool ownsDrag = dragged && (owner == null || owner.OwnsGesture);
-            // Dedicated draggable objects retain their gesture. Empty areas and buttons allow tab swipes.
-            if (!_swiping && !ownsDrag && !_verticalGesture && _host)
-            {
-                float threshold = Mathf.Max(12, ViewportScreenWidth * .018f);
-                if (Mathf.Abs(screenDelta.y) > threshold && Mathf.Abs(screenDelta.y) > Mathf.Abs(screenDelta.x))
-                    _verticalGesture = true;
-                else if (Mathf.Abs(screenDelta.x) > threshold && Mathf.Abs(screenDelta.x) > Mathf.Abs(screenDelta.y) * 1.2f)
+                if (!owner.OwnsGesture)
                 {
-                    _swiping = _host.BeginSwipe(screenDelta.x < 0 ? 1 : -1);
-                    if (_swiping)
-                    {
-                        forwarded.eligibleForClick = false;
-                        if (pressed) ExecuteEvents.Execute(pressed, forwarded, ExecuteEvents.pointerUpHandler);
-                        pressed = null;
-                    }
+                    forwarded.eligibleForClick = false;
+                    return;
                 }
-            }
-            if (_swiping)
-            {
-                _host.Transition.Drag(screenDelta.x / ViewportScreenWidth);
-                return;
-            }
-            // Conditional owners may still be deciding the axis. Do not begin a drag early:
-            // once dragging is set, a later vertical capture would miss its begin callback.
-            if (owner != null && !ownsDrag)
-            {
-                forwarded.eligibleForClick = false;
-                return;
             }
             UpdatePosition(input);
             if (!dragging)
@@ -180,18 +149,11 @@ namespace Jamkkaebi.Scripts.UI.Shell
             if (dragged) ExecuteEvents.Execute(dragged, forwarded, ExecuteEvents.dragHandler);
         }
         /// <summary>
-        /// 캡처한 포인터를 해제해 스와이프를 정착시키거나 대상 클릭·드래그 종료를 전달합니다. 오래 멈춘 스와이프의 속도는 0으로 처리합니다.
+        /// 캡처한 포인터를 해제하고 대상 클릭·드래그 종료를 전달합니다.
         /// </summary>
         public void OnPointerUp(PointerEventData input)
         {
             if (pointer != input.pointerId || forwarded == null || !Target) return;
-            if (_swiping)
-            {
-                float velocity = Time.unscaledTime - _lastTime > .12f ? 0 : _velocity;
-                Clear();
-                _host.Transition.Release(velocity);
-                return;
-            }
             UpdatePosition(input);
             if (pressed) ExecuteEvents.Execute(pressed, forwarded, ExecuteEvents.pointerUpHandler);
             var click = ExecuteEvents.GetEventHandler<IPointerClickHandler>(forwarded.pointerCurrentRaycast.gameObject);
@@ -201,12 +163,10 @@ namespace Jamkkaebi.Scripts.UI.Shell
             Clear();
         }
         /// <summary>
-        /// 클릭을 발생시키지 않고 누름·드래그를 종료하며 진행 중인 탭 스와이프를 원래 탭으로 취소합니다.
+        /// 클릭을 발생시키지 않고 누름·드래그를 종료합니다.
         /// </summary>
         public void Cancel()
         {
-            bool cancelSwipe = _swiping;
-            _swiping = false;
             if (forwarded != null)
             {
                 forwarded.eligibleForClick = false;
@@ -214,14 +174,13 @@ namespace Jamkkaebi.Scripts.UI.Shell
                 if (dragging && dragged) ExecuteEvents.Execute(dragged, forwarded, ExecuteEvents.endDragHandler);
             }
             Clear();
-            if (cancelSwipe && _host) _host.Transition.Cancel();
         }
         /// <summary>
-        /// 포인터 소유권과 제스처 상태를 초기화합니다. 대상 이벤트 전달과 전환 종료는 호출자가 처리합니다.
+        /// 포인터 소유권과 제스처 상태를 초기화합니다. 대상 이벤트 전달은 호출자가 처리합니다.
         /// </summary>
-        private void Clear() { _swiping = false; _verticalGesture = false; pointer = null; forwarded = null; pressed = dragged = null; dragging = false; }
+        private void Clear() { pointer = null; forwarded = null; pressed = dragged = null; dragging = false; }
         /// <summary>
-        /// 입력 브리지가 비활성화될 때 캡처된 포인터와 진행 중 전환을 취소합니다.
+        /// 입력 브리지가 비활성화될 때 캡처된 포인터를 취소합니다.
         /// </summary>
         private void OnDisable() => Cancel();
         /// <summary>

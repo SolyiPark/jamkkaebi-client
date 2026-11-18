@@ -28,6 +28,8 @@ namespace Jamkkaebi.Scripts.UI.Shell
         public bool IsBusy { get => _loading || (_transition && _transition.IsActive); private set => _loading = value; }
         public TabTransition Transition => _transition;
         public MirrorSceneRoot ActiveRoot => ActiveIndex >= 0 ? roots[ActiveIndex] : null;
+        /// <summary>활성 탭 화면이 실제로 그려지는 영역입니다. 프로필 바가 있는 탭은 뷰포트보다 위쪽이 짧습니다.</summary>
+        public RectTransform DisplayRect => mirror.rectTransform;
         private MirrorSceneRoot[] roots;
         private RenderTexture[] textures;
         private bool[] visited;
@@ -35,7 +37,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
         private readonly List<Text> labels = new List<Text>();
         private readonly List<Image> markers = new List<Image>();
         private readonly List<Image> icons = new List<Image>();
-        private Vector2Int textureSize;
+        private Vector2Int[] textureSizes;
         private int pendingTab = -1;
         private bool _navigationLocked;
 
@@ -49,15 +51,16 @@ namespace Jamkkaebi.Scripts.UI.Shell
             roots = new MirrorSceneRoot[catalog.tabs.Count];
             textures = new RenderTexture[roots.Length];
             visited = new bool[roots.Length];
+            textureSizes = new Vector2Int[roots.Length];
             _transition = gameObject.AddComponent<TabTransition>();
             _transition.Initialize(this);
-            input.ConfigureNavigation(this);
+            input.ConfigureHost(this);
             BuildToolbar();
             IsBusy = true;
             int first = Mathf.Clamp(catalog.initialTab, 0, roots.Length - 1);
-            Layout(catalog.tabs[first].showProfile);
+            Layout(first);
             Canvas.ForceUpdateCanvases();
-            textureSize = MeasureTexture();
+            for (int i = 0; i < roots.Length; i++) textureSizes[i] = MeasureTexture(i);
             for (int i = 0; i < roots.Length; i++)
             {
                 yield return Load(i);
@@ -122,42 +125,60 @@ namespace Jamkkaebi.Scripts.UI.Shell
             roots[index].SetPaused(index != ActiveIndex && definition.backgroundPolicy != BackgroundPolicy.ContinueRunning);
         }
         /// <summary>
-        /// 현재 측정한 뷰포트 크기로 탭 전용 렌더 텍스처를 생성합니다. 수명 종료 시 호스트가 해제합니다.
+        /// 해당 탭의 표시 영역에 맞춰 측정한 크기로 탭 전용 렌더 텍스처를 생성합니다. 수명 종료 시 호스트가 해제합니다.
         /// </summary>
         private RenderTexture NewTexture(int index)
         {
-            var texture = new RenderTexture(textureSize.x, textureSize.y, 24, RenderTextureFormat.ARGB32)
+            var size = textureSizes[index];
+            var texture = new RenderTexture(size.x, size.y, 24, RenderTextureFormat.ARGB32)
             { name = "Mirror_" + catalog.tabs[index].id, filterMode = FilterMode.Bilinear };
             texture.Create();
             return texture;
         }
         /// <summary>
-        /// 프로필 표시 여부에 따라 공통 뷰포트의 상단 여백을 조정하고 하단 탭 영역을 확보합니다.
+        /// 탭의 프로필 표시 여부를 적용하고 하단 탭 영역을 확보합니다.
+        /// 뷰포트는 프로필 영역까지 포함한 고정 크기로 두고, 프로필 여백은 표시 이미지에만 줍니다.
+        /// 탭을 바꿀 때 뷰포트 크기가 바뀌면 모든 렌더 텍스처를 다시 만들어야 해서 화면이 끊기기 때문입니다.
         /// </summary>
-        private void Layout(bool showProfile)
+        private void Layout(int index)
         {
-            profileBar.SetActive(showProfile);
+            profileBar.SetActive(catalog.tabs[index].showProfile);
             bool locked = ActiveRoot && ActiveRoot.NavigationLocked;
             toolbar.gameObject.SetActive(!locked);
             // Tabs의 부모가 배경·구분선을 포함한 하단 바입니다.
             toolbar.parent.gameObject.SetActive(!locked);
             viewport.offsetMin = new Vector2(0, locked ? 0 : toolbarHeight);
-            viewport.offsetMax = new Vector2(0, showProfile ? -headerHeight : 0);
+            viewport.offsetMax = Vector2.zero;
+            FitDisplay(mirror, index);
         }
         /// <summary>
-        /// 캔버스 배율과 뷰포트 비율로 렌더 텍스처 크기를 계산하되 최소 크기와 최대 해상도를 제한합니다.
+        /// 탭 화면 이미지를 뷰포트에 채우되 프로필 바가 있는 탭이면 위쪽을 프로필 높이만큼 비웁니다. 수평 위치는 0으로 되돌립니다.
         /// </summary>
-        private Vector2Int MeasureTexture()
+        public void FitDisplay(RawImage image, int index)
+        {
+            var rect = image.rectTransform;
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = new Vector2(0, -ProfileInset(index));
+        }
+        /// <summary>프로필 바를 표시하는 탭이 화면 위쪽에서 비워 둘 높이입니다.</summary>
+        private float ProfileInset(int index) => catalog.tabs[index].showProfile ? headerHeight : 0;
+        /// <summary>
+        /// 캔버스 배율과 해당 탭의 표시 영역 비율로 렌더 텍스처 크기를 계산하되 최소 크기와 최대 해상도를 제한합니다.
+        /// </summary>
+        private Vector2Int MeasureTexture(int index)
         {
             var rect = viewport.rect;
-            float aspect = Mathf.Max(0.01f, rect.width / Mathf.Max(1, rect.height));
+            float displayHeight = rect.height - ProfileInset(index);
+            float aspect = Mathf.Max(0.01f, rect.width / Mathf.Max(1, displayHeight));
             float screenWidth = rect.width * viewport.GetComponentInParent<Canvas>().scaleFactor;
             int width = Mathf.Clamp(Mathf.RoundToInt(screenWidth), 256, catalog.maximumTextureWidth);
             int height = Mathf.Clamp(Mathf.RoundToInt(width / aspect), 256, 4096);
             return new Vector2Int(width, height);
         }
         /// <summary>
-        /// 전환·로딩 중이 아닐 때 해상도와 배경 실행 정책을 갱신합니다. 텍스처를 교체할 때 숨김 탭의 기존 화면을 복사합니다.
+        /// 전환·로딩 중이 아닐 때 해상도와 배경 실행 정책을 갱신합니다. 화면 크기나 탭 잠금으로 표시 영역이 바뀐 탭만
+        /// 텍스처를 교체하며, 이때 숨김 탭의 기존 화면을 복사합니다. 탭 전환만으로는 텍스처를 다시 만들지 않습니다.
         /// </summary>
         private void LateUpdate()
         {
@@ -167,26 +188,25 @@ namespace Jamkkaebi.Scripts.UI.Shell
             {
                 _navigationLocked = locked;
                 if (locked) pendingTab = -1;
-                Layout(catalog.tabs[ActiveIndex].showProfile);
+                Layout(ActiveIndex);
                 Canvas.ForceUpdateCanvases();
             }
-            var size = MeasureTexture();
-            if (size != textureSize)
+            bool resized = false;
+            for (int i = 0; i < roots.Length; i++)
             {
-                input.Cancel(); textureSize = size;
-                for (int i = 0; i < roots.Length; i++)
-                {
-                    if (!roots[i]) continue;
-                    roots[i].sceneCamera.targetTexture = null;
-                    var previous = textures[i];
-                    textures[i] = NewTexture(i);
-                    // Preserve paused-tab previews across aspect changes without running their gameplay.
-                    Graphics.Blit(previous, textures[i]);
-                    previous.Release(); Destroy(previous);
-                    roots[i].sceneCamera.targetTexture = textures[i];
-                }
-                mirror.texture = textures[ActiveIndex];
+                var size = MeasureTexture(i);
+                if (!roots[i] || size == textureSizes[i]) continue;
+                if (!resized) { input.Cancel(); resized = true; }
+                textureSizes[i] = size;
+                roots[i].sceneCamera.targetTexture = null;
+                var previous = textures[i];
+                textures[i] = NewTexture(i);
+                // 숨김 탭은 게임을 진행하지 않고 기존 화면을 복사해 미리보기로 유지합니다.
+                Graphics.Blit(previous, textures[i]);
+                previous.Release(); Destroy(previous);
+                roots[i].sceneCamera.targetTexture = textures[i];
             }
+            if (resized) mirror.texture = textures[ActiveIndex];
             for (int i = 0; i < roots.Length; i++)
                 if (roots[i]) roots[i].SetPaused(i != ActiveIndex && catalog.tabs[i].backgroundPolicy != BackgroundPolicy.ContinueRunning);
             RefreshStyles();
@@ -209,15 +229,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
             if (IsBusy) { pendingTab = index; return; }
             if (index == ActiveIndex) return;
             input.Cancel();
-            if (_transition.Begin(index)) _transition.Settle(true);
-        }
-        /// <summary>
-        /// 호스트가 준비되고 다른 작업이 없으면 활성 인덱스에 방향값을 더한 탭으로 전환을 시작합니다. 끝 경계 연출은 전환 컴포넌트가 처리합니다.
-        /// </summary>
-        public bool BeginSwipe(int direction)
-        {
-            if (!IsReady || IsBusy || (ActiveRoot && ActiveRoot.NavigationLocked)) return false;
-            return _transition.Begin(ActiveIndex + direction);
+            _transition.Play(index);
         }
         /// <summary>
         /// 전환 결과 탭을 표시하거나 재방문 재시작 정책에 따라 씬을 다시 로드하고 대기 중 선택 요청을 처리합니다.
@@ -249,7 +261,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
                 roots[i].sceneCamera.enabled = active;
             }
             ActiveIndex = index; visited[index] = true;
-            Layout(catalog.tabs[index].showProfile);
+            Layout(index);
             mirror.texture = textures[index];
             input.Bind(roots[index]);
             var exhibition = roots[index].GetComponent<ExhibitionView>();
