@@ -1151,6 +1151,18 @@ namespace Jamkkaebi.Scripts.UI.Dev
                     "workbench home tabs and first spirit card fit inside viewport " + size);
                 yield return new WaitForEndOfFrame(); CheckRender(host);
                 Capture($"Workbench_{size.x}x{size.y}.png");
+                // 가장 긴 상세(난이도 선택이 있는 흐려진 정령)를 끝까지 내려 버튼과 안내 문구가 화면 안에 오는지 본다.
+                Click(host, FindUi(host.GetRoot(1), "Spirit_8").position);
+                yield return WaitFor(() => resizedWorkbench.Detail.Buttons.ContainsKey("Purify"), 3);
+                resizedWorkbench.Detail.Scroll.verticalNormalizedPosition = 0;
+                yield return null;
+                Check(IsInsideViewport(host, (RectTransform)resizedWorkbench.Detail.Buttons["Purify"].transform) &&
+                    FindUi(host.GetRoot(1), "Status") is RectTransform status && IsInsideViewport(host, status),
+                    "scrolled spirit detail shows purify button and status inside viewport " + size);
+                yield return new WaitForEndOfFrame(); CheckRender(host);
+                Capture($"Workbench_SpiritDetail_{size.x}x{size.y}.png");
+                Click(host, resizedWorkbench.Detail.Buttons["Back"].transform.position);
+                yield return WaitFor(() => resizedWorkbench.CurrentPage == WorkbenchScreenController.Page.Home, 3);
                 yield return null;
             }
             yield return VerifyCollectionArtwork(host);
@@ -1228,13 +1240,19 @@ namespace Jamkkaebi.Scripts.UI.Dev
                 FindUi(root, "Step_Unseal")?.Find("State")?.GetComponent<Text>().text == "진행",
                 "slot opens relic detail at unseal");
             Click(host, screen.Detail.Buttons["Purify"].transform.position);
+            // 정화 시작 응답을 기다리는 동안 뒤로가기는 무시되어야 한다(늦은 응답이 홈을 덮거나 잠금만 남지 않게).
+            Click(host, screen.Detail.Buttons["Back"].transform.position);
             yield return WaitFor(() => screen.CurrentPage == WorkbenchScreenController.Page.Playing, 3);
+            Check(screen.Detail.Buttons.ContainsKey("ReportSuccess"), "back while purification starts is ignored");
             yield return null; // 탭 호스트가 LateUpdate에서 잠금을 반영해 하단 탭을 숨길 때까지 한 프레임 기다린다.
             Check(root.NavigationLocked && !host.toolbar.gameObject.activeSelf, "purification locks tab navigation");
             yield return Swipe(host, 1);
             Check(host.ActiveIndex == 1, "locked purification ignores tab swipe");
             Click(host, screen.Detail.Buttons["ReportSuccess"].transform.position);
+            // 보고를 보내는 동안 그만두기는 무시되어야 한다(재전송 토큰을 잃지 않게).
+            Click(host, screen.Detail.Buttons["QuitPlay"].transform.position);
             yield return WaitFor(() => screen.CurrentPage == WorkbenchScreenController.Page.Result, 3);
+            Check(screen.CurrentPage == WorkbenchScreenController.Page.Result, "quit while report is sending is ignored");
             Check(FindUi(root, "Lines")?.GetComponent<Text>().text.Contains("기억 회복") == true,
                 "success report shows settlement with next phase");
             Click(host, screen.Detail.Buttons["Confirm"].transform.position);

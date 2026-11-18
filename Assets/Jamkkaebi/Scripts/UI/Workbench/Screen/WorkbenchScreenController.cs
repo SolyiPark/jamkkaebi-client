@@ -14,7 +14,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
     /// 작업대 화면의 흐름을 맡는다. 백엔드를 부르고, 응답을 화면 값으로 바꿔 View에 넘긴다.
     /// 작업대 탭은 숨기면 루트가 비활성화되어(PauseWhileHidden) 코루틴이 멈추므로,
     /// 다시 보일 때 보던 화면을 새로 조회하고, 숨기기 전에 시작한 요청의 늦은 응답은 버린다(수명 번호).
-    /// 화면 조회(홈·상세)는 가장 마지막에 시작한 것만 그린다(화면 번호). 상자 열기 같은 명령은 조회를 버리지 않는다.
+    /// 화면을 바꿀 때마다 화면 번호를 올린다. 조회(홈·상세)와 명령(상자 열기·정화 시작·보고·이름 저장)의 응답은
+    /// 시작할 때의 화면 번호가 그대로일 때만 화면을 바꾼다. 그래서 사용자가 다른 화면으로 옮긴 뒤 늦게 온 응답이
+    /// 새 화면을 덮지 않는다. 명령이 진행 중(Busy)이면 화면을 떠나는 버튼(뒤로·홈으로·그만두기)을 받지 않는다.
     /// </summary>
     public sealed class WorkbenchScreenController : MonoBehaviour
     {
@@ -35,7 +37,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private WorkbenchHomeView _home;
         private WorkbenchDetailView _detail;
         private int _lifetime;         // 숨길 때마다 올린다. 이전 수명에서 시작한 요청의 응답은 버린다.
-        private int _viewSequence;     // 화면 조회마다 올린다. 더 새 조회가 있으면 이전 조회 응답은 버린다.
+        private int _viewSequence;     // 화면을 바꿀 때마다 올린다. 이전 화면에서 시작한 요청의 응답은 화면을 바꾸지 않는다.
         private string _pendingStatus; // 다음에 홈을 그린 뒤 안내 자리에 보일 문장(상자 결과 등)
         private bool _initialized;
 
@@ -77,7 +79,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
             _detail = new WorkbenchDetailView(_canvas, font);
             _detail.Rebuilt += ApplyLayer;
-            _detail.BackClicked += ShowHome;
+            _detail.BackClicked += OnBack;
             _detail.PurifyClicked += StartPurification;
             _detail.ReportClicked += OnReportClicked;
             _detail.QuitPlayClicked += QuitPlay;
@@ -121,7 +123,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (_detail != null)
             {
                 _detail.Rebuilt -= ApplyLayer;
-                _detail.BackClicked -= ShowHome;
+                _detail.BackClicked -= OnBack;
                 _detail.PurifyClicked -= StartPurification;
                 _detail.ReportClicked -= OnReportClicked;
                 _detail.QuitPlayClicked -= QuitPlay;
@@ -142,7 +144,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         {
             SetPage(Page.Home);
             if (!isActiveAndEnabled) return;
-            int sequence = ++_viewSequence;
+            int sequence = _viewSequence;
             Request<WorkbenchSnapshot>((done, fail) => _backend.GetWorkbench(done, fail),
                 snapshot =>
                 {
@@ -162,14 +164,16 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         {
             if (Busy) return;
             Busy = true;
+            int sequence = _viewSequence;
             _home.ShowStatus("상자를 여는 중…");
             string requestId = Guid.NewGuid().ToString();
             Request<BoxOpenOutcome>((done, fail) => _backend.OpenBox(BoxSource.Free, requestId, done, fail),
                 outcome =>
                 {
                     Busy = false;
+                    if (sequence != _viewSequence) return;
                     _pendingStatus = _builder.BoxResult(outcome);
-                    if (CurrentPage == Page.Home) ShowHome();
+                    ShowHome();
                 },
                 error =>
                 {
@@ -177,8 +181,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                     // 모의 백엔드의 실패는 규칙 위반(가득 참 등)이라 같은 번호로 다시 보내도 결과가 같다.
                     // 네트워크 재전송(같은 requestId)은 서버 연결 때 붙인다.
                     Busy = false;
+                    if (sequence != _viewSequence) return;
                     _pendingStatus = error;
-                    if (CurrentPage == Page.Home) ShowHome();
+                    ShowHome();
                 });
         }
 
@@ -191,7 +196,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _relicId = relicId;
             SetPage(_spirit != null ? Page.SpiritDetail : Page.RelicDetail);
             if (!isActiveAndEnabled) return;
-            int sequence = ++_viewSequence;
+            int sequence = _viewSequence;
             _detail.RenderLoading();
             Request<RelicDetail>((done, fail) => _backend.GetRelicDetail(relicId, done, fail),
                 detail =>
@@ -200,14 +205,14 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                     if (detail.Status == RelicStatus.InProgress)
                     {
                         _spirit = null;
-                        SetPage(Page.RelicDetail);
+                        SetPage(Page.RelicDetail, keepSequence: true);
                         _detail.RenderRelic(_builder.RelicDetail(detail));
                     }
                     else
                     {
                         _spirit = _builder.SpiritDetail(detail, _clock());
                         _difficulty = ChooseDifficulty(_spirit, _difficulty);
-                        SetPage(Page.SpiritDetail);
+                        SetPage(Page.SpiritDetail, keepSequence: true);
                         _detail.RenderSpirit(_spirit, _difficulty);
                     }
                     if (_pendingDetailStatus != null) _detail.ShowStatus(_pendingDetailStatus);
@@ -226,6 +231,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (Busy) return;
             Busy = true;
             int relicId = _relicId;
+            int sequence = _viewSequence;
             // 최초 정화나 난이도가 하나뿐인 계획은 비워 보내고, 고를 수 있으면 고른 난이도를 보낸다.
             MinigameDifficulty? difficulty = CurrentPage == Page.SpiritDetail && _spirit != null && _spirit.DifficultySelectable
                 ? _difficulty : (MinigameDifficulty?)null;
@@ -234,6 +240,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 session =>
                 {
                     Busy = false;
+                    // 시작을 기다리는 동안 화면을 떠났으면 이 판은 쓰지 않는다(같은 유물로 새 판을 시작하면 대체된다).
+                    if (sequence != _viewSequence) return;
                     _session = session;
                     SetPage(Page.Playing);
                     string title = WorkbenchText.PhaseName(session.Phase)
@@ -244,6 +252,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 error =>
                 {
                     Busy = false;
+                    if (sequence != _viewSequence) return;
                     _detail.ShowStatus(error);
                 });
         }
@@ -259,11 +268,13 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _reported = result;
             string token = _session.SessionToken;
             int relicId = _session.RelicId;
+            int sequence = _viewSequence;
             _detail.ShowStatus("결과를 보내는 중…");
             Request<SettlementResult>((done, fail) => _backend.ReportPurification(token, result, done, fail),
                 settlement =>
                 {
                     Busy = false;
+                    if (sequence != _viewSequence) return;
                     _session = null;
                     _settlement = _builder.Settlement(relicId, settlement);
                     SetPage(Page.Result);
@@ -273,6 +284,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 {
                     // 보고는 같은 토큰·같은 결과로 다시 보내도 한 번만 정산된다(서버와 모의 백엔드 모두).
                     Busy = false;
+                    if (sequence != _viewSequence) return;
                     SetPage(Page.ReportRetry);
                     _detail.RenderRetry("결과를 보내지 못했어요.\n" + error);
                 });
@@ -288,6 +300,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         /// <summary>그만두면 이번 판은 보고하지 않는다. 같은 유물로 새 판을 시작하면 서버가 이 판을 대체한다.</summary>
         private void QuitPlay()
         {
+            // 보고를 보내는 중에 그만두면 보고 실패 시 다시 보낼 토큰이 사라진다.
+            if (Busy) return;
             _session = null;
             OpenDetail(_relicId);
         }
@@ -337,25 +351,37 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
             Busy = true;
             int relicId = _relicId;
+            int sequence = _viewSequence;
             _detail.ShowStatus("저장하는 중…");
             Request<string>((done, fail) => _backend.RenameSpirit(relicId, name, done, fail),
                 saved =>
                 {
                     Busy = false;
+                    if (sequence != _viewSequence) return;
                     _pendingDetailStatus = $"이름을 '{saved}'(으)로 저장했어요.";
                     OpenDetail(relicId);
                 },
                 error2 =>
                 {
                     Busy = false;
+                    if (sequence != _viewSequence) return;
                     _detail.ShowStatus(error2);
                 });
         }
 
         // ---------- 공통 ----------
 
-        private void SetPage(Page page)
+        /// <summary>뒤로가기·홈으로. 명령이 진행 중이면 응답을 받을 화면을 지키기 위해 무시한다.</summary>
+        private void OnBack()
         {
+            if (Busy) return;
+            ShowHome();
+        }
+
+        /// <param name="keepSequence">조회 응답이 같은 상세 안에서 유물/정령 화면을 고를 때만 true. 그 외 화면 전환은 이전 요청을 무효화한다.</param>
+        private void SetPage(Page page, bool keepSequence = false)
+        {
+            if (!keepSequence) _viewSequence++;
             CurrentPage = page;
             // 정화 중·결과·재전송 화면에서는 탭을 넘기지 못하게 한다(보고 전에 떠나면 판이 남는다).
             if (_root) _root.SetNavigationLocked(page == Page.Playing || page == Page.Result || page == Page.ReportRetry);

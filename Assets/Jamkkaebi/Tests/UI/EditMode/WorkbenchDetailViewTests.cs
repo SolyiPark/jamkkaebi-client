@@ -240,5 +240,55 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(MinigameDifficulty.Hard, WorkbenchScreenController.ChooseDifficulty(
                 Spirit(MinigameDifficulty.Hard), MinigameDifficulty.Easy));
         }
+
+        // ---------- 짧은 화면 ----------
+
+        /// <summary>버튼과 안내 문구의 아래쪽이 스크롤 내용 높이 안에 들어오는지 확인합니다.</summary>
+        private void AssertInsideScrollContent(params string[] names)
+        {
+            Assert.IsNotNull(_view.Scroll, "패널에 세로 스크롤이 있어야 합니다.");
+            float height = _view.Scroll.content.sizeDelta.y;
+            foreach (string name in names)
+            {
+                RectTransform rect = (RectTransform)Find(name);
+                Assert.IsNotNull(rect, name);
+                Assert.IsTrue(rect.IsChildOf(_view.Scroll.content), name + "은 스크롤 내용 안에 있어야 합니다.");
+                float bottom = -rect.anchoredPosition.y + rect.sizeDelta.y * rect.pivot.y;
+                Assert.LessOrEqual(bottom, height, name + "의 아래쪽이 스크롤 내용 밖으로 나갑니다.");
+                Assert.IsFalse(_view.Scroll.horizontal);
+                Assert.IsTrue(_view.Scroll.vertical);
+            }
+        }
+
+        /// <summary>유물 상세의 정화 버튼과 안내 문구가 스크롤 안에 들어오는지 검사합니다.</summary>
+        [Test]
+        public void RenderRelic_ControlsInsideScroll()
+        {
+            _view.RenderRelic(Relic());
+
+            AssertInsideScrollContent("Purify", "Status");
+        }
+
+        /// <summary>정령 상세(난이도 선택 있음·없음)의 정화 버튼과 안내 문구가 스크롤 안에 들어오는지 검사합니다.</summary>
+        [Test]
+        public void RenderSpirit_ControlsInsideScroll()
+        {
+            _view.RenderSpirit(Spirit(MinigameDifficulty.Normal, MinigameDifficulty.Hard), MinigameDifficulty.Normal);
+            AssertInsideScrollContent("Purify", "Status", "Difficulty_Hard");
+
+            _view.RenderSpirit(Spirit(MinigameDifficulty.Normal), MinigameDifficulty.Normal);
+            AssertInsideScrollContent("Purify", "Status");
+        }
+
+        /// <summary>결과 화면의 확인 버튼이 스크롤 안에 들어오고, 패널 없는 화면에서는 스크롤이 없는지 검사합니다.</summary>
+        [Test]
+        public void RenderResult_ConfirmInsideScroll()
+        {
+            _view.RenderResult(new SettlementData(2, true, "정화 성공", new[] { "가" }, false));
+            AssertInsideScrollContent("Confirm");
+
+            _view.RenderPlaying("기억 회복", "");
+            Assert.IsNull(_view.Scroll);
+        }
     }
 }

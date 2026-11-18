@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Jamkkaebi.Scripts.Gameplay.Data;
+using Jamkkaebi.Scripts.UI.Collection;
 using Jamkkaebi.Scripts.UI.Common;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,6 +15,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
     public sealed class WorkbenchDetailView
     {
         private const float PanelTop = .47f;
+        private const float RelicPanelHeight = 760;
+        private const float ResultPanelHeight = 620;
 
         private readonly RectTransform _root;
         private readonly Font _font;
@@ -21,6 +24,12 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private Text _status;
 
         public IReadOnlyDictionary<string, Button> Buttons => _buttons;
+
+        /// <summary>
+        /// 상세·결과 패널의 세로 스크롤. 세로가 짧은 화면에서도 버튼과 안내 문구까지 내려 볼 수 있다.
+        /// 가로 드래그는 CollectionScrollRect가 공통 탭 전환에 넘긴다. 패널이 없는 화면에서는 null.
+        /// </summary>
+        public CollectionScrollRect Scroll { get; private set; }
 
         public event Action BackClicked;
         public event Action PurifyClicked;
@@ -62,7 +71,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             WorkbenchUI.Box("Artwork", top, ToneOf(data.RevealLevel), new Vector2(.5f, 1), new Vector2(.5f, 1),
                 new Vector2(0, -140), new Vector2(430, 500));
 
-            RectTransform panel = Panel();
+            RectTransform panel = Panel(PanelTop, RelicPanelHeight);
             WorkbenchUI.Label("Title", panel, _font, data.Title, 40, WorkbenchUI.Ink, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, -46), new Vector2(900, 64)).fontStyle = FontStyle.Bold;
             EraChip(panel, data.EraName, -118);
@@ -88,7 +97,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 new Vector2(0, -120), new Vector2(380, 420));
             WorkbenchUI.Fill("Clarity", artwork.transform, _font, data.ClarityName, 30, Color.white);
 
-            RectTransform panel = Panel(.6f);
+            float buttonY = data.DifficultySelectable ? -652 : -540;
+            RectTransform panel = Panel(.6f, -(buttonY - 118 - 44) + 30);
             WorkbenchUI.Label("Title", panel, _font, data.SpiritName, 40, WorkbenchUI.Ink, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, -34), new Vector2(700, 60)).fontStyle = FontStyle.Bold;
             Image rename = WorkbenchUI.Box("Rename", panel, WorkbenchUI.Card, new Vector2(.5f, 1), new Vector2(0, 1),
@@ -110,12 +120,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             WorkbenchUI.Label("Days", panel, _font, data.DaysSincePurified, 28, WorkbenchUI.Ink, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, -480), new Vector2(900, 44));
 
-            float buttonY = -540;
-            if (data.DifficultySelectable)
-            {
-                DifficultyRow(panel, data, selected, buttonY);
-                buttonY -= 112;
-            }
+            if (data.DifficultySelectable) DifficultyRow(panel, data, selected, -540);
             ActionButton(panel, "Purify", data.PurifyButton, buttonY, () => PurifyClicked?.Invoke());
             _status = WorkbenchUI.Label("Status", panel, _font, "", 26, WorkbenchUI.Muted, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, buttonY - 118), new Vector2(940, 44));
@@ -210,7 +215,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (data == null) throw new ArgumentNullException(nameof(data));
             Begin();
             UIFactory.Image("Backdrop", _root, WorkbenchUI.Backdrop, Vector2.zero, Vector2.one);
-            RectTransform panel = Panel();
+            RectTransform panel = Panel(PanelTop, ResultPanelHeight);
             WorkbenchUI.Label("Title", panel, _font, data.Title, 44, WorkbenchUI.Ink, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, -60), new Vector2(900, 70)).fontStyle = FontStyle.Bold;
             WorkbenchUI.Label("Lines", panel, _font, string.Join("\n", data.Lines), 30, WorkbenchUI.Ink,
@@ -242,14 +247,39 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _buttons.Clear();
             _status = null;
             RenameInput = null;
+            Scroll = null;
         }
 
         private void End() => Rebuilt?.Invoke();
 
-        private RectTransform Panel(float top = PanelTop)
+        /// <summary>
+        /// 아래쪽 흰 패널과 그 안의 세로 스크롤을 만들고, 내용을 놓을 Content를 돌려준다.
+        /// 내용은 Content 위쪽 기준 좌표로 놓으며, 높이가 패널보다 크면 스크롤된다.
+        /// </summary>
+        private RectTransform Panel(float top, float contentHeight)
         {
-            return UIFactory.Image("Panel", _root, WorkbenchUI.Panel, Vector2.zero, new Vector2(1, top),
+            RectTransform panel = UIFactory.Image("Panel", _root, WorkbenchUI.Panel, Vector2.zero, new Vector2(1, top),
                 new Vector2(30, 0), new Vector2(-30, 0)).rectTransform;
+
+            RectTransform viewport = UIFactory.Rect("Panel Scroll", panel, Vector2.zero, Vector2.one);
+            Image hit = viewport.gameObject.AddComponent<Image>();
+            hit.color = Color.clear;
+            hit.raycastTarget = true;
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            Scroll = viewport.gameObject.AddComponent<CollectionScrollRect>();
+            Scroll.horizontal = false;
+            Scroll.vertical = true;
+            Scroll.movementType = ScrollRect.MovementType.Clamped;
+            Scroll.scrollSensitivity = 35;
+            Scroll.decelerationRate = .08f;
+
+            RectTransform content = UIFactory.Rect("Content", viewport, new Vector2(0, 1), Vector2.one);
+            content.pivot = new Vector2(.5f, 1);
+            content.sizeDelta = new Vector2(0, contentHeight);
+            Scroll.viewport = viewport;
+            Scroll.content = content;
+            return content;
         }
 
         private static string IntimacyText(SpiritDetailData data)
