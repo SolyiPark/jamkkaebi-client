@@ -28,7 +28,14 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public event Action QuitPlayClicked;
         public event Action ConfirmClicked;
         public event Action RetryClicked;
+        public event Action<MinigameDifficulty> DifficultySelected;
+        public event Action RenameClicked;
+        public event Action<string> RenameSubmitted;
+        public event Action RenameCancelled;
         public event Action Rebuilt;
+
+        /// <summary>이름 바꾸기 입력칸. 열려 있을 때만 값이 있다.</summary>
+        public InputField RenameInput { get; private set; }
 
         public WorkbenchDetailView(RectTransform root, Font font)
         {
@@ -66,6 +73,116 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _status = WorkbenchUI.Label("Status", panel, _font, "", 26, WorkbenchUI.Muted, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, -680), new Vector2(940, 50));
             End();
+        }
+
+        /// <summary>최초 정화를 마친 정령의 상세(시안 3번, 성장 대신 친밀도).</summary>
+        /// <param name="selected">지금 고른 난이도. 고를 수 없는 계획이면 무시한다.</param>
+        public void RenderSpirit(SpiritDetailData data, MinigameDifficulty selected)
+        {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            Begin();
+
+            RectTransform top = UIFactory.Image("Backdrop", _root, WorkbenchUI.Backdrop, Vector2.zero, Vector2.one).rectTransform;
+            BackButton(top);
+            Image artwork = WorkbenchUI.Box("Artwork", top, WorkbenchUI.NamedTone, new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(0, -120), new Vector2(380, 420));
+            WorkbenchUI.Fill("Clarity", artwork.transform, _font, data.ClarityName, 30, Color.white);
+
+            RectTransform panel = Panel(.6f);
+            WorkbenchUI.Label("Title", panel, _font, data.SpiritName, 40, WorkbenchUI.Ink, new Vector2(.5f, 1),
+                new Vector2(.5f, 1), new Vector2(0, -34), new Vector2(700, 60)).fontStyle = FontStyle.Bold;
+            Image rename = WorkbenchUI.Box("Rename", panel, WorkbenchUI.Card, new Vector2(.5f, 1), new Vector2(0, 1),
+                new Vector2(300, -36), new Vector2(150, 56));
+            Register("Rename", WorkbenchUI.Button(rename, () => RenameClicked?.Invoke()));
+            WorkbenchUI.Fill("Caption", rename.transform, _font, "이름 바꾸기", 22, WorkbenchUI.Ink, TextAnchor.MiddleCenter, 2);
+            WorkbenchUI.Label("RelicName", panel, _font, data.RelicName, 26, WorkbenchUI.Muted, new Vector2(.5f, 1),
+                new Vector2(.5f, 1), new Vector2(0, -96), new Vector2(900, 40));
+            EraChip(panel, data.EraName, -142);
+
+            WorkbenchUI.Label("IntimacyLabel", panel, _font, IntimacyText(data), 28, WorkbenchUI.Ink, new Vector2(.5f, 1),
+                new Vector2(.5f, 1), new Vector2(0, -204), new Vector2(900, 44));
+            Image bar = WorkbenchUI.Box("IntimacyBar", panel, WorkbenchUI.Card, new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(0, -252), new Vector2(620, 26));
+            UIFactory.Image("Fill", bar.transform, new Color32(255, 150, 40, 255), Vector2.zero,
+                new Vector2(Mathf.Clamp01(data.Intimacy.Fill), 1));
+
+            Steps(panel, data.RestoreSteps, -302, 110, 120);
+            WorkbenchUI.Label("Days", panel, _font, data.DaysSincePurified, 28, WorkbenchUI.Ink, new Vector2(.5f, 1),
+                new Vector2(.5f, 1), new Vector2(0, -480), new Vector2(900, 44));
+
+            float buttonY = -540;
+            if (data.DifficultySelectable)
+            {
+                DifficultyRow(panel, data, selected, buttonY);
+                buttonY -= 112;
+            }
+            ActionButton(panel, "Purify", data.PurifyButton, buttonY, () => PurifyClicked?.Invoke());
+            _status = WorkbenchUI.Label("Status", panel, _font, "", 26, WorkbenchUI.Muted, new Vector2(.5f, 1),
+                new Vector2(.5f, 1), new Vector2(0, buttonY - 118), new Vector2(940, 44));
+            End();
+        }
+
+        /// <summary>이름 바꾸기 입력창을 지금 화면 위에 띄운다. 비워 두면 기본 이름으로 되돌린다.</summary>
+        /// <param name="current">지금 이름. 입력칸의 처음 값.</param>
+        /// <param name="defaultName">기본 이름. 입력칸을 비우면 흐리게 보여 "비우고 저장하면 이 이름"임을 알린다.</param>
+        public void ShowRenameSheet(string current, string defaultName)
+        {
+            RectTransform shade = UIFactory.Image("Rename Shade", _root, new Color(0, 0, 0, .4f), Vector2.zero, Vector2.one).rectTransform;
+            shade.GetComponent<Image>().raycastTarget = true;
+            Image sheet = WorkbenchUI.Box("Rename Sheet", shade, WorkbenchUI.Panel, new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(0, 120), new Vector2(940, 520));
+            WorkbenchUI.Label("Title", sheet.transform, _font, "정령 이름 바꾸기", 36, WorkbenchUI.Ink, new Vector2(.5f, 1),
+                new Vector2(.5f, 1), new Vector2(0, -36), new Vector2(880, 56)).fontStyle = FontStyle.Bold;
+            WorkbenchUI.Label("Hint", sheet.transform, _font,
+                $"{SpiritNameRule.MinLength}~{SpiritNameRule.MaxLength}자. 비워 두면 기본 이름으로 돌아가요.", 24,
+                WorkbenchUI.Muted, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -100), new Vector2(880, 40));
+
+            Image field = WorkbenchUI.Box("Name Input", sheet.transform, WorkbenchUI.Backdrop, new Vector2(.5f, 1),
+                new Vector2(.5f, 1), new Vector2(0, -160), new Vector2(800, 96));
+            field.raycastTarget = true;
+            RenameInput = field.gameObject.AddComponent<InputField>();
+            Text inputText = WorkbenchUI.Fill("Input Text", field.transform, _font, "", 34, WorkbenchUI.Ink, TextAnchor.MiddleLeft, 20);
+            inputText.supportRichText = false;
+            RenameInput.textComponent = inputText;
+            RenameInput.placeholder = WorkbenchUI.Fill("Placeholder", field.transform, _font, defaultName, 34, WorkbenchUI.Muted,
+                TextAnchor.MiddleLeft, 20);
+            RenameInput.lineType = InputField.LineType.SingleLine;
+            // 이모지는 UTF-16 두 칸이라 넉넉히 받고, 실제 길이 검사는 SpiritNameRule이 코드포인트로 한다.
+            RenameInput.characterLimit = SpiritNameRule.MaxLength * 2;
+            RenameInput.text = current;
+
+            Text error = WorkbenchUI.Label("Error", sheet.transform, _font, "", 24, new Color32(200, 60, 60, 255),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -268), new Vector2(880, 40));
+            RenameInput.onValueChanged.AddListener(value =>
+            {
+                error.text = SpiritNameRule.TryNormalize(value, out _, out string message) ? "" : message;
+                if (_buttons.TryGetValue("RenameSave", out Button save)) save.interactable = message == null;
+            });
+
+            Image cancel = WorkbenchUI.Box("RenameCancel", sheet.transform, WorkbenchUI.Card, new Vector2(.5f, 0),
+                new Vector2(1, 0), new Vector2(-12, 36), new Vector2(300, 96));
+            Register("RenameCancel", WorkbenchUI.Button(cancel, () => RenameCancelled?.Invoke()));
+            WorkbenchUI.Fill("Caption", cancel.transform, _font, "취소", 30, WorkbenchUI.Ink);
+            Image save = WorkbenchUI.Box("RenameSave", sheet.transform, WorkbenchUI.Ink, new Vector2(.5f, 0),
+                new Vector2(0, 0), new Vector2(12, 36), new Vector2(300, 96));
+            Register("RenameSave", WorkbenchUI.Button(save, () => RenameSubmitted?.Invoke(RenameInput.text)));
+            WorkbenchUI.Fill("Caption", save.transform, _font, "저장", 30, Color.white);
+            _status = error;
+            End();
+        }
+
+        public void HideRenameSheet()
+        {
+            Transform shade = _root.Find("Rename Shade");
+            if (shade)
+            {
+                shade.gameObject.SetActive(false);
+                if (Application.isPlaying) UnityEngine.Object.Destroy(shade.gameObject);
+                else UnityEngine.Object.DestroyImmediate(shade.gameObject);
+            }
+            _buttons.Remove("RenameSave");
+            _buttons.Remove("RenameCancel");
+            RenameInput = null;
         }
 
         /// <summary>정화 중. 4단계에서 미니게임으로 바뀔 자리라 결과를 고르는 임시 버튼만 둔다.</summary>
@@ -124,14 +241,42 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             WorkbenchUI.ClearChildren(_root);
             _buttons.Clear();
             _status = null;
+            RenameInput = null;
         }
 
         private void End() => Rebuilt?.Invoke();
 
-        private RectTransform Panel()
+        private RectTransform Panel(float top = PanelTop)
         {
-            return UIFactory.Image("Panel", _root, WorkbenchUI.Panel, Vector2.zero, new Vector2(1, PanelTop),
+            return UIFactory.Image("Panel", _root, WorkbenchUI.Panel, Vector2.zero, new Vector2(1, top),
                 new Vector2(30, 0), new Vector2(-30, 0)).rectTransform;
+        }
+
+        private static string IntimacyText(SpiritDetailData data)
+        {
+            string progress = data.Intimacy.IsMax ? "최고 단계" : $"{data.Intimacy.Current}/{data.Intimacy.Max}";
+            return $"친밀도 Lv.{data.Intimacy.Level} · {progress}";
+        }
+
+        /// <summary>관리 플레이 난이도 선택. 고른 난이도는 진하게 칠한다.</summary>
+        private void DifficultyRow(RectTransform parent, SpiritDetailData data, MinigameDifficulty selected, float y)
+        {
+            const float width = 260;
+            const float gap = 20;
+            int count = data.Difficulties.Count;
+            float x = -(count * width + (count - 1) * gap) / 2 + width / 2;
+            foreach (DifficultyOption option in data.Difficulties)
+            {
+                bool chosen = option.Difficulty == selected;
+                Image background = WorkbenchUI.Box("Difficulty_" + option.Difficulty, parent,
+                    chosen ? WorkbenchUI.Ink : WorkbenchUI.Card, new Vector2(.5f, 1), new Vector2(.5f, 1),
+                    new Vector2(x, y), new Vector2(width, 96));
+                MinigameDifficulty difficulty = option.Difficulty;
+                Register("Difficulty_" + option.Difficulty, WorkbenchUI.Button(background, () => DifficultySelected?.Invoke(difficulty)));
+                WorkbenchUI.Fill("Caption", background.transform, _font, option.Name + "\n" + option.EffectText, 24,
+                    chosen ? Color.white : WorkbenchUI.Ink, TextAnchor.MiddleCenter, 4);
+                x += width + gap;
+            }
         }
 
         private void BackButton(RectTransform parent)
@@ -150,10 +295,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         }
 
         /// <summary>3단계 진행 표시. 완료·현재·잠김을 색과 글자로 구분한다.</summary>
-        private void Steps(RectTransform parent, IReadOnlyList<PhaseStep> steps, float y)
+        private void Steps(RectTransform parent, IReadOnlyList<PhaseStep> steps, float y, float size = 150, float gap = 110)
         {
-            const float size = 150;
-            const float gap = 110;
             float x = -(steps.Count * size + (steps.Count - 1) * gap) / 2 + size / 2;
             for (int i = 0; i < steps.Count; i++)
             {

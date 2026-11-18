@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Data;
 using Jamkkaebi.Scripts.Gameplay.Purification;
 using Jamkkaebi.Scripts.Gameplay.Relic;
@@ -21,9 +22,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         {
             Home = 0,
             RelicDetail = 1,
-            Playing = 2,
-            Result = 3,
-            ReportRetry = 4
+            SpiritDetail = 2,
+            Playing = 3,
+            Result = 4,
+            ReportRetry = 5
         }
 
         private MirrorSceneRoot _root;
@@ -37,7 +39,11 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private string _pendingStatus; // 다음에 홈을 그린 뒤 안내 자리에 보일 문장(상자 결과 등)
         private bool _initialized;
 
+        private Func<DateTime> _clock;
         private int _relicId;                  // 상세·정화 중인 유물
+        private SpiritDetailData _spirit;      // 보고 있는 정령 상세(난이도를 고를 때 다시 그린다)
+        private MinigameDifficulty _difficulty = MinigameDifficulty.Normal; // 관리 플레이에서 고른 난이도
+        private string _pendingDetailStatus;   // 다음에 상세를 그린 뒤 보일 문장(이름 저장 등)
         private PurificationSession _session;  // 시작한 판
         private PlayResult _reported;          // 보고한 결과(실패 시 같은 내용으로 다시 보낸다)
         private SettlementData _settlement;
@@ -51,13 +57,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public IWorkbenchBackend Backend => _backend;
 
         /// <summary>화면을 만든다. 씬의 WorkbenchPresenter가 Awake에서 부른다.</summary>
-        public void Initialize(MirrorSceneRoot root, Font font, IWorkbenchBackend backend = null)
+        /// <param name="clock">지금 시각. 백엔드와 같은 시계를 써야 경과일이 맞는다. 생략하면 UTC 현재 시각.</param>
+        public void Initialize(MirrorSceneRoot root, Font font, IWorkbenchBackend backend = null, Func<DateTime> clock = null)
         {
             if (_initialized) return;
             _root = root ? root : throw new ArgumentNullException(nameof(root));
             if (!font) throw new ArgumentNullException(nameof(font));
 
-            _backend = backend ?? WorkbenchDemo.CreateBackend(() => DateTime.UtcNow);
+            _clock = clock ?? (() => DateTime.UtcNow);
+            _backend = backend ?? WorkbenchDemo.CreateBackend(_clock);
             _builder = new WorkbenchViewDataBuilder(WorkbenchRelicSeed.Instance, IntimacyPolicy.Default, RestorePolicy.Default);
             _canvas = CreateCanvas();
 
@@ -65,7 +73,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _home.Rebuilt += ApplyLayer;
             _home.RegisterClicked += Register;
             _home.SlotSelected += OpenDetail;
-            _home.SpiritSelected += OnSpiritSelected;
+            _home.SpiritSelected += OpenDetail;
 
             _detail = new WorkbenchDetailView(_canvas, font);
             _detail.Rebuilt += ApplyLayer;
@@ -75,6 +83,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _detail.QuitPlayClicked += QuitPlay;
             _detail.ConfirmClicked += ConfirmResult;
             _detail.RetryClicked += RetryReport;
+            _detail.DifficultySelected += SelectDifficulty;
+            _detail.RenameClicked += OpenRename;
+            _detail.RenameSubmitted += Rename;
+            _detail.RenameCancelled += _detail.HideRenameSheet;
 
             _initialized = true;
             ShowHome();
@@ -86,7 +98,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             // 숨겼다가 다시 보이면(PauseWhileHidden) 그동안 바뀌었을 수 있으니 보던 화면을 새로 조회한다.
             // 정화 중·결과·재전송 화면은 그대로 둔다(화면 오브젝트는 숨김 동안에도 남아 있다).
             if (CurrentPage == Page.Home) ShowHome();
-            else if (CurrentPage == Page.RelicDetail) OpenDetail(_relicId);
+            else if (CurrentPage == Page.RelicDetail || CurrentPage == Page.SpiritDetail) OpenDetail(_relicId);
         }
 
         private void OnDisable()
@@ -104,7 +116,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 _home.Rebuilt -= ApplyLayer;
                 _home.RegisterClicked -= Register;
                 _home.SlotSelected -= OpenDetail;
-                _home.SpiritSelected -= OnSpiritSelected;
+                _home.SpiritSelected -= OpenDetail;
             }
             if (_detail != null)
             {
@@ -115,6 +127,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 _detail.QuitPlayClicked -= QuitPlay;
                 _detail.ConfirmClicked -= ConfirmResult;
                 _detail.RetryClicked -= RetryReport;
+                _detail.DifficultySelected -= SelectDifficulty;
+                _detail.RenameClicked -= OpenRename;
+                _detail.RenameSubmitted -= Rename;
+                _detail.RenameCancelled -= _detail.HideRenameSheet;
             }
             if (_root) _root.SetNavigationLocked(false);
         }
@@ -166,19 +182,14 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 });
         }
 
-        private void OnSpiritSelected(int relicId)
-        {
-            // 정령 상세는 3-6에서 연결한다.
-            _home.ShowStatus("정령 상세는 준비 중이에요.");
-        }
-
         // ---------- 유물 상세 ----------
 
-        /// <summary>유물 상세를 조회해 그린다. 최초 정화를 마친 유물이면 홈으로 돌아간다(정령 상세는 3-6).</summary>
+        /// <summary>유물 상세를 조회해 그린다. 최초 정화 중이면 유물 상세, 마쳤으면 정령 상세.</summary>
         public void OpenDetail(int relicId)
         {
+            if (relicId != _relicId) _spirit = null;
             _relicId = relicId;
-            SetPage(Page.RelicDetail);
+            SetPage(_spirit != null ? Page.SpiritDetail : Page.RelicDetail);
             if (!isActiveAndEnabled) return;
             int sequence = ++_viewSequence;
             _detail.RenderLoading();
@@ -188,11 +199,19 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                     if (sequence != _viewSequence) return;
                     if (detail.Status == RelicStatus.InProgress)
                     {
+                        _spirit = null;
+                        SetPage(Page.RelicDetail);
                         _detail.RenderRelic(_builder.RelicDetail(detail));
-                        return;
                     }
-                    _pendingStatus = "최초 정화를 마친 정령이에요. 정령 상세는 준비 중이에요.";
-                    ShowHome();
+                    else
+                    {
+                        _spirit = _builder.SpiritDetail(detail, _clock());
+                        _difficulty = ChooseDifficulty(_spirit, _difficulty);
+                        SetPage(Page.SpiritDetail);
+                        _detail.RenderSpirit(_spirit, _difficulty);
+                    }
+                    if (_pendingDetailStatus != null) _detail.ShowStatus(_pendingDetailStatus);
+                    _pendingDetailStatus = null;
                 },
                 error =>
                 {
@@ -207,15 +226,19 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (Busy) return;
             Busy = true;
             int relicId = _relicId;
+            // 최초 정화나 난이도가 하나뿐인 계획은 비워 보내고, 고를 수 있으면 고른 난이도를 보낸다.
+            MinigameDifficulty? difficulty = CurrentPage == Page.SpiritDetail && _spirit != null && _spirit.DifficultySelectable
+                ? _difficulty : (MinigameDifficulty?)null;
             _detail.ShowStatus("정화를 준비하는 중…");
-            // 최초 정화는 난이도가 정해져 있어 비워 보낸다(관리 플레이의 난이도 선택은 3-6).
-            Request<PurificationSession>((done, fail) => _backend.StartPurification(relicId, null, done, fail),
+            Request<PurificationSession>((done, fail) => _backend.StartPurification(relicId, difficulty, done, fail),
                 session =>
                 {
                     Busy = false;
                     _session = session;
                     SetPage(Page.Playing);
-                    _detail.RenderPlaying(WorkbenchText.PhaseName(session.Phase),
+                    string title = WorkbenchText.PhaseName(session.Phase)
+                        + (session.Route == EntryRoute.Care ? " · 관리 플레이" : "");
+                    _detail.RenderPlaying(title,
                         $"{TitleOf(relicId)}\n난이도 {WorkbenchText.DifficultyName(session.Difficulty)}");
                 },
                 error =>
@@ -271,10 +294,62 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
         private void ConfirmResult()
         {
+            // 결과를 확인하면 그 유물의 상세로 돌아간다. 최초 정화를 마쳤으면 정령 상세가 열린다.
             SettlementData settlement = _settlement;
             _settlement = null;
-            if (settlement == null || settlement.Finished) ShowHome();
+            if (settlement == null) ShowHome();
             else OpenDetail(settlement.RelicId);
+        }
+
+        // ---------- 정령 상세 ----------
+
+        private void SelectDifficulty(MinigameDifficulty difficulty)
+        {
+            if (_spirit == null || CurrentPage != Page.SpiritDetail) return;
+            _difficulty = difficulty;
+            _detail.RenderSpirit(_spirit, _difficulty);
+        }
+
+        /// <summary>계획이 허용하는 난이도 중 이전에 고른 것을, 없으면 보통을, 그것도 없으면 첫 번째를 고른다.</summary>
+        public static MinigameDifficulty ChooseDifficulty(SpiritDetailData spirit, MinigameDifficulty previous)
+        {
+            if (spirit.Difficulties.Count == 0) return previous;
+            if (spirit.Difficulties.Any(option => option.Difficulty == previous)) return previous;
+            if (spirit.Difficulties.Any(option => option.Difficulty == MinigameDifficulty.Normal)) return MinigameDifficulty.Normal;
+            return spirit.Difficulties[0].Difficulty;
+        }
+
+        private void OpenRename()
+        {
+            if (_spirit == null || Busy) return;
+            _detail.ShowRenameSheet(_spirit.SpiritName, DefaultSpiritNameOf(_relicId));
+        }
+
+        private void Rename(string name)
+        {
+            if (Busy) return;
+            // 서버에 보내기 전에 같은 규칙으로 먼저 걸러 바로 알려 준다(금칙어는 서버만 검사).
+            if (!SpiritNameRule.TryNormalize(name, out _, out string error))
+            {
+                _detail.ShowStatus(error);
+                return;
+            }
+
+            Busy = true;
+            int relicId = _relicId;
+            _detail.ShowStatus("저장하는 중…");
+            Request<string>((done, fail) => _backend.RenameSpirit(relicId, name, done, fail),
+                saved =>
+                {
+                    Busy = false;
+                    _pendingDetailStatus = $"이름을 '{saved}'(으)로 저장했어요.";
+                    OpenDetail(relicId);
+                },
+                error2 =>
+                {
+                    Busy = false;
+                    _detail.ShowStatus(error2);
+                });
         }
 
         // ---------- 공통 ----------
@@ -285,6 +360,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             // 정화 중·결과·재전송 화면에서는 탭을 넘기지 못하게 한다(보고 전에 떠나면 판이 남는다).
             if (_root) _root.SetNavigationLocked(page == Page.Playing || page == Page.Result || page == Page.ReportRetry);
         }
+
+        private static string DefaultSpiritNameOf(int relicId) =>
+            WorkbenchRelicSeed.Instance.TryFind(relicId, out WorkbenchRelicInfo info) ? info.DefaultSpiritName : "기본 이름";
 
         private string TitleOf(int relicId) =>
             WorkbenchRelicSeed.Instance.TryFind(relicId, out WorkbenchRelicInfo info) ? info.PoeticAlias : WorkbenchText.UnknownRelic;
