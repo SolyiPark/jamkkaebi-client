@@ -242,6 +242,22 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual("유물 정화하기 - 봉인 해제", data.PurifyButton);
         }
 
+        // ---------- 상자 결과 ----------
+
+        /// <summary>새 유물은 별칭으로, 중복은 받은 재화로, 구매면 쓴 정성까지 알리는지 검사합니다.</summary>
+        [Test]
+        public void BoxResult_Texts()
+        {
+            Assert.AreEqual("새 유물을 등록했어요 · 백제, 향이 스민 산맥",
+                _builder.BoxResult(new BoxOpenOutcome(AcquireResult.New, 2, 0, 0, 0)));
+            Assert.AreEqual("새 유물을 등록했어요 · 백제, 향이 스민 산맥 · 정성 -50",
+                _builder.BoxResult(new BoxOpenOutcome(AcquireResult.New, 2, 0, 0, 50)));
+            Assert.AreEqual("이미 가진 유물이 나왔어요 · 정성 +10 · 결정 +3",
+                _builder.BoxResult(new BoxOpenOutcome(AcquireResult.Duplicate, 2, 10, 3, 0)));
+            Assert.AreEqual("새 유물을 등록했어요 · " + WorkbenchText.UnknownRelic,
+                _builder.BoxResult(new BoxOpenOutcome(AcquireResult.New, 99, 0, 0, 0)));
+        }
+
         // ---------- 서버 시드 ----------
 
         /// <summary>서버 시드와 같은 유물 9종이 relicId 1~9로 들어 있는지 검사합니다.</summary>

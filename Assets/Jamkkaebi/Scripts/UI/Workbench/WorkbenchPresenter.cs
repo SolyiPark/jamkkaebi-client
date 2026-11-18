@@ -1,5 +1,6 @@
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
+using Jamkkaebi.Scripts.UI.Shell;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,6 +14,22 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public Text feedback;
         public Button[] toolButtons;
         public Button restartButton;
+
+        [Tooltip("켜면 예전처럼 씬 안의 미니게임을 바로 보여 준다. 끄면(기본) 작업대 화면을 띄운다. 미니게임 연결은 4단계에서 Minigame 씬으로 옮긴다.")]
+        [SerializeField] private bool _showLegacyMinigame;
+
+        private void Awake()
+        {
+            if (_showLegacyMinigame) return;
+
+            // 3단계: 기존 미니게임 보드와 HUD는 숨기고, 실행 중에 작업대 화면을 만든다(씬 파일은 바꾸지 않는다).
+            adapter.gameObject.SetActive(false);
+            summary.canvas.rootCanvas.gameObject.SetActive(false);
+
+            WorkbenchScreenController screen = GetComponent<WorkbenchScreenController>();
+            if (!screen) screen = gameObject.AddComponent<WorkbenchScreenController>();
+            screen.Initialize(GetComponent<MirrorSceneRoot>(), summary.font);
+        }
 
         private void OnEnable()
         {

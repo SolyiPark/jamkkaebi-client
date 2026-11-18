@@ -48,6 +48,23 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 snapshot.LockedCount);
         }
 
+        /// <summary>
+        /// 상자 결과 한 줄. 새 유물은 정체가 드러나기 전이라 별칭을, 중복은 받은 재화를 보인다.
+        /// </summary>
+        public string BoxResult(BoxOpenOutcome outcome)
+        {
+            if (outcome == null) throw new ArgumentNullException(nameof(outcome));
+
+            string spent = outcome.JeongseongSpent > 0 ? $" · 정성 -{outcome.JeongseongSpent}" : "";
+            if (outcome.Result == AcquireResult.New)
+            {
+                string alias = _catalog.TryFind(outcome.RelicId, out WorkbenchRelicInfo info)
+                    ? info.PoeticAlias : WorkbenchText.UnknownRelic;
+                return $"새 유물을 등록했어요 · {alias}{spent}";
+            }
+            return $"이미 가진 유물이 나왔어요 · 정성 +{outcome.JeongseongGained} · 결정 +{outcome.CrystalGained}{spent}";
+        }
+
         /// <summary>최초 정화 중인 유물의 상세. 완료한 정령은 SpiritDetail을 쓴다.</summary>
         public RelicDetailData RelicDetail(RelicDetail detail)
         {
