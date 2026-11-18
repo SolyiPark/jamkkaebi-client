@@ -28,7 +28,7 @@ MonoBehaviour:
   - id: Workbench
     title: "\uC791\uC5C5\uB300"
     scenePath: Assets/Jamkkaebi/Scenes/Workbench.unity
-    showProfile: 0
+    showProfile: 1
     icon: {fileID: 0}
     background: {fileID: 0}
     selectedBackground: {fileID: 0}
