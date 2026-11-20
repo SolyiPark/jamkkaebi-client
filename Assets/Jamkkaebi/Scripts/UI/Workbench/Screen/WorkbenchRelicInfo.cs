@@ -1,4 +1,5 @@
 using System;
+using Jamkkaebi.Scripts.Gameplay.Data;
 
 namespace Jamkkaebi.Scripts.UI.Workbench
 {
@@ -18,8 +19,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
         /// <summary>사용자가 이름을 짓지 않았을 때의 정령 이름.</summary>
         public string DefaultSpiritName { get; }
+        
+        public SealMedium SealMedium { get; }
 
-        public WorkbenchRelicInfo(int relicId, string eraName, string poeticAlias, string realName, string defaultSpiritName)
+        public WorkbenchRelicInfo(int relicId, string eraName, string poeticAlias, string realName, string defaultSpiritName, SealMedium sealMedium)
         {
             if (relicId <= 0) throw new ArgumentOutOfRangeException(nameof(relicId), "relicId는 1부터 시작합니다.");
             if (string.IsNullOrEmpty(eraName)) throw new ArgumentException("시대 이름이 비어 있습니다.", nameof(eraName));
@@ -27,12 +30,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (string.IsNullOrEmpty(realName)) throw new ArgumentException("유물 이름이 비어 있습니다.", nameof(realName));
             if (string.IsNullOrEmpty(defaultSpiritName))
                 throw new ArgumentException("기본 정령 이름이 비어 있습니다.", nameof(defaultSpiritName));
+            if (!Enum.IsDefined(typeof(SealMedium), sealMedium))
+                throw new ArgumentException($"SealMedium {sealMedium}은 정의되지 않았습니다.", nameof(sealMedium));
 
             RelicId = relicId;
             EraName = eraName;
             PoeticAlias = poeticAlias;
             RealName = realName;
             DefaultSpiritName = defaultSpiritName;
+            SealMedium = sealMedium;
         }
     }
 

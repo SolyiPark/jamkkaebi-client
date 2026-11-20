@@ -269,8 +269,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             string token = _session.SessionToken;
             int relicId = _session.RelicId;
             int sequence = _viewSequence;
+            PlayReport report = new PlayReport(result, result == PlayResult.Failure ? FailReason.GaveUp : null, 5, 1,
+                33, 0);
             _detail.ShowStatus("결과를 보내는 중…");
-            Request<SettlementResult>((done, fail) => _backend.ReportPurification(token, result, done, fail),
+            Request<SettlementResult>((done, fail) => _backend.ReportPurification(token, report, done, fail),
                 settlement =>
                 {
                     Busy = false;

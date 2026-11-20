@@ -310,13 +310,29 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Session_StoresValues()
         {
             PurificationSession session = new PurificationSession("token-1", 4, EntryRoute.Care,
-                Phase.Recall, MinigameDifficulty.Hard);
+                Phase.Recall, MinigameDifficulty.Hard, SealMedium.Soot, -42L);
 
             Assert.AreEqual("token-1", session.SessionToken);
             Assert.AreEqual(4, session.RelicId);
             Assert.AreEqual(EntryRoute.Care, session.Route);
             Assert.AreEqual(Phase.Recall, session.Phase);
             Assert.AreEqual(MinigameDifficulty.Hard, session.Difficulty);
+            Assert.AreEqual(SealMedium.Soot, session.SealMedium);
+            Assert.AreEqual(-42L, session.Seed);
+
+            PlaySetup setup = session.ToSetup();
+            Assert.AreEqual(Phase.Recall, setup.Phase);
+            Assert.AreEqual(MinigameDifficulty.Hard, setup.Difficulty);
+            Assert.AreEqual(SealMedium.Soot, setup.SealMedium);
+            Assert.AreEqual(-42L, setup.Seed);
+        }
+
+        /// <summary>정의되지 않은 봉인 매개체를 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Session_UndefinedSealMedium_Throws()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new PurificationSession("t", 4, EntryRoute.First, Phase.Unseal, MinigameDifficulty.Normal, (SealMedium)99, 1));
         }
 
         /// <summary>토큰이 null이거나 비어 있으면 거부하는지 검사합니다.</summary>
@@ -324,9 +340,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Session_MissingToken_Throws()
         {
             Assert.Throws<ArgumentNullException>(() =>
-                new PurificationSession(null, 4, EntryRoute.First, Phase.Unseal, MinigameDifficulty.Normal));
+                new PurificationSession(null, 4, EntryRoute.First, Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 7));
             Assert.Throws<ArgumentException>(() =>
-                new PurificationSession("", 4, EntryRoute.First, Phase.Unseal, MinigameDifficulty.Normal));
+                new PurificationSession("", 4, EntryRoute.First, Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 7));
         }
 
         /// <summary>
@@ -337,13 +353,13 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Session_InvalidValues_Throw()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new PurificationSession("t", 0, EntryRoute.First, Phase.Unseal, MinigameDifficulty.Normal));
+                new PurificationSession("t", 0, EntryRoute.First, Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 7));
             Assert.Throws<ArgumentException>(() =>
-                new PurificationSession("t", 4, (EntryRoute)99, Phase.Unseal, MinigameDifficulty.Normal));
+                new PurificationSession("t", 4, (EntryRoute)99, Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 7));
             Assert.Throws<ArgumentException>(() =>
-                new PurificationSession("t", 4, EntryRoute.First, (Phase)99, MinigameDifficulty.Normal));
+                new PurificationSession("t", 4, EntryRoute.First, (Phase)99, MinigameDifficulty.Normal, SealMedium.Rust, 7));
             Assert.Throws<ArgumentException>(() =>
-                new PurificationSession("t", 4, EntryRoute.First, Phase.Unseal, default(MinigameDifficulty)));
+                new PurificationSession("t", 4, EntryRoute.First, Phase.Unseal, default(MinigameDifficulty), SealMedium.Rust, 7));
         }
 
         // ---------- IWorkbenchBackend ----------
@@ -377,7 +393,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [TestCase("GetRelicDetail", typeof(RelicDetail), typeof(int))]
         [TestCase("OpenBox", typeof(BoxOpenOutcome), typeof(BoxSource), typeof(string))]
         [TestCase("StartPurification", typeof(PurificationSession), typeof(int), typeof(MinigameDifficulty?))]
-        [TestCase("ReportPurification", typeof(SettlementResult), typeof(string), typeof(PlayResult))]
+        [TestCase("ReportPurification", typeof(SettlementResult), typeof(string), typeof(PlayReport))]
         [TestCase("RenameSpirit", typeof(string), typeof(int), typeof(string))]
         public void Backend_MethodSignature(string name, Type result, params Type[] inputs)
         {
