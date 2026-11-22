@@ -37,6 +37,21 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private readonly Dictionary<string, SettledPlay> _settled = new();
         // relicId → 사용자가 지은 정령 이름. 없으면 기본 이름을 쓴다.
         private readonly Dictionary<int, string> _customNames = new();
+        private int _dropReportResponses;
+        
+        /// <summary>
+        /// 개발용. 0보다 크면 보고를 정산한 뒤 응답만 실패로 돌려준다(응답 유실 흉내). 한 번 흉내 낼 때마다 1 줄어든다.
+        /// 재전송이 같은 정산을 받는지 확인할 때 쓴다.
+        /// </summary>
+        public int DropReportResponses
+        {
+            get => _dropReportResponses;
+            set
+            {
+                if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+                _dropReportResponses = value;
+            }
+        }
 
         /// <param name="totalRelics">전체 유물 수. relicId는 1..totalRelics에서 뽑는다.</param>
         /// <param name="catalog">relic ID로 유물 기본 이름과 봉인 매개체를 찾는 카탈로그</param>
@@ -272,6 +287,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             {
                 if (settled.Report.SameAs(report))
                 {
+                    if (TryDropResponse(failed)) yield break;
                     completed(settled.Settlement);
                     yield break;
                 }
@@ -301,6 +317,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _pending.Remove(sessionToken);
             _settled.Add(sessionToken, play);
 
+            if (TryDropResponse(failed)) yield break;
             completed(settlement);
         }
 
@@ -371,6 +388,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 Report = report;
                 Settlement = settlement;
             }
+        }
+
+        /// <summary>DropReportResponses 횟수가 남아 있으면 횟수를 1만큼 줄이고 true. 횟수가 0이면 false.</summary>
+        private bool TryDropResponse(Action<string> failed)
+        {
+            if (DropReportResponses == 0) return false;
+            DropReportResponses -= 1;
+            failed("응답을 받지 못했어요. (모의 응답 유실)");
+            return true;
         }
     }
 }

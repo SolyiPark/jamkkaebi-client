@@ -315,6 +315,20 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (settlement == null) ShowHome();
             else OpenDetail(settlement.RelicId);
         }
+        
+        /// <summary>개발용. Play 중 이 컴포넌트를 우클릭해 다음 보고의 응답 유실을 흉내 낸다(모의 백엔드일 때만).</summary>
+        [ContextMenu("Dev/다음 보고 응답 유실")]
+        private void DropNextReportResponse()
+        {
+            if (_backend is MockWorkbenchBackend mock)
+            {
+                mock.DropReportResponses += 1;
+                Debug.Log("[WorkbenchScreenController] 다음 응답을 유실시킵니다.");
+                return;
+            }
+            
+            Debug.LogWarning("[WorkbenchScreenController] 실제 서버 백엔드에서는 응답 유실 흉내를 낼 수 없습니다.");
+        }
 
         // ---------- 정령 상세 ----------
 

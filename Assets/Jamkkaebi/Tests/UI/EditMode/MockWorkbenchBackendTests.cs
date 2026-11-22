@@ -623,6 +623,76 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(Phase.Unseal, relic.CurrentPhase);
         }
 
+        // ---------- 응답 유실 흉내(DropReportResponses) ----------
+
+        /// <summary>응답 유실을 켜면 정산은 하고 실패를 돌려주며, 같은 보고로 다시 보내면 정산을 한 번만 반영한 결과를 받는지 검사합니다.</summary>
+        [Test]
+        public void Report_DroppedResponse_SettlesOnceAndRetrySucceeds()
+        {
+            OwnedRelic relic = InProgress(1);
+            CreateBackend(3, 10, relic);
+            string token = Start(1, null).Value.SessionToken;
+            _backend.DropReportResponses = 1;
+
+            CallResult<SettlementResult> dropped = Report(token, PlayResult.Success);
+
+            Assert.AreEqual(1, dropped.FailedCount);
+            Assert.AreEqual(0, _backend.DropReportResponses);
+            Assert.AreEqual(Phase.Recall, relic.CurrentPhase, "응답만 잃었을 뿐 정산은 이미 반영되어야 합니다.");
+
+            CallResult<SettlementResult> retry = Report(token, PlayResult.Success);
+
+            Assert.IsTrue(retry.Succeeded);
+            Assert.AreEqual(Phase.Recall, relic.CurrentPhase, "재전송이 다시 정산하면 안 됩니다.");
+        }
+
+        /// <summary>횟수가 2면 처음 보고와 첫 재전송이 모두 실패하고, 그다음 재전송에서 첫 정산을 그대로 받는지 검사합니다.</summary>
+        [Test]
+        public void Report_DroppedTwice_SecondRetrySucceedsWithSameSettlement()
+        {
+            OwnedRelic relic = InProgress(1);
+            CreateBackend(3, 10, relic);
+            string token = Start(1, null).Value.SessionToken;
+            _backend.DropReportResponses = 2;
+
+            Assert.AreEqual(1, Report(token, PlayResult.Success).FailedCount);
+            Assert.AreEqual(1, Report(token, PlayResult.Success).FailedCount);
+            Assert.AreEqual(0, _backend.DropReportResponses);
+
+            CallResult<SettlementResult> third = Report(token, PlayResult.Success);
+            CallResult<SettlementResult> fourth = Report(token, PlayResult.Success);
+
+            Assert.IsTrue(third.Succeeded);
+            Assert.AreSame(third.Value, fourth.Value);
+            Assert.AreEqual(Phase.Recall, relic.CurrentPhase);
+        }
+
+        /// <summary>정산에 이르지 못한 실패(모르는 토큰·다른 결과 충돌)는 유실 횟수를 쓰지 않는지 검사합니다.</summary>
+        [Test]
+        public void Report_OtherFailures_DoNotConsumeDrops()
+        {
+            CreateBackend(3, 10, InProgress(1));
+            string token = Start(1, null).Value.SessionToken;
+            Assert.IsTrue(Report(token, PlayResult.Failure).Succeeded);
+            _backend.DropReportResponses = 1;
+
+            Assert.AreEqual(1, Report("unknown", PlayResult.Success).FailedCount);
+            Assert.AreEqual(1, Report(token, PlayResult.Success).FailedCount);
+
+            Assert.AreEqual(1, _backend.DropReportResponses);
+        }
+
+        /// <summary>유실 횟수는 음수를 거부하고 0은 받아들이는지 검사합니다(경계값).</summary>
+        [Test]
+        public void DropReportResponses_Negative_Throws()
+        {
+            CreateBackend(3, 10, InProgress(1));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => _backend.DropReportResponses = -1);
+            _backend.DropReportResponses = 0;
+            Assert.AreEqual(0, _backend.DropReportResponses);
+        }
+
         /// <summary>발급한 적 없는 토큰이나 비어 있는 토큰은 실패하는지 검사합니다.</summary>
         [Test]
         public void Report_UnknownOrEmptyToken_Fails()
