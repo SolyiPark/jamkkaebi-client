@@ -43,9 +43,15 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             int bonusJeongseong = session.RevealedBonusTileCount;
 
 
-            int damage = Mathf.FloorToInt((float)(session.DamageGauge * PlayReport.MaxDamage + 0.0001));
+            int damage = DamagePercent(session.DamageGauge);
             
             return new PlayReport(result, reason, tapsUsed, scoutsUsed, damage, bonusJeongseong);
+        }
+        
+        /// <summary>손상 게이지(0~1)를 보고·화면에 쓰는 정수 %로 바꾼다. 내림이며, float 오차로 1 낮아지지 않게 한다.</summary>
+        public static int DamagePercent(float gauge)
+        {
+            return Mathf.FloorToInt((float)(gauge * PlayReport.MaxDamage + 0.0001));
         }
     }
 }

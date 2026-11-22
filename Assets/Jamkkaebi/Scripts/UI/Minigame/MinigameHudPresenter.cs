@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
+using Jamkkaebi.Scripts.Gameplay.Purification;
 using Jamkkaebi.Scripts.UI.Common;
 using TMPro;
 using UnityEngine;
@@ -76,6 +78,10 @@ namespace Jamkkaebi.Scripts.UI.Minigame
         // 팝업은 처음 쓸 때 UILoader에서 받아 와 계속 쓴다
         private InfoPanel _infoPanel;
         private ResultPopup _resultPopup;
+        private bool _exitRequested;
+        
+        /// <summary>작업대에서 연 판을 끝내고 나가려 할 때(결과창의 나가기, 또는 포기). 실행기가 씬을 내린다.</summary>
+        public event Action ExitRequested;
 
         private void Awake()
         {
@@ -94,7 +100,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             }
 
             // 결과 화면 연출이 정해지기 전까지 포기는 새 판 시작으로 처리한다
-            if (_quitButton != null) _quitButton.onClick.AddListener(RestartSession);
+            if (_quitButton != null) _quitButton.onClick.AddListener(QuitClicked);
             if (_uiLoader == null) Debug.LogWarning($"{nameof(MinigameHudPresenter)}: _uiLoader가 없어 도움말·결과 창을 띄우지 않습니다.", this);
 
             if (_infoButton != null) _infoButton.onClick.AddListener(OpenInfoPanel);
@@ -163,7 +169,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             {
                 if (button != null) button.onClick.RemoveAllListeners();
             }
-            if (_quitButton != null) _quitButton.onClick.RemoveListener(RestartSession);
+            if (_quitButton != null) _quitButton.onClick.RemoveListener(QuitClicked);
             if (_resultPopup != null)
             {
                 _resultPopup.RetryRequested -= RestartSession;
@@ -197,6 +203,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             if (isNewSession)
             {
                 PlayPhaseIntro();
+                _exitRequested = false;
                 // 새 판은 이전 판의 손상도에서 내려오는 연출 없이 바로 시작 값으로 맞춘다
                 _displayedDamage = session.DamageGauge;
             }
@@ -210,16 +217,47 @@ namespace Jamkkaebi.Scripts.UI.Minigame
 
         private void RestartSession()
         {
-            if (_adapter.CanAcceptInput) _adapter.BeginSession();
+            if (!_adapter.CanBeginSession) return;
+            _adapter.BeginSession();
         }
 
         private void BeginNextPhase()
         {
-            if (_adapter.CanAcceptInput) _adapter.BeginNextPhase();
+            if (!_adapter.CanBeginSession) return;
+            _adapter.BeginNextPhase();
+        }
+        
+        private void QuitClicked()
+        {
+            if (!_adapter.HasExternalSetup)
+            {
+                RestartSession();
+                return;
+            }
+
+            if (_adapter.Session == null || _adapter.Session.State != SessionState.InProgress) return;
+            _adapter.GiveUp();
+            RequestExit();
         }
 
-        // TODO: 작업대·전시관 씬 연결 후 미니게임을 빠져나가도록 교체. 지금은 같은 페이즈를 다시 시작한다
-        private void ExitMinigame() => RestartSession();
+        private void ExitMinigame()
+        {
+            if (!_adapter.HasExternalSetup)
+            {
+                RestartSession();
+                return;
+            }
+
+            RequestExit();
+        }
+
+        private void RequestExit()
+        {
+            if (_exitRequested) return;
+            _exitRequested = true;
+            if (ExitRequested == null) Debug.LogWarning("작업대 모드에서 ExitRequested를 아무도 구독하지 않습니다.");
+            ExitRequested?.Invoke();
+        }
 
         private void RefreshToolCounts(MinigameSession session)
         {
@@ -260,7 +298,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
             }
             if (_damagePercentText != null)
             {
-                _damagePercentText.text = $"{Mathf.RoundToInt(damage * 100f)}%";
+                _damagePercentText.text = $"{MinigameReport.DamagePercent(damage)}%";
             }
             if (_damageGaugeRider != null)
             {
@@ -411,8 +449,12 @@ namespace Jamkkaebi.Scripts.UI.Minigame
                 _resultPopup.NextRequested += BeginNextPhase;
             }
 
-            bool succeeded = session.State == SessionState.Succeeded;
-            _resultPopup.Bind(new ResultPopupData(succeeded, session.DamageGauge, session.RevealedBonusTileCount, _adapter.HasNextPhase));
+            if (_adapter.LastReport == null) return;
+            PlayReport report = _adapter.LastReport;
+            bool external = _adapter.HasExternalSetup;
+            ResultPopupData data = new ResultPopupData(report.Result == PlayResult.Success, report.Damage,
+                report.BonusJeongseong, !external && _adapter.HasNextPhase, !external);
+            _resultPopup.Bind(data);
             _resultPopup.Open();
         }
 

@@ -107,6 +107,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public PhaseData CurrentPhaseData { get; private set; }
         /// <summary>판이 끝나고 정답 공개 연출까지 마쳐 결과 화면을 띄워도 되면 true.</summary>
         public bool IsResultReady { get; private set; }
+        /// <summary>이번 판의 보고. 알리기 전에는 null. 결과 창이 같은 숫자를 보여 주는 데 쓴다.</summary>
+        public PlayReport LastReport { get; private set; }
         /// <summary>현재 판에서 정화하는 유물. 연결되지 않았으면 null.</summary>
         public RelicData CurrentRelic => _relic;
         public IReadOnlyDictionary<Vector2Int, TileView> TileViews => _tileViews;
@@ -123,9 +125,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         /// </summary>
         /// <remarks>타일은 OnMouseDown으로 눌리므로 UI 창이 덮여 있어도 입력이 들어온다. 그래서 따로 막는다.</remarks>
         public bool IsInputBlocked { get; set; }
-        public bool CanAcceptInput => isActiveAndEnabled && !IsInputBlocked && Time.timeScale > 0f &&
-            (!_inputCamera || _inputCamera.isActiveAndEnabled) && !_hasReported;
-
+        /// <summary>새 판을 열여도 되는지(도움말 창, 페이즈 연출 중이거나 일시정지면 안 됨). 판이 끝났는지는 보지 않는다.</summary>
+        public bool CanBeginSession => isActiveAndEnabled && !IsInputBlocked && Time.timeScale > 0f;
+        public bool CanAcceptInput => CanBeginSession && (!_inputCamera || _inputCamera.isActiveAndEnabled) && !_hasReported;
+        /// <summary>작업대가 Begin(PlaySetup)으로 연 판인지. HUD가 버튼 동작을 고를 때 쓴다.</summary>
+        public bool HasExternalSetup => _hasExternalSetup;
+        
         private void Start()
         {
             if (!_autoStart || _hasExternalSetup) return;
@@ -147,6 +152,20 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         {
             long seed = ResolveSeed(_useFixedSeed, _fixedSeed);
             BeginSession(seed);
+        }
+
+        /// <summary>작업대가 정화 시작 응답으로 판을 연다. 인스펙터의 페이즈·난이도·봉인 매개체·시드 대신 이 값을 쓴다.</summary>
+        public void Begin(PlaySetup setup)
+        {
+            if (setup == null) throw new ArgumentNullException(nameof(setup));
+            if (!HasRequiredReferences()) return;
+
+            _phase = setup.Phase.Order();
+            _difficulty = setup.Difficulty;
+            _sealMedium = setup.SealMedium;
+
+            _hasExternalSetup = true;
+            BeginSession(setup.Seed);
         }
 
         /// <summary>다음 페이즈로 넘어가 새 판을 시작한다. 마지막 페이즈면 아무 일도 하지 않는다.</summary>
@@ -182,6 +201,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             
             _hasHandledEnd = false;
             _hasReported = false;
+            LastReport = null;
             IsResultReady = false;
             // 이전 판의 연쇄·정답 공개 연출이 새 판 타일을 건드리지 않도록 모두 멈춘다
             StopAllCoroutines();
@@ -232,6 +252,17 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _session.TileRevealAttempted += OnTileRevealAttempted;
             FeedbackChanged?.Invoke("타일을 선택해 발굴하세요.");
             SessionBegan?.Invoke();
+        }
+
+        /// <summary>중도 포기. 진행 중인 판만 포기할 수 있다.</summary>
+        public void GiveUp()
+        {
+            if (_session == null) return;
+            if (_session.State != SessionState.InProgress) return;
+            if (_hasReported) return;
+
+            StopAllCoroutines();
+            NotifyFinished(true);
         }
 
         private void Update()
@@ -585,6 +616,18 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             NotifyFinished(false);
         }
 
+        /// <summary>이번 판의 보고를 한 번만 알린다.</summary>
+        private void NotifyFinished(bool gaveUp)
+        {
+            if (_hasReported) return;
+            if (_session == null) return;
+
+            _hasReported = true;
+            PlayReport report = MinigameReport.From(_session, _config, gaveUp);
+            LastReport = report;
+            PlayFinished?.Invoke(report);
+        }
+
         /// <summary>
         /// 아직 열리지 않은 칸을 왼쪽 위부터 오른쪽으로, 한 줄씩 아래로 내려가는 순서로 돌려준다.
         /// </summary>
@@ -610,42 +653,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             }
 
             return DateTime.UtcNow.Ticks;
-        }
-        
-        /// <summary>작업대가 정화 시작 응답으로 판을 연다. 인스펙터의 페이즈·난이도·봉인 매개체·시드 대신 이 값을 쓴다.</summary>
-        public void Begin(PlaySetup setup)
-        {
-            if (setup == null) throw new ArgumentNullException(nameof(setup));
-            if (!HasRequiredReferences()) return;
-
-            _phase = setup.Phase.Order();
-            _difficulty = setup.Difficulty;
-            _sealMedium = setup.SealMedium;
-
-            _hasExternalSetup = true;
-            BeginSession(setup.Seed);
-        }
-
-        /// <summary>중도 포기. 진행 중인 판만 포기할 수 있다.</summary>
-        public void GiveUp()
-        {
-            if (_session == null) return;
-            if (_session.State != SessionState.InProgress) return;
-            if (_hasReported) return;
-
-            StopAllCoroutines();
-            NotifyFinished(true);
-        }
-
-        /// <summary>이번 판의 보고를 한 번만 알린다.</summary>
-        private void NotifyFinished(bool gaveUp)
-        {
-            if (_hasReported) return;
-            if (_session == null) return;
-
-            _hasReported = true;
-            PlayReport report = MinigameReport.From(_session, _config, gaveUp);
-            PlayFinished?.Invoke(report);
         }
 
         private bool HasRequiredReferences()

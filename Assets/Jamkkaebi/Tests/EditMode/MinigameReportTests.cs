@@ -221,6 +221,46 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(66, MinigameReport.From(session, config, true).Damage);
         }
 
+        // ---------- DamagePercent (보고·결과 창·HUD가 함께 쓰는 규칙) ----------
+
+        /// <summary>경계와 내림: 0 → 0, 1 → 100, 1/3 → 33, 2/3 → 66(반올림이면 67), 0.999 → 99(100은 실패한 판에만).</summary>
+        [TestCase(0f, 0)]
+        [TestCase(1f, 100)]
+        [TestCase(1f / 3f, 33)]
+        [TestCase(2f / 3f, 66)]
+        [TestCase(0.999f, 99)]
+        [TestCase(0.005f, 0)]
+        public void DamagePercent_FloorsToWholePercent(float gauge, int expected)
+        {
+            Assert.AreEqual(expected, MinigameReport.DamagePercent(gauge));
+        }
+
+        /// <summary>허용 횟수 1~20의 모든 딱 떨어지는 비율(k/n)이 정확한 정수 %(내림)로 나오는지 검사합니다.</summary>
+        [Test]
+        public void DamagePercent_AllExactRatios_MatchIntegerMath()
+        {
+            for (int n = 1; n <= 20; n++)
+            {
+                for (int k = 0; k <= n; k++)
+                {
+                    float gauge = (float)k / n;
+                    Assert.AreEqual(k * 100 / n, MinigameReport.DamagePercent(gauge), $"{k}/{n}");
+                }
+            }
+        }
+
+        /// <summary>보고의 손상도와 같은 규칙인지 검사합니다(결과 창·HUD 숫자가 서버 값과 같아야 함).</summary>
+        [Test]
+        public void DamagePercent_MatchesReportDamage()
+        {
+            MinigameBoardConfig config = Config(allowedThreatHits: 3);
+            MinigameSession session = new MinigameSession(Grid(3, 3, new Vector2Int(0, 0), new Vector2Int(1, 0)), config);
+            Tap(session, 0, 0);
+            Tap(session, 1, 0);
+
+            Assert.AreEqual(MinigameReport.DamagePercent(session.DamageGauge), MinigameReport.From(session, config, true).Damage);
+        }
+
         /// <summary>
         /// 딱 떨어지는 비율은 float 오차로 1이 덜 나오지 않는지 검사합니다.
         /// 7/10은 float로 0.69999999…라서, 100을 곱한 뒤 그대로 내리면 69가 될 수 있습니다.
