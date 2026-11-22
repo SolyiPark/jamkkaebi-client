@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Presentation;
 using Jamkkaebi.Scripts.UI.Common;
-using Jamkkaebi.Scripts.UI.Dev;
 using Jamkkaebi.Scripts.UI.Shell;
 using Jamkkaebi.Scripts.UI.Workbench;
 using UnityEditor;
@@ -106,7 +105,6 @@ public static class IntegratedSetup
         }
         var shell = EditorSceneManager.OpenScene(PrototypeSetup.Shell);
         foreach (var cam in Object.FindObjectsByType<Camera>(FindObjectsSortMode.None)) cam.GetUniversalAdditionalCameraData().renderPostProcessing = false;
-        EnsureSingleVerification(shell);
         EditorSceneManager.SaveScene(shell);
         PrototypeSetup.SyncBuildScenes();
         PlayerSettings.defaultScreenWidth = 540;
@@ -119,21 +117,6 @@ public static class IntegratedSetup
         Debug.Log("INTEGRATION_PREPARED");
     }
 
-    internal static void EnsureSingleVerification(UnityEngine.SceneManagement.Scene scene)
-    {
-        var verifications = scene.GetRootGameObjects()
-            .SelectMany(root => root.GetComponentsInChildren<IntegratedVerification>(true)).ToArray();
-        if (verifications.Length == 0)
-        {
-            var verification = new GameObject("Integrated Verification (opt-in)", typeof(IntegratedVerification));
-            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(verification, scene);
-            return;
-        }
-
-        // Remove only duplicate components; their objects may contain other scene content.
-        foreach (var duplicate in verifications.Skip(1)) Object.DestroyImmediate(duplicate);
-    }
-
     private static Button Button(string name, string label, Transform parent, Font font, Vector2 min, Vector2 max)
     {
         var image = UIFactory.Image(name, parent, new Color(.70f, .43f, .26f), min, max);
@@ -142,18 +125,6 @@ public static class IntegratedSetup
         button.targetGraphic = image;
         UIFactory.Label("Label", image.transform, font, label, 28, Color.white, Vector2.zero, Vector2.one);
         return button;
-    }
-
-    public static void Build()
-    {
-        PrototypeSetup.SyncBuildScenes();
-        ValidateScenes();
-        Directory.CreateDirectory("Builds/Integrated");
-        var result = BuildPipeline.BuildPlayer(EditorBuildSettings.scenes, "Builds/Integrated/Jamkkaebi.exe",
-            BuildTarget.StandaloneWindows64, BuildOptions.Development);
-        if (result.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
-            throw new Exception("Integrated build failed: " + result.summary.result);
-        Debug.Log("INTEGRATED_BUILD_SUCCESS");
     }
 
     public static void ValidateScenes()

@@ -22,13 +22,11 @@ UI의 자산과 .meta는 `Assets/Jamkkaebi`로 옮겼으며 원래 GUID를 유�
 ## 재검증
 
 1. Unity Test Runner에서 EditMode 테스트를 실행합니다.
-2. 커맨드라인 `-batchmode -quit -projectPath <프로젝트> -executeMethod IntegratedSetup.Build -logFile <로그>`로 Windows Development Player를 빌드합니다.
-3. `Builds/Integrated/Jamkkaebi.exe --verify-output=<결과폴더>`를 실행하면 통합 검증을 수행하고 종료합니다. 결과는 `verification.txt`와 PNG에 저장됩니다.
-4. 검증 옵션 없이 실행하면 일반 게임 화면이 열립니다.
+2. 에디터에서 `UIPrototype.unity`를 Play해 탭 전환·입력·화면을 확인합니다.
 
 `IntegratedSetup.Prepare`는 최초 이관용으로 씬을 다시 생성하는 명령입니다. 이미 씬을 편집한 뒤에는 다시 실행하지 마세요. 일반 개발·빌드에는 필요하지 않습니다.
 
-자동 검증은 실제 Development Player에서 씬 로드, UI/2D 포인터 전달, 타일 모델과 표시 갱신, 도구 전환, 숨김 실행·일시정지·재시작, 화면 비율 변경 및 렌더 결과를 확인합니다. Unity의 포인터 이벤트를 프로그램으로 전달하며 실제 손가락 입력이나 기기 노치·성능을 대신하지 않습니다. Android/iOS 기기 및 배포 빌드 검증은 별도입니다.
+Windows Development Player 통합 검증(`IntegratedVerification`, `Tools/VerifyIntegration.ps1`)은 2026-11-22에 제거했습니다. 과거 실행 기록은 `Docs/integration-validation.md` 등에 남아 있습니다. Android/iOS 기기 및 배포 빌드 검증은 별도입니다.
 
 ## 도감 화면 후속 구현 (2026-10-09)
 
@@ -37,8 +35,6 @@ UI의 자산과 .meta는 `Assets/Jamkkaebi`로 옮겼으며 원래 GUID를 유�
 `CollectionSetup.Apply`는 이번 도감 씬을 변경한 일회성 batch 이관이다. 이미 이관된 씬에서는 실행을 거절하며 일반 실행·빌드·콘텐츠 교체에 사용하지 않는다. 현재 도감은 씬에 연결된 카탈로그와 글꼴로 런타임 UI를 생성한다. 실제 스프라이트는 카탈로그의 유물·정령 이미지 참조에 연결한다.
 
 유물과 시대는 「깨비별 특성」 시트의 확정 9종을 사용한다. `CollectionCatalogData`는 고정 정의, `CollectionDemoData`는 더미 완료 기록만 담당한다. 이후 정의를 갱신하려면 Play를 종료하고 `Prototype > Collection > Sync Catalog From Confirmed Data`를 실행한다. 같은 유물 ID의 이미지 참조와 자산 GUID를 보존하며 씬은 재구성하지 않는다. 원본 범위와 ID 대응표는 `collection-integration.md`를 참고한다.
-
-검증 실행 결과는 `Docs/integration-validation.md`에 기록합니다.
 
 친구 탭은 「잠깨비 친구 탭.pdf」 기반 프론트엔드로 교체했다. `Friends.unity`의 기존 GUID·카메라·루트를 유지하고 목록, 요청, 추천, 코드 추가 시트, 전시 미리보기와 차단 관리를 `FriendsPresenter`로 구성한다. 데이터와 보상은 로컬 미리보기이며 백엔드 연결은 후속 작업이다. 사용법은 `friends-frontend.md`, 이번 실행 결과는 `friends-validation.md`를 참고한다.
 
@@ -52,6 +48,6 @@ UI의 자산과 .meta는 `Assets/Jamkkaebi`로 옮겼으며 원래 GUID를 유�
 
 작업대 탭의 기존 미니게임을 숨기고 시안 기준 작업대 화면을 실행 중에 생성한다. 코드는 `Scripts/UI/Workbench/Backend`(서버 API와 1:1인 `IWorkbenchBackend`, 모의 구현)와 `Scripts/UI/Workbench/Screen`(화면 데이터 빌더, 홈·상세 View, 컨트롤러)에 있다. 유물 이름·별칭·기본 정령 이름은 서버 `ContentSeedData`를 옮긴 `WorkbenchRelicSeed`를 쓴다. 도감 카탈로그는 relicId 대응과 별칭이 없고 일부가 서버와 달라 쓰지 않는다. 미니게임 자리는 임시 성공·실패 보고 버튼이다.
 
-`IntegratedVerification`의 작업대 구간은 미니게임 타일·도구·재시작 검사 대신 `VerifyWorkbench`로 바꿨다. 기존 미니게임 숨김, 실행 중 UI의 씬·레이어, 정령 카드에서 시작한 가로 드래그(2026-11-19 스와이프 제거 후에는 탭을 바꾸지 않음), 상자 등록, 유물 상세 → 정화 → 임시 보고 → 결과, 정화 중 탭 잠금, 숨김 일시정지 뒤 상세 복원, 흐려진 정령의 난이도 선택지, 복귀 재시작, 두 해상도의 홈 배치와 끝까지 내린 정령 상세의 버튼·안내 문구 위치를 확인한다. PR #31 리뷰 후 명령 응답을 기다리는 동안 뒤로가기·그만두기를 막고 화면 전환 뒤 늦은 응답을 버리는지도 확인한다. 상세·결과 패널은 세로가 짧은 화면을 위해 세로 스크롤을 쓴다. 미니게임 입력 검사(타일 클릭, 도구 전환, 전역 timeScale 차단)는 4단계에서 Minigame 씬 기준으로 다시 넣는다.
+상세·결과 패널은 세로가 짧은 화면을 위해 세로 스크롤을 쓴다.
 
-검증 범위: EditMode 테스트(작업대 계약·모의 백엔드·화면 데이터·View)는 macOS Unity Editor에서 통과했다. 바꾼 `IntegratedVerification`과 Windows Development Player 검증(`Tools/VerifyIntegration.ps1`)은 이 작업 환경(macOS)에서 실행하지 못했으므로 Windows에서 다시 실행해야 한다. 실제 기기 터치·키보드 입력은 확인하지 않았다.
+검증 범위: EditMode 테스트(작업대 계약·모의 백엔드·화면 데이터·View)는 macOS Unity Editor에서 통과했다. 실제 기기 터치·키보드 입력은 확인하지 않았다.

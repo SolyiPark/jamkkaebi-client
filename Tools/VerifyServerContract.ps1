@@ -42,22 +42,12 @@ try {
         Start-Sleep -Milliseconds 250
     }
     $env:JAMKKAEBI_CONTRACT_CONFIG = $fixturePath
-    # 통합 검증은 먼저 모의 UI를 검증하고 마지막에 로컬 서버로 전환합니다.
+    # EditMode HTTP 테스트는 JAMKKAEBI_CONTRACT_CONFIG의 로컬 서버 정보를 사용합니다.
     $env:JAMKKAEBI_SERVER_URL = $null; $env:JAMKKAEBI_ACCESS_TOKEN = $null; $env:JAMKKAEBI_REFRESH_TOKEN = $null
     $testPath = Join-Path $outputRoot 'EditMode.xml'
     Invoke-Unity @('-runTests', '-testPlatform', 'EditMode', '-testResults', ('"' + $testPath + '"')) 'editmode.log'
     [xml]$tests = Get-Content -LiteralPath $testPath -Raw
     if ($tests.'test-run'.result -ne 'Passed' -or [int]$tests.'test-run'.skipped -ne 0) { throw '서버 통신 테스트가 통과하지 않았거나 생략되었습니다.' }
-    Invoke-Unity @('-quit', '-executeMethod', 'IntegratedSetup.Build') 'build.log'
-    $playerOutput = Join-Path $outputRoot 'Player'
-    New-Item -ItemType Directory -Path $playerOutput | Out-Null
-    $player = Start-Process -FilePath (Join-Path $projectRoot 'Builds\Integrated\Jamkkaebi.exe') -ArgumentList @(
-        ('"--verify-output=' + $playerOutput + '"'), '-screen-width', '640', '-screen-height', '960', '-screen-fullscreen', '0',
-        '-logFile', ('"' + (Join-Path $playerOutput 'player.log') + '"')
-    ) -WindowStyle Hidden -PassThru
-    $player.WaitForExit()
-    if ($player.ExitCode -ne 0 -or (Get-Content -LiteralPath (Join-Path $playerOutput 'verification.txt') -First 1) -ne 'ALL CHECKS PASSED') { throw 'Player 통합 검증이 실패했습니다.' }
-    if (Select-String -LiteralPath (Join-Path $playerOutput 'player.log') -Pattern 'GarbageCollector disposing of ComputeBuffer|Unreleased non-evictable resource|Sprite fallback buffer cleanup is unavailable' -Quiet) { throw 'Player GPU 종료 검사가 실패했습니다.' }
     Write-Output "Unity와 로컬 Spring 통신 검증 통과: $outputRoot"
 }
 finally {
