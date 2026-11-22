@@ -97,7 +97,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             IEnumerable<WorkbenchSlot> slots =
                 slotRelics.Select(r => new WorkbenchSlot(r.RelicId, r.RevealLevel, r.CurrentPhase));
             IEnumerable<WorkbenchSpirit> spirits = ownedSpirits.Select(s =>
-                new WorkbenchSpirit(s.RelicId, SpiritNameOf(s.RelicId), _planner.ClarityPolicy.ClarityOf(s.LastPurifiedAt.Value, now),
+                new WorkbenchSpirit(s.RelicId, SpiritNameOf(s.RelicId), _planner.ClarityPolicy.ClarityOf(s.ClarityAnchorAt.Value, now),
                     s.CareCount));
 
             WorkbenchSnapshot snapshot;
@@ -128,16 +128,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             
             DateTime now = _clock();
             
-            // 선명도와 재봉인 시각은 최초 정화를 모두 마친 도깨비에게만 있다.
-            // 완료 상태면 OwnedRelic이 LastPurifiedAt을 보장하므로 .Value가 안전하다.
+            // 선명도와 다음 변화 시각은 최초 정화를 모두 마친 도깨비에게만 있다.
+            // 완료 상태면 OwnedRelic이 ClarityAnchorAt을 보장하므로 .Value가 안전하다.
             Clarity? clarity = null;
-            DateTime? resealAt = null;
-            // 완료한 경우
+            DateTime? changesAt = null;
             if (relic.IsCompleted)
             {
-                DateTime lastPurifiedAt = relic.LastPurifiedAt.Value;
-                clarity = _planner.ClarityPolicy.ClarityOf(lastPurifiedAt, now);
-                resealAt = _planner.ClarityPolicy.ResealAt(lastPurifiedAt, now);
+                DateTime anchor = relic.ClarityAnchorAt.Value;
+                clarity = _planner.ClarityPolicy.ClarityOf(anchor, now);
+                changesAt = _planner.ClarityPolicy.NextChangeAt(anchor, now);
             }
 
             // 정령 이름은 최초 정화를 마친 뒤에만 공개한다(서버 RelicCard와 같음).
@@ -147,7 +146,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             try
             {
                 detail = new RelicDetail(relic.RelicId, relic.Status, spiritName, clarity, relic.LastPurifiedAt,
-                    resealAt, relic.CareCount, _planner.PlanFor(relic, now));
+                    changesAt, relic.CareCount, _planner.PlanFor(relic, now));
             }
             catch (Exception e)
             {

@@ -31,6 +31,6 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
         private static OwnedRelic Spirit(int relicId, DateTime lastPurifiedAt) =>
             new OwnedRelic(relicId, lastPurifiedAt - TimeSpan.FromDays(1), RelicStatus.Completed, Phase.Guard,
-                lastPurifiedAt, null, null, 0);
+                lastPurifiedAt, lastPurifiedAt, 0);
     }
 }

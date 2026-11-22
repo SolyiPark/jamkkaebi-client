@@ -24,11 +24,11 @@ namespace Jamkkaebi.Tests.EditMode
                 MinigameDifficulty.Normal);
         }
 
-        /// <summary>최초 정화를 마친 유물. 복구 진행 위치와 그 복구를 시작한 선명도를 줄 수 있다.</summary>
-        private static OwnedRelic CreateCompleted(Phase? restorePhase = null, Clarity? restoreClarity = null)
+        /// <summary>최초 정화를 마친 유물. 선명도 기준 시각을 따로 줄 수 있다(없으면 마지막 정화 시각).</summary>
+        private static OwnedRelic CreateCompleted(DateTime? clarityAnchorAt = null)
         {
             return new OwnedRelic(RelicId, AcquiredAt, RelicStatus.Completed, Phase.Guard,
-                LastPurifiedAt, restorePhase, restoreClarity, 0);
+                LastPurifiedAt, clarityAnchorAt ?? LastPurifiedAt, 0);
         }
 
         /// <summary>새로 획득한 유물은 최초 정화로 봉인 해제부터, 난이도 고정으로 시작하는지 검사합니다.</summary>
@@ -86,7 +86,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsTrue(plan.DifficultySelectable);
         }
 
-        /// <summary>흐려진 정령은 기억 회복부터이고 쉬움을 고를 수 없는지 검사합니다.</summary>
+        /// <summary>흐려진 정령은 기억 회복 한 판이 남고 쉬움을 고를 수 없는지 검사합니다.</summary>
         [Test]
         public void PlanFor_Faded_FromRecallWithoutEasy()
         {
@@ -94,12 +94,13 @@ namespace Jamkkaebi.Tests.EditMode
 
             Assert.AreEqual(EntryRoute.Care, plan.Route);
             Assert.AreEqual(Clarity.Faded, plan.Clarity);
-            CollectionAssert.AreEqual(new[] { Phase.Recall, Phase.Guard }, plan.RemainingPhases);
+            Assert.AreEqual(Phase.Recall, plan.Phase);
+            CollectionAssert.AreEqual(new[] { Phase.Recall }, plan.RemainingPhases);
             CollectionAssert.AreEqual(
                 new[] { MinigameDifficulty.Normal, MinigameDifficulty.Hard }, plan.AllowedDifficulties);
         }
 
-        /// <summary>재봉인된 정령은 봉인 해제부터이고 쉬움을 고를 수 없는지 검사합니다.</summary>
+        /// <summary>재봉인된 정령은 봉인 해제·기억 회복 두 판이 남고 쉬움을 고를 수 없는지 검사합니다.</summary>
         [Test]
         public void PlanFor_Resealed_FromUnsealWithoutEasy()
         {
@@ -107,34 +108,24 @@ namespace Jamkkaebi.Tests.EditMode
 
             Assert.AreEqual(Phase.Unseal, plan.Phase);
             Assert.AreEqual(Clarity.Resealed, plan.Clarity);
-            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, plan.RemainingPhases);
+            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall }, plan.RemainingPhases);
             CollectionAssert.AreEqual(
                 new[] { MinigameDifficulty.Normal, MinigameDifficulty.Hard }, plan.AllowedDifficulties);
         }
 
-        /// <summary>복구 도중이면 이미 클리어한 페이즈를 건너뛰는지 검사합니다.</summary>
-        [Test]
-        public void PlanFor_ResealedMidRestore_SkipsClearedPhase()
-        {
-            PlayPlan plan = _planner.PlanFor(CreateCompleted(Phase.Unseal, Clarity.Resealed),
-                LastPurifiedAt + TimeSpan.FromDays(15));
-
-            Assert.AreEqual(Phase.Recall, plan.Phase);
-            CollectionAssert.AreEqual(new[] { Phase.Recall, Phase.Guard }, plan.RemainingPhases);
-        }
-
         /// <summary>
-        /// 흐려짐에서 기억 회복까지 복구한 뒤 재봉인되면, 지난 진행을 버리고 봉인 해제부터 다시 하는지 검사합니다.
-        /// (서버 수정 요청 7번: 서버는 오염 관리만 남겨 두 페이즈를 건너뛴다)
+        /// 선명도는 마지막 정화 시각이 아니라 선명도 기준 시각으로 계산하는지 검사합니다.
+        /// 재봉인에서 한 단계를 깨 흐려짐으로 오른 정령(기준 시각 = 마지막 정화 - 7일)은 흐려짐 계획을 받습니다.
         /// </summary>
         [Test]
-        public void PlanFor_ResealedAfterFadedProgress_RestartsFromUnseal()
+        public void PlanFor_UsesClarityAnchor()
         {
-            PlayPlan plan = _planner.PlanFor(CreateCompleted(Phase.Recall, Clarity.Faded),
-                LastPurifiedAt + TimeSpan.FromDays(15));
+            OwnedRelic relic = CreateCompleted(LastPurifiedAt - TimeSpan.FromDays(7));
 
-            Assert.AreEqual(Phase.Unseal, plan.Phase);
-            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, plan.RemainingPhases);
+            PlayPlan plan = _planner.PlanFor(relic, LastPurifiedAt);
+
+            Assert.AreEqual(Clarity.Faded, plan.Clarity);
+            Assert.AreEqual(Phase.Recall, plan.Phase);
         }
 
         /// <summary>null 유물·null 정책을 거부하는지 검사합니다.</summary>

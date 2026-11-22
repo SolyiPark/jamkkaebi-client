@@ -24,7 +24,7 @@ namespace Jamkkaebi.Tests.EditMode
         private static OwnedRelic Completed(int relicId, double daysAgo)
         {
             return new OwnedRelic(relicId, BaseTime, RelicStatus.Completed, Phase.Guard,
-                Now - TimeSpan.FromDays(daysAgo), null, null, 0);
+                Now - TimeSpan.FromDays(daysAgo), Now - TimeSpan.FromDays(daysAgo), 0);
         }
 
         /// <summary>최초 정화 중인 유물. BaseTime에서 hoursLater시간 뒤에 획득했다.</summary>
