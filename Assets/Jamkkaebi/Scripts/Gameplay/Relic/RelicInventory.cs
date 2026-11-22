@@ -76,7 +76,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
         {
             return _relics.Values
                 .Where(r => r.IsCompleted)
-                .OrderByDescending(r => _clarityPolicy.ClarityOf(r.ClarityAnchorAt.Value, now))
+                .OrderByDescending(r => _clarityPolicy.ClarityOf(r, now))
                 .ThenBy(r => r.RelicId)
                 .ToList()
                 .AsReadOnly();

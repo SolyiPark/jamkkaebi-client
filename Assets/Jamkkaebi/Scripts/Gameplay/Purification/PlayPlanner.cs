@@ -43,7 +43,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
                     new List<MinigameDifficulty> { _firstRouteDifficulty }, null);
 
             // 선명도가 곧 복구 진행이다. 따로 저장한 복구 진행 없이 지금 선명도로 이번 판과 남은 순서를 정한다.
-            Clarity clarity = _clarityPolicy.ClarityOf(relic.ClarityAnchorAt.Value, now);
+            Clarity clarity = _clarityPolicy.ClarityOf(relic, now);
             IReadOnlyList<Phase> remaining = _clarityPolicy.RemainingPhases(clarity);
 
             IReadOnlyList<MinigameDifficulty> difficulties = _restorePolicy.AllowedFor(clarity);

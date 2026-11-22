@@ -112,6 +112,50 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.Throws<ArgumentException>(() => _policy.AnchorFor((Clarity)9, LastPurifiedAt));
         }
 
+        /// <summary>흐려짐으로 막 오른 정령(기준 = 마지막 정화 - 7일).</summary>
+        private static OwnedRelic SteppedToFaded() =>
+            new OwnedRelic(2, LastPurifiedAt - TimeSpan.FromDays(30), RelicStatus.Completed, Phase.Guard,
+                LastPurifiedAt, LastPurifiedAt - TimeSpan.FromDays(7), 1);
+
+        /// <summary>
+        /// 기기 시각이 마지막 정화보다 뒤로 가도 막 오른 흐려짐이 선명으로 바뀌지 않고, 다음 변화 시각도 그대로인지 검사합니다.
+        /// (기준 시각만으로 계산하면 1초 역행에도 선명이 된다)
+        /// </summary>
+        [Test]
+        public void ClarityOfRelic_ClockRollback_KeepsLastPurifiedState()
+        {
+            OwnedRelic relic = SteppedToFaded();
+            DateTime rolledBack = LastPurifiedAt - TimeSpan.FromSeconds(1);
+
+            Assert.AreEqual(Clarity.Clear, _policy.ClarityOf(relic.ClarityAnchorAt.Value, rolledBack));
+            Assert.AreEqual(Clarity.Faded, _policy.ClarityOf(relic, rolledBack));
+            Assert.AreEqual(LastPurifiedAt + TimeSpan.FromDays(7), _policy.NextChangeAt(relic, rolledBack));
+        }
+
+        /// <summary>시간이 정상으로 흐르면 정령 계산도 기준 시각의 7일·14일 경계를 그대로 따르는지 검사합니다.</summary>
+        [Test]
+        public void ClarityOfRelic_NormalTime_FollowsAnchorBoundaries()
+        {
+            OwnedRelic relic = SteppedToFaded();
+            TimeSpan tick = TimeSpan.FromTicks(1);
+
+            Assert.AreEqual(Clarity.Faded, _policy.ClarityOf(relic, LastPurifiedAt));
+            Assert.AreEqual(Clarity.Faded, _policy.ClarityOf(relic, LastPurifiedAt + TimeSpan.FromDays(7) - tick));
+            Assert.AreEqual(Clarity.Resealed, _policy.ClarityOf(relic, LastPurifiedAt + TimeSpan.FromDays(7)));
+            Assert.IsNull(_policy.NextChangeAt(relic, LastPurifiedAt + TimeSpan.FromDays(7)));
+        }
+
+        /// <summary>최초 정화를 마치지 않은 유물이나 null은 선명도를 계산하지 않고 거부하는지 검사합니다.</summary>
+        [Test]
+        public void ClarityOfRelic_NotCompletedOrNull_Throws()
+        {
+            OwnedRelic inProgress = OwnedRelic.Acquired(2, LastPurifiedAt);
+
+            Assert.Throws<InvalidOperationException>(() => _policy.ClarityOf(inProgress, LastPurifiedAt));
+            Assert.Throws<InvalidOperationException>(() => _policy.NextChangeAt(inProgress, LastPurifiedAt));
+            Assert.Throws<ArgumentNullException>(() => _policy.ClarityOf((OwnedRelic)null, LastPurifiedAt));
+        }
+
         /// <summary>선명까지 남은 판: 재봉인은 봉인 해제·기억 회복, 흐려짐은 기억 회복, 선명은 관리 판(오염 관리) 하나인지 검사합니다.</summary>
         [Test]
         public void RemainingPhases_ByClarity()

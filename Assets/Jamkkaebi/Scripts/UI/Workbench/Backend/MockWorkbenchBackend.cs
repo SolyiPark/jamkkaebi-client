@@ -97,7 +97,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             IEnumerable<WorkbenchSlot> slots =
                 slotRelics.Select(r => new WorkbenchSlot(r.RelicId, r.RevealLevel, r.CurrentPhase));
             IEnumerable<WorkbenchSpirit> spirits = ownedSpirits.Select(s =>
-                new WorkbenchSpirit(s.RelicId, SpiritNameOf(s.RelicId), _planner.ClarityPolicy.ClarityOf(s.ClarityAnchorAt.Value, now),
+                new WorkbenchSpirit(s.RelicId, SpiritNameOf(s.RelicId), _planner.ClarityPolicy.ClarityOf(s, now),
                     s.CareCount));
 
             WorkbenchSnapshot snapshot;
@@ -129,14 +129,13 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             DateTime now = _clock();
             
             // 선명도와 다음 변화 시각은 최초 정화를 모두 마친 도깨비에게만 있다.
-            // 완료 상태면 OwnedRelic이 ClarityAnchorAt을 보장하므로 .Value가 안전하다.
+            // 계획·목록과 같은 계산(기기 시각 역행 처리 포함)을 쓴다.
             Clarity? clarity = null;
             DateTime? changesAt = null;
             if (relic.IsCompleted)
             {
-                DateTime anchor = relic.ClarityAnchorAt.Value;
-                clarity = _planner.ClarityPolicy.ClarityOf(anchor, now);
-                changesAt = _planner.ClarityPolicy.NextChangeAt(anchor, now);
+                clarity = _planner.ClarityPolicy.ClarityOf(relic, now);
+                changesAt = _planner.ClarityPolicy.NextChangeAt(relic, now);
             }
 
             // 정령 이름은 최초 정화를 마친 뒤에만 공개한다(서버 RelicCard와 같음).

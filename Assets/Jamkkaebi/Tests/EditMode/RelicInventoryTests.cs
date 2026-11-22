@@ -193,6 +193,22 @@ namespace Jamkkaebi.Tests.EditMode
                 inventory.SpiritsByCareOrder(Now + TimeSpan.FromDays(5)).Select(r => r.RelicId));
         }
 
+        /// <summary>
+        /// 정렬은 마지막 정화 시각이 아니라 선명도 기준 시각으로 계산한 선명도를 따르는지 검사합니다.
+        /// 2번은 방금 정화했지만 흐려짐으로 오른 정령이라 하루 전에 정화한 선명한 1번보다 먼저 와야 합니다.
+        /// </summary>
+        [Test]
+        public void SpiritsByCareOrder_UsesClarityAnchor()
+        {
+            OwnedRelic clear = Completed(1, 1);
+            OwnedRelic steppedToFaded = new OwnedRelic(2, BaseTime, RelicStatus.Completed, Phase.Guard,
+                Now, Now - TimeSpan.FromDays(7), 1);
+            RelicInventory inventory = Create(3, clear, steppedToFaded);
+
+            CollectionAssert.AreEqual(new[] { 2, 1 },
+                inventory.SpiritsByCareOrder(Now).Select(r => r.RelicId));
+        }
+
         /// <summary>돌려준 목록을 바깥에서 바꿀 수 없는지 검사합니다.</summary>
         [Test]
         public void Lists_AreReadOnly()

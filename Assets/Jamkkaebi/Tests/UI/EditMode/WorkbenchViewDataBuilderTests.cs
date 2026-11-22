@@ -229,6 +229,24 @@ namespace Jamkkaebi.Tests.UI.EditMode
             CollectionAssert.AreEqual(new[] { "한 단계 복구", "전체 복구" }, data.Difficulties.Select(d => d.EffectText));
         }
 
+        /// <summary>
+        /// 재봉인에서 흐려짐으로 막 오른 정령: 마지막 정화(오늘)와 다음 변화 시각(7일 뒤)이 따로 오고,
+        /// 빌더가 다음 변화 시각으로 안내를 만드는지 검사합니다(마지막 정화 + 14일로 계산하면 "14일 뒤"가 된다).
+        /// </summary>
+        [Test]
+        public void SpiritDetail_SteppedToFaded_UsesClarityChangesAt()
+        {
+            DateTime now = LastPurifiedAt;
+            RelicDetail detail = new RelicDetail(8, RelicStatus.Completed, "번개", Clarity.Faded, now,
+                now + TimeSpan.FromDays(7), 1,
+                new PlayPlan(EntryRoute.Care, new[] { Phase.Recall }, new[] { MinigameDifficulty.Normal }, Clarity.Faded));
+
+            SpiritDetailData data = _builder.SpiritDetail(detail, now);
+
+            Assert.AreEqual("선명까지 한 단계 남았어요 · 7일 뒤 재봉인 상태가 돼요", data.ClarityNotice);
+            Assert.AreEqual("오늘 정화했어요", data.DaysSincePurified);
+        }
+
         /// <summary>친밀도는 돌봄 횟수로 계산하는지 검사합니다(기본 정책: 3회에 Lv.2).</summary>
         [Test]
         public void SpiritDetail_IntimacyFromCareCount()

@@ -40,13 +40,35 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
             ResealedAfter = resealedAfter;
         }
 
-        /// <summary>현재 선명도. 기기 시각이 기준 시각보다 앞서 있으면 선명으로 본다.</summary>
+        /// <summary>기준 시각만으로 계산한 선명도. 지금이 기준 시각보다 이르면(경과가 음수) 선명이다.</summary>
+        /// <remarks>정령의 선명도는 기기 시각 역행을 막는 <see cref="ClarityOf(OwnedRelic, DateTime)"/>을 쓴다.</remarks>
         public Clarity ClarityOf(DateTime clarityAnchorAt, DateTime now)
         {
             TimeSpan elapsed = now - clarityAnchorAt;
             if (elapsed >= ResealedAfter) return Clarity.Resealed;
             if (elapsed >= FadedAfter) return Clarity.Faded;
             return Clarity.Clear;
+        }
+
+        /// <summary>
+        /// 정령의 지금 선명도. 기기 시각이 마지막 정화보다 뒤로 가 있으면 마지막 정화 시각을 지금으로 본다.
+        /// </summary>
+        /// <remarks>
+        /// 흐려짐으로 오른 정령은 기준 시각이 흐려짐 경계에 딱 붙어 있어(마지막 정화 - 흐려짐 시간), 시계가 1초만 뒤로 가도
+        /// 선명으로 계산된다. 마지막 정화 때의 상태보다 좋아지지 않도록 지금을 마지막 정화 시각 이후로 맞춘다.
+        /// 계획·정령 목록·상세가 모두 이 계산을 쓴다.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">최초 정화를 마치지 않은 유물인 경우(선명도가 없다).</exception>
+        public Clarity ClarityOf(OwnedRelic relic, DateTime now)
+        {
+            return ClarityOf(AnchorOf(relic), NotBeforeLastPurified(relic, now));
+        }
+
+        /// <summary>정령의 선명도가 다음에 한 칸 떨어지는 시각. 기기 시각 역행은 <see cref="ClarityOf(OwnedRelic, DateTime)"/>과 같이 처리한다.</summary>
+        /// <exception cref="InvalidOperationException">최초 정화를 마치지 않은 유물인 경우.</exception>
+        public DateTime? NextChangeAt(OwnedRelic relic, DateTime now)
+        {
+            return NextChangeAt(AnchorOf(relic), NotBeforeLastPurified(relic, now));
         }
 
         /// <summary>이대로 두면 선명도가 한 칸 떨어지는 시각(선명 → 흐려짐, 흐려짐 → 재봉인). 이미 재봉인됐으면 null.</summary>
@@ -58,6 +80,20 @@ namespace Jamkkaebi.Scripts.Gameplay.Relic
                 Clarity.Faded => clarityAnchorAt + ResealedAfter,
                 _ => (DateTime?)null
             };
+        }
+
+        private static DateTime AnchorOf(OwnedRelic relic)
+        {
+            if (relic == null) throw new ArgumentNullException(nameof(relic));
+            if (!relic.IsCompleted) throw new InvalidOperationException("최초 정화를 마치지 않은 유물에는 선명도가 없습니다.");
+            return relic.ClarityAnchorAt.Value;
+        }
+
+        // 완료한 정령은 마지막 정화 시각이 있다(AnchorOf가 먼저 확인한다).
+        private static DateTime NotBeforeLastPurified(OwnedRelic relic, DateTime now)
+        {
+            DateTime lastPurifiedAt = relic.LastPurifiedAt.Value;
+            return now < lastPurifiedAt ? lastPurifiedAt : now;
         }
 
         /// <summary>

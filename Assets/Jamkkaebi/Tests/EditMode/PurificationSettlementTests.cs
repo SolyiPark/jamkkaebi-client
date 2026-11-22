@@ -319,6 +319,29 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         /// <summary>
+        /// 두 시각이 다른 정령(재봉인에서 흐려짐으로 오른 뒤)이 다음 판을 실패하면 두 시각과 돌봄이 각각 그대로인지 검사합니다.
+        /// </summary>
+        [Test]
+        public void Settle_CareFailureAfterStep_KeepsBothTimes()
+        {
+            OwnedRelic relic = CreateCompleted();
+            DateTime steppedAt = DaysAfterPurified(15);
+            _settlement.Settle(relic, _planner.PlanFor(relic, steppedAt), MinigameDifficulty.Normal,
+                PlayResult.Success, steppedAt);
+            DateTime anchor = relic.ClarityAnchorAt.Value;
+            Assert.AreNotEqual(relic.LastPurifiedAt, anchor);
+
+            DateTime now = steppedAt + TimeSpan.FromDays(2);
+            SettlementResult result = _settlement.Settle(relic, _planner.PlanFor(relic, now), MinigameDifficulty.Normal,
+                PlayResult.Failure, now);
+
+            Assert.AreEqual(NextAction.Retry, result.Next);
+            Assert.AreEqual(steppedAt, relic.LastPurifiedAt);
+            Assert.AreEqual(anchor, relic.ClarityAnchorAt);
+            Assert.AreEqual(1, relic.CareCount);
+        }
+
+        /// <summary>
         /// 흐려짐에서 시작한 판이 재봉인 경계를 넘어 실패하면, 재시도 계획은 지금 상태(봉인 해제부터)로 만들어지는지 검사합니다.
         /// (기획 결정: 다음 계획은 정산 시점 상태로)
         /// </summary>
