@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jamkkaebi.Scripts.UI.Common;
-using Jamkkaebi.Scripts.UI.Dev;
 using Jamkkaebi.Scripts.UI.Shell;
 using Jamkkaebi.Scripts.UI.Workbench;
 using UnityEditor;
@@ -32,16 +31,6 @@ public static class ReviewRegressionChecks
         Application.logMessageReceived += RecordError;
         try
         {
-            IntegratedSetup.EnsureSingleVerification(scene);
-            IntegratedSetup.EnsureSingleVerification(scene);
-            Check(Verifications(scene).Length == 1, "repeated setup keeps one verifier");
-            var duplicate = new GameObject("Inactive duplicate", typeof(IntegratedVerification));
-            duplicate.SetActive(false);
-            var retainedTransform = duplicate.transform;
-            IntegratedSetup.EnsureSingleVerification(scene);
-            Check(Verifications(scene).Length == 1, "inactive duplicate verifier removed");
-            Check(retainedTransform != null, "duplicate owner and other components preserved");
-
             const string originalMinigame = "Assets/Jamkkaebi/Scenes/Minigame.unity";
             EditorBuildSettings.scenes = new[]
             {
@@ -88,9 +77,6 @@ public static class ReviewRegressionChecks
                 SceneManager.SetActiveScene(originalActiveScene);
         }
     }
-
-    private static IntegratedVerification[] Verifications(Scene scene) => scene.GetRootGameObjects()
-        .SelectMany(root => root.GetComponentsInChildren<IntegratedVerification>(true)).ToArray();
 
     private static void Check(bool condition, string message)
     {

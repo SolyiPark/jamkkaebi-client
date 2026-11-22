@@ -27,6 +27,4 @@ public static class PrototypeSetup
         EditorBuildSettings.scenes = paths.Select(path => new EditorBuildSettingsScene(path,
             !existingStates.TryGetValue(path, out bool enabled) || enabled)).ToArray();
     }
-
-    public static void BuildPreview() => IntegratedSetup.Build();
 }
