@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Data;
 using Jamkkaebi.Scripts.UI.Collection;
 using Jamkkaebi.Scripts.UI.Common;
@@ -95,7 +96,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 new Vector2(0, -120), new Vector2(380, 420));
             WorkbenchUI.Fill("Clarity", artwork.transform, _font, data.ClarityName, 30, Color.white);
 
-            float buttonY = data.DifficultySelectable ? -652 : -540;
+            float buttonY = data.DifficultySelectable ? -696 : -584;
             RectTransform panel = Panel(.6f, -(buttonY - 118 - 44) + 30);
             WorkbenchUI.Label("Title", panel, _font, data.SpiritName, 40, WorkbenchUI.Ink, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, -34), new Vector2(700, 60)).fontStyle = FontStyle.Bold;
@@ -114,11 +115,17 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             UIFactory.Image("Fill", bar.transform, new Color32(255, 150, 40, 255), Vector2.zero,
                 new Vector2(Mathf.Clamp01(data.Intimacy.Fill), 1));
 
-            Steps(panel, data.RestoreSteps, -302, 110, 120);
+            StepRow(panel, data.ClaritySteps.Select(step => ("Step_" + step.Clarity, step.Name, step.State)).ToList(),
+                -302, 110, 120, "지금");
             WorkbenchUI.Label("Days", panel, _font, data.DaysSincePurified, 28, WorkbenchUI.Ink, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, -480), new Vector2(900, 44));
+            if (data.ClarityNotice != null)
+            {
+                WorkbenchUI.Label("ClarityNotice", panel, _font, data.ClarityNotice, 26, WorkbenchUI.Muted, new Vector2(.5f, 1),
+                    new Vector2(.5f, 1), new Vector2(0, -524), new Vector2(940, 44));
+            }
 
-            if (data.DifficultySelectable) DifficultyRow(panel, data, selected, -540);
+            if (data.DifficultySelectable) DifficultyRow(panel, data, selected, -584);
             ActionButton(panel, "Purify", data.PurifyButton, buttonY, () => PurifyClicked?.Invoke());
             _status = WorkbenchUI.Label("Status", panel, _font, "", 26, WorkbenchUI.Muted, new Vector2(.5f, 1),
                 new Vector2(.5f, 1), new Vector2(0, buttonY - 118), new Vector2(940, 44));
@@ -320,23 +327,31 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         /// <summary>3단계 진행 표시. 완료·현재·잠김을 색과 글자로 구분한다.</summary>
         private void Steps(RectTransform parent, IReadOnlyList<PhaseStep> steps, float y, float size = 150, float gap = 110)
         {
+            StepRow(parent, steps.Select(step => ("Step_" + step.Phase, step.Name, step.State)).ToList(), y, size, gap, "진행");
+        }
+
+        /// <summary>단계 표시 한 줄(동그라미와 이름). 페이즈 진행과 선명도 진행이 같이 쓴다.</summary>
+        /// <param name="currentMark">지금 칸의 동그라미 글자.</param>
+        private void StepRow(RectTransform parent, IReadOnlyList<(string Id, string Name, PhaseStepState State)> steps,
+            float y, float size, float gap, string currentMark)
+        {
             float x = -(steps.Count * size + (steps.Count - 1) * gap) / 2 + size / 2;
             for (int i = 0; i < steps.Count; i++)
             {
-                PhaseStep step = steps[i];
+                var step = steps[i];
                 if (i > 0)
                 {
                     WorkbenchUI.Box("Line_" + i, parent, WorkbenchUI.Ink, new Vector2(.5f, 1), new Vector2(.5f, .5f),
                         new Vector2(x - (size + gap) / 2, y - size / 2), new Vector2(gap, 3));
                 }
-                Image circle = WorkbenchUI.Box("Step_" + step.Phase, parent,
+                Image circle = WorkbenchUI.Box(step.Id, parent,
                     step.State == PhaseStepState.Current ? WorkbenchUI.Card : new Color32(200, 200, 200, 255),
                     new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(x, y), new Vector2(size, size));
                 string mark = step.State switch
                 {
                     PhaseStepState.Done => "완료",
                     PhaseStepState.Locked => "잠김",
-                    _ => "진행"
+                    _ => currentMark
                 };
                 WorkbenchUI.Fill("State", circle.transform, _font, mark, 28,
                     step.State == PhaseStepState.Locked ? WorkbenchUI.Muted : WorkbenchUI.Ink);

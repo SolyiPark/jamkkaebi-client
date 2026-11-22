@@ -54,5 +54,17 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             days <= 0 ? "오늘 정화했어요" : $"마지막 정화로부터 {days}일째";
 
         public static string PurifyPhaseButton(Phase phase) => $"{PurifyButton} - {PhaseName(phase)}";
+
+        /// <summary>선명까지 남은 복구 단계(보통 난이도로 한 판씩). 선명이면 null.</summary>
+        public static string StepsToClear(Clarity clarity) => clarity switch
+        {
+            Clarity.Resealed => "선명까지 두 단계 남았어요",
+            Clarity.Faded => "선명까지 한 단계 남았어요",
+            _ => null
+        };
+
+        /// <summary>"n일 뒤 흐려짐 상태가 돼요". 하루가 안 남았으면(0) "하루 안에".</summary>
+        public static string ClarityChangeIn(int days, Clarity next) =>
+            days <= 0 ? $"하루 안에 {ClarityName(next)} 상태가 돼요" : $"{days}일 뒤 {ClarityName(next)} 상태가 돼요";
     }
 }

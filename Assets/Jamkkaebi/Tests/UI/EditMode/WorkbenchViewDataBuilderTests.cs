@@ -37,7 +37,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
         private static RelicDetail SpiritDetail(int relicId, string name, Clarity clarity, Phase[] remaining,
             MinigameDifficulty[] allowed, int careCount) =>
             new RelicDetail(relicId, RelicStatus.Completed, name, clarity, LastPurifiedAt,
-                clarity == Clarity.Resealed ? (DateTime?)null : LastPurifiedAt + TimeSpan.FromDays(14), careCount,
+                clarity == Clarity.Resealed ? (DateTime?)null
+                : LastPurifiedAt + TimeSpan.FromDays(clarity == Clarity.Clear ? 7 : 14), careCount,
                 new PlayPlan(EntryRoute.Care, remaining, allowed, clarity));
 
         // ---------- 생성자 ----------
@@ -133,13 +134,37 @@ namespace Jamkkaebi.Tests.UI.EditMode
             CollectionAssert.AreEqual(new[] { "봉인 해제", "기억 회복", "오염 관리" }, steps.Select(s => s.Name));
         }
 
-        /// <summary>관리 복구 진행 표시: 남은 순서에 없으면 완료, 남은 첫 페이즈는 현재, 나머지는 잠김.</summary>
-        [TestCase(new[] { Phase.Guard }, new[] { PhaseStepState.Done, PhaseStepState.Done, PhaseStepState.Current })]
-        [TestCase(new[] { Phase.Recall, Phase.Guard }, new[] { PhaseStepState.Done, PhaseStepState.Current, PhaseStepState.Locked })]
-        [TestCase(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, new[] { PhaseStepState.Current, PhaseStepState.Locked, PhaseStepState.Locked })]
-        public void RestoreSteps(Phase[] remaining, PhaseStepState[] expected)
+        /// <summary>복구 진행 표시(재봉인 → 흐려짐 → 선명): 지금 선명도가 현재, 그보다 나쁜 칸은 완료, 좋은 칸은 잠김.</summary>
+        [TestCase(Clarity.Resealed, new[] { PhaseStepState.Current, PhaseStepState.Locked, PhaseStepState.Locked })]
+        [TestCase(Clarity.Faded, new[] { PhaseStepState.Done, PhaseStepState.Current, PhaseStepState.Locked })]
+        [TestCase(Clarity.Clear, new[] { PhaseStepState.Done, PhaseStepState.Done, PhaseStepState.Current })]
+        public void ClaritySteps(Clarity current, PhaseStepState[] expected)
         {
-            CollectionAssert.AreEqual(expected, WorkbenchViewDataBuilder.RestoreSteps(remaining).Select(s => s.State));
+            IReadOnlyList<ClarityStep> steps = WorkbenchViewDataBuilder.ClaritySteps(current);
+
+            CollectionAssert.AreEqual(expected, steps.Select(s => s.State));
+            CollectionAssert.AreEqual(new[] { "재봉인", "흐려짐", "선명" }, steps.Select(s => s.Name));
+        }
+
+        /// <summary>선명까지 남은 단계와 다음 변화 안내 문장을 검사합니다. 남은 날은 올림이고 하루가 안 남으면 "하루 안에"입니다.</summary>
+        [Test]
+        public void ClarityNotice_Texts()
+        {
+            DateTime now = LastPurifiedAt;
+
+            Assert.AreEqual("7일 뒤 흐려짐 상태가 돼요",
+                WorkbenchViewDataBuilder.ClarityNotice(Clarity.Clear, now + TimeSpan.FromDays(7), now));
+            // 방금 흐려짐으로 오른 정령: 화면을 그릴 때는 몇 초가 지나 있어도 7일로 보인다.
+            Assert.AreEqual("선명까지 한 단계 남았어요 · 7일 뒤 재봉인 상태가 돼요",
+                WorkbenchViewDataBuilder.ClarityNotice(Clarity.Faded, now + TimeSpan.FromDays(7) - TimeSpan.FromSeconds(3), now));
+            Assert.AreEqual("선명까지 한 단계 남았어요 · 6일 뒤 재봉인 상태가 돼요",
+                WorkbenchViewDataBuilder.ClarityNotice(Clarity.Faded, now + TimeSpan.FromDays(6), now));
+            Assert.AreEqual("선명까지 한 단계 남았어요 · 2일 뒤 재봉인 상태가 돼요",
+                WorkbenchViewDataBuilder.ClarityNotice(Clarity.Faded, now + TimeSpan.FromDays(1.2), now));
+            Assert.AreEqual("선명까지 한 단계 남았어요 · 하루 안에 재봉인 상태가 돼요",
+                WorkbenchViewDataBuilder.ClarityNotice(Clarity.Faded, now + TimeSpan.FromHours(23), now));
+            Assert.AreEqual("선명까지 두 단계 남았어요",
+                WorkbenchViewDataBuilder.ClarityNotice(Clarity.Resealed, null, now));
         }
 
         // ---------- 유물 상세 ----------
@@ -185,7 +210,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [Test]
         public void SpiritDetail_Faded()
         {
-            RelicDetail detail = SpiritDetail(8, "번개", Clarity.Faded, new[] { Phase.Recall, Phase.Guard },
+            RelicDetail detail = SpiritDetail(8, "번개", Clarity.Faded, new[] { Phase.Recall },
                 new[] { MinigameDifficulty.Normal, MinigameDifficulty.Hard }, 4);
 
             SpiritDetailData data = _builder.SpiritDetail(detail, LastPurifiedAt + TimeSpan.FromDays(7.5));
@@ -195,7 +220,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual("조선", data.EraName);
             Assert.AreEqual("흐려짐", data.ClarityName);
             CollectionAssert.AreEqual(new[] { PhaseStepState.Done, PhaseStepState.Current, PhaseStepState.Locked },
-                data.RestoreSteps.Select(s => s.State));
+                data.ClaritySteps.Select(s => s.State));
+            Assert.AreEqual("선명까지 한 단계 남았어요 · 7일 뒤 재봉인 상태가 돼요", data.ClarityNotice);
             Assert.AreEqual("마지막 정화로부터 7일째", data.DaysSincePurified);
             Assert.AreEqual("유물 정화하기 - 기억 회복", data.PurifyButton);
             Assert.IsTrue(data.DifficultySelectable);
@@ -231,7 +257,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [Test]
         public void SpiritDetail_UnknownRelic()
         {
-            RelicDetail detail = SpiritDetail(99, "새정령", Clarity.Resealed, new[] { Phase.Unseal, Phase.Recall, Phase.Guard },
+            RelicDetail detail = SpiritDetail(99, "새정령", Clarity.Resealed, new[] { Phase.Unseal, Phase.Recall },
                 new[] { MinigameDifficulty.Normal, MinigameDifficulty.Hard }, 0);
 
             SpiritDetailData data = _builder.SpiritDetail(detail, LastPurifiedAt + TimeSpan.FromDays(20));
@@ -283,6 +309,20 @@ namespace Jamkkaebi.Tests.UI.EditMode
                 new SettlementResult(PlayResult.Success, NextAction.NextPhase, Plan(Phase.Guard), false, RevealLevel.Named));
 
             Assert.AreEqual("정체가 드러났어요 · 금동대향로", data.Lines[0]);
+        }
+
+        /// <summary>복구 한 단계를 깨면 오른 선명도와 남은 복구를 알리는지 검사합니다.</summary>
+        [Test]
+        public void Settlement_ContinueRestore()
+        {
+            PlayPlan next = new PlayPlan(EntryRoute.Care, new[] { Phase.Recall },
+                new[] { MinigameDifficulty.Normal, MinigameDifficulty.Hard }, Clarity.Faded);
+
+            SettlementData data = _builder.Settlement(8,
+                new SettlementResult(PlayResult.Success, NextAction.ContinueRestore, next, false, null));
+
+            CollectionAssert.AreEqual(new[] { "흐려짐까지 회복했어요.", "남은 복구 · 기억 회복" }, data.Lines);
+            Assert.IsFalse(data.Finished);
         }
 
         /// <summary>오염 관리까지 마치면 정령이 깨어났다고 알리고 홈으로 가는지(Finished) 검사합니다.</summary>

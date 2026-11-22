@@ -28,6 +28,21 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         }
     }
 
+    /// <summary>정령 상세의 선명도 단계 한 칸(재봉인 → 흐려짐 → 선명). 지금 선명도가 현재, 그 아래는 완료, 위는 잠김.</summary>
+    public readonly struct ClarityStep
+    {
+        public Clarity Clarity { get; }
+        public string Name { get; }
+        public PhaseStepState State { get; }
+
+        public ClarityStep(Clarity clarity, PhaseStepState state)
+        {
+            Clarity = clarity;
+            Name = WorkbenchText.ClarityName(clarity);
+            State = state;
+        }
+    }
+
     /// <summary>홈 상단의 진행 중 유물 한 칸.</summary>
     public sealed class SlotCardData
     {
@@ -144,8 +159,11 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public string ClarityName { get; }
         public IntimacyGauge Intimacy { get; }
 
-        /// <summary>복구 진행. 남은 순서의 첫 페이즈가 현재, 나머지 남은 페이즈는 잠김.</summary>
-        public IReadOnlyList<PhaseStep> RestoreSteps { get; }
+        /// <summary>복구 진행. 선명도 세 칸(재봉인 → 흐려짐 → 선명) 중 지금 선명도가 현재.</summary>
+        public IReadOnlyList<ClarityStep> ClaritySteps { get; }
+
+        /// <summary>선명까지 남은 단계와 다음에 선명도가 바뀌는 때. 예: "선명까지 한 단계 남았어요 · 7일 뒤 재봉인 상태가 돼요".</summary>
+        public string ClarityNotice { get; }
 
         public string DaysSincePurified { get; }
         public string PurifyButton { get; }
@@ -156,8 +174,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public bool DifficultySelectable => Difficulties.Count > 1;
 
         public SpiritDetailData(int relicId, string spiritName, string relicName, string eraName, Clarity clarity,
-            IntimacyGauge intimacy, IReadOnlyList<PhaseStep> restoreSteps, string daysSincePurified,
-            string purifyButton, IReadOnlyList<DifficultyOption> difficulties)
+            IntimacyGauge intimacy, IReadOnlyList<ClarityStep> claritySteps, string clarityNotice,
+            string daysSincePurified, string purifyButton, IReadOnlyList<DifficultyOption> difficulties)
         {
             RelicId = relicId;
             SpiritName = spiritName;
@@ -166,7 +184,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             Clarity = clarity;
             ClarityName = WorkbenchText.ClarityName(clarity);
             Intimacy = intimacy;
-            RestoreSteps = restoreSteps;
+            ClaritySteps = claritySteps;
+            ClarityNotice = clarityNotice;
             DaysSincePurified = daysSincePurified;
             PurifyButton = purifyButton;
             Difficulties = difficulties;
