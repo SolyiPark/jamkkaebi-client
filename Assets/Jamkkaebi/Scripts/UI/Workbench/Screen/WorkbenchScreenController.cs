@@ -50,6 +50,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private MinigameLauncher _launcher;
         private PlayReport _reported;          // 보낸 보고. 보고가 실패하면 이것을 그대로 다시 보낸다(서버는 같은 내용이어야 정산을 돌려줌)
         private SettlementData _settlement;
+        private string _playingTitle;          // 정화 중 화면의 제목. 재전송할 때 같은 화면을 다시 그린다.
+        private string _playingDetail;         // 정화 중 화면의 두 번째 줄(유물·정령 이름과 난이도)
 
         /// <summary>상자 열기·정화 시작·보고처럼 상태를 바꾸는 요청이 진행 중인지. 진행 중에는 버튼을 다시 받지 않는다.</summary>
         public bool Busy { get; private set; }
@@ -244,10 +246,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                     if (sequence != _viewSequence) return;
                     _session = session;
                     SetPage(Page.Playing);
-                    string title = WorkbenchText.PhaseName(session.Phase)
+                    _playingTitle = WorkbenchText.PhaseName(session.Phase)
                         + (session.Route == EntryRoute.Care ? " · 관리 플레이" : "");
-                    _detail.RenderPlaying(title,
-                        $"{TitleOf(relicId)}\n난이도 {WorkbenchText.DifficultyName(session.Difficulty)}");
+                    _playingDetail = $"{PlayingNameOf(session)}\n난이도 {WorkbenchText.DifficultyName(session.Difficulty)}";
+                    _detail.RenderPlaying(_playingTitle, _playingDetail);
                     int playSequence = _viewSequence;
                     StartCoroutine(_launcher.Run(session.ToSetup(), report =>
                     {
@@ -304,7 +306,19 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         {
             if (_session == null) return;
             SetPage(Page.Playing);
+            // 재전송 화면의 버튼을 지우고, 보내는 중 문장을 보일 자리(Status)가 있는 정화 중 화면으로 되돌린다.
+            _detail.RenderPlaying(_playingTitle, _playingDetail);
             Report(_reported);
+        }
+
+        /// <summary>
+        /// 정화 중 화면에 보일 이름. 정령이 된 유물의 관리 플레이는 정령 상세와 같은 정령 이름을,
+        /// 최초 정화(아직 정령이 아님)는 유물 별칭을 쓴다. 정령 상세를 받지 못했으면 별칭으로 둔다.
+        /// </summary>
+        private string PlayingNameOf(PurificationSession session)
+        {
+            bool spiritShown = session.Route == EntryRoute.Care && _spirit != null && _spirit.RelicId == session.RelicId;
+            return spiritShown ? _spirit.SpiritName : TitleOf(session.RelicId);
         }
 
         private void ConfirmResult()
