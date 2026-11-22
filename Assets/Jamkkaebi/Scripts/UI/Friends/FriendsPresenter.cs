@@ -540,7 +540,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
                 new Vector2(0, 24), new Vector2(0, 300));
             var detail = Box("Object Detail", footer, new Color(.95f, .95f, .93f), 0, 0, Width, 130);
             var selected = scene?.Objects.FirstOrDefault(o => o.Placement.Key == _selectedObject);
-            Label("Selected", detail.transform, selected == null ? "전시 객체를 선택해 보세요" : selected.Placement.Name + (selected.Placement.IsBuilding ? " · Lv." + selected.Placement.Level : " · " + StageLabel(selected.Placement.Stage)), 29, Ink, 28, 12, 880, 43);
+            Label("Selected", detail.transform, selected == null ? "전시 객체를 선택해 보세요" : selected.Placement.Name + (selected.Placement.IsBuilding ? " · Lv." + selected.Placement.Level : !ShowAwakeningStage || string.IsNullOrEmpty(selected.Placement.Stage) ? "" : " · " + StageLabel(selected.Placement.Stage)), 29, Ink, 28, 12, 880, 43);
             Label("Description", detail.transform, scene != null && scene.Warnings.Count > 0 ? scene.Warnings[0] : "친구의 저장된 배치 · 방문 중에는 편집할 수 없어요", 24, Muted, 28, 61, 880, 44);
             bool ready = scene != null && !VisitSession.Loading;
             var reward = Button("VisitReward", footer, UsesServer ? (State.VisitClaimed ? "방문 보상 받음" : "방문 보상 받기\n오늘 1회") : State.VisitClaimed ? "방문 보상 받음\n정성 +5" : "방문 보상 받기\n오늘 1회 · 정성 +5", 0, 150, 468, 120,
@@ -549,6 +549,13 @@ namespace Jamkkaebi.Scripts.UI.Friends
             var gift = Button("VisitGift", footer, State.GiftRecipient == visibleProfile.Code ? "상자 선물 보냄" : (UsesServer ? "상자 선물하기\n하루 1명" : "상자 선물하기\n하루 1명 · 정성 +3"), 484, 150, 468, 120, () => Gift(visibleProfile), false);
             gift.interactable = ready && State.GiftRecipient == null && !visibleProfile.GiftFull && (!UsesServer || scene.Snapshot.GiftState == "AVAILABLE");
         }
+
+        /// <summary>
+        /// 방문 화면에서 도깨비 이름 뒤에 각성 단계를 붙일지 정합니다. 서버가 2026-11-15부터 각성 단계를 보내지 않아 꺼 두었습니다.
+        /// 각성이 다시 필요해지면 true 로 바꿉니다. 값을 받는 자리(SnapshotPlacement.Stage)와 문구 변환(StageLabel)은 그대로 남아 있습니다.
+        /// 컴파일러가 꺼진 쪽 코드도 계속 검사하도록 const 가 아니라 static readonly 로 둡니다.
+        /// </summary>
+        private static readonly bool ShowAwakeningStage = false;
 
         /// <summary>서버 각성 상태 식별자를 화면에 표시할 한국어 문구로 변환합니다.</summary>
         private static string StageLabel(string stage) => stage == "FULLY_AWAKENED" ? "완전각성" : stage == "AWAKENED_PLUS" ? "추가각성" : "각성";

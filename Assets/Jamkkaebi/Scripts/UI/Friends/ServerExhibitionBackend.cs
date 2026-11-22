@@ -68,8 +68,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
                     row[isBuilding ? "buildingId" : "relicId"]?.Type != JTokenType.Integer ||
                     position["x"]?.Type != JTokenType.Integer || position["y"]?.Type != JTokenType.Integer ||
                     (isBuilding && (row["name"]?.Type != JTokenType.String || row["level"]?.Type != JTokenType.Integer)) ||
-                    (!isBuilding && ((row["spiritName"]?.Type != JTokenType.String && row["realName"]?.Type != JTokenType.String) ||
-                        row["awakeningStage"]?.Type != JTokenType.String)))
+                    (!isBuilding && row["spiritName"]?.Type != JTokenType.String && row["realName"]?.Type != JTokenType.String))
                 {
                     warnings.Add("필수 정보가 없는 배치는 표시하지 않았어요.");
                     continue;
@@ -81,7 +80,9 @@ namespace Jamkkaebi.Scripts.UI.Friends
                     rows.Add(new SnapshotPlacement(isBuilding, (int)row[isBuilding ? "buildingId" : "relicId"],
                         name,
                         new Vector2Int((int)position["x"], (int)position["y"]),
-                        isBuilding ? "AWAKENED" : (string)row["awakeningStage"], isBuilding ? (int)row["level"] : 1));
+                        // 현재 서버(2026-11-15 이후)는 각성 단계를 보내지 않습니다. 없으면 단계 없음(null)으로 두고 행은 유지합니다.
+                        isBuilding ? "AWAKENED" : row["awakeningStage"]?.Type == JTokenType.String ? (string)row["awakeningStage"] : null,
+                        isBuilding ? (int)row["level"] : 1));
                 }
                 catch (OverflowException) { warnings.Add("값의 범위를 벗어난 배치는 표시하지 않았어요."); }
             }
