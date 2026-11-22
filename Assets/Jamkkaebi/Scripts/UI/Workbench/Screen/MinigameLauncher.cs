@@ -116,14 +116,22 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _hud = null;
             if (!_scene.IsValid() || !_scene.isLoaded) return;
 
-            foreach (GameObject obj in _scene.GetRootGameObjects())
+            GameObject[] roots = _scene.GetRootGameObjects();
+            int sceneMask = SceneLayerMask(roots);
+
+            foreach (GameObject obj in roots)
             {
                 foreach (EventSystem events in obj.GetComponentsInChildren<EventSystem>(true))
                     events.gameObject.SetActive(false);
                 foreach (AudioListener listener in obj.GetComponentsInChildren<AudioListener>(true))
                     listener.enabled = false;
                 foreach (Camera sceneCamera in obj.GetComponentsInChildren<Camera>(true))
+                {
                     sceneCamera.depth = CameraDepth;
+                    // 씬 카메라는 Everything을 찍는다. 셸 위에서는 같은 월드 좌표의 다른 탭(전용 레이어 8~11)까지 찍혀 보드를 덮으므로
+                    // 미니게임 씬이 쓰는 레이어만 남긴다. 타일은 보드 컨테이너의 레이어를 물려받아 이 안에 든다.
+                    sceneCamera.cullingMask &= sceneMask;
+                }
                 // 셸의 Overlay 캔버스와 정렬 순서가 같으면 어느 쪽이 위에 그려질지 정해지지 않는다. 미니게임 HUD를 위로 올린다.
                 foreach (Canvas canvas in obj.GetComponentsInChildren<Canvas>(true))
                     if (canvas.isRootCanvas && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
@@ -132,6 +140,16 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 if (!_adapter) _adapter = obj.GetComponentInChildren<MinigameSessionAdapter>(true);
                 if (!_hud) _hud = obj.GetComponentInChildren<MinigameHudPresenter>(true);
             }
+        }
+
+        /// <summary>씬 안의 모든 오브젝트(꺼진 것 포함)가 쓰는 레이어를 비트 마스크로 모은다.</summary>
+        private static int SceneLayerMask(GameObject[] roots)
+        {
+            int mask = 0;
+            foreach (GameObject obj in roots)
+                foreach (Transform child in obj.GetComponentsInChildren<Transform>(true))
+                    mask |= 1 << child.gameObject.layer;
+            return mask;
         }
 
         /// <summary>구독을 풀고 씬을 내린 뒤 셸 화면을 되돌린다. 성공·실패 경로가 함께 쓴다.</summary>
