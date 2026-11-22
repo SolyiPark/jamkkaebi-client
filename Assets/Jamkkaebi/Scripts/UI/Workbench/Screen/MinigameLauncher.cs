@@ -63,7 +63,17 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _root.SetNavigationLocked(true);
             _root.SetCoverShell(true);
 
-            AsyncOperation load = SceneManager.LoadSceneAsync(ScenePath, LoadSceneMode.Additive);
+            // 빌드에 없는 씬 등으로 로드를 시작하지 못하면 Unity 버전에 따라 null을 돌려주거나 예외를 던진다.
+            // 이미 셸을 가리고 탭을 잠갔으므로 둘 다 같은 실패 경로로 정리한다(yield가 있는 줄은 try에 넣을 수 없어 호출만 감싼다).
+            AsyncOperation load = null;
+            try
+            {
+                load = SceneManager.LoadSceneAsync(ScenePath, LoadSceneMode.Additive);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+            }
             if (load == null)
             {
                 yield return Close();
@@ -85,7 +95,13 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             // 구독한 뒤에 연다. 여는 도중 일어난 알림도 놓치지 않는다.
             _adapter.PlayFinished += OnPlayFinished;
             _hud.ExitRequested += OnExitRequested;
-            _adapter.Begin(setup);
+            if (!_adapter.Begin(setup))
+            {
+                // 판이 열리지 않으면 포기·나가기도 올 수 없다. 기다리지 않고 셸을 되돌린다.
+                yield return Close();
+                failed("미니게임을 시작하지 못했어요.");
+                yield break;
+            }
 
             while (!_exitRequested) yield return null;
 

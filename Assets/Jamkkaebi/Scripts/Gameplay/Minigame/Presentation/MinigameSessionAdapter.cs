@@ -157,10 +157,11 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         }
 
         /// <summary>작업대가 정화 시작 응답으로 판을 연다. 인스펙터의 페이즈·난이도·봉인 매개체·시드 대신 이 값을 쓴다.</summary>
-        public void Begin(PlaySetup setup)
+        /// <returns>판을 열었으면 true. 필수 참조가 빠져 열지 못하면 false(호출한 쪽이 셸 잠금 해제·실패 안내를 맡는다).</returns>
+        public bool Begin(PlaySetup setup)
         {
             if (setup == null) throw new ArgumentNullException(nameof(setup));
-            if (!HasRequiredReferences()) return;
+            if (!HasRequiredReferences()) return false;
 
             _phase = setup.Phase.Order();
             _difficulty = setup.Difficulty;
@@ -178,6 +179,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             }
             
             BeginSession(setup.Seed);
+            return true;
         }
 
         /// <summary>다음 페이즈로 넘어가 새 판을 시작한다. 마지막 페이즈면 아무 일도 하지 않는다.</summary>
