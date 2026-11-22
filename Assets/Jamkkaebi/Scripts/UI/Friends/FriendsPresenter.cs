@@ -388,8 +388,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
                 y += 136;
             }
             Button("Blocked", _content, "차단 목록 관리", 0, y + 24, Width, 80, () => Show("Blocked"), false);
-            Label("Preview", _content, "화면 미리보기 · 샘플 친구 기록", 22, Muted, 0, y + 113, Width, 40);
-            Height(y + 170);
+            Height(y + 121);
         }
 
         /// <summary>친구 프로필 행에 방문·선물 조작과 서버 또는 모의 상태에 따른 사용 가능 여부를 표시합니다.</summary>
