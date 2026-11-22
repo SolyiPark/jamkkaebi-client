@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Data;
 using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
+using Jamkkaebi.Scripts.Gameplay.Purification;
 using UnityEngine;
 
 namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
@@ -26,16 +27,20 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [SerializeField] private bool _usePointerEvents;
         
         [Header("고정 시드 사용")]
+        [Tooltip("단독 실행용, 작업대에서는 PlaySetup 값을 씀")]
         [SerializeField] private bool _useFixedSeed;
+        [Tooltip("단독 실행용, 작업대에서는 PlaySetup 값을 씀")]
         [SerializeField] private long _fixedSeed;
         
         [Header("유물")]
-        [Tooltip("선택. 정화할 유물. 연결하면 유물의 봉인 매개체를 쓰고, 비우면 아래 Seal Medium 값을 쓴다.")]
-        [SerializeField] private RelicData _relic;          // TODO: 작업대·전시관에서 진입할 때 넘겨받도록 교체
+        [Tooltip("단독 실행용. 연결하면 이 유물의 봉인 매개체, 초상화를 쓴다. 작업대에서는 매개체에 쓰지 않는다.")]
+        [SerializeField] private RelicData _relic;
+        [Tooltip("작업대에서 연 판은 PlaySetup.RelicId로 이 표에서 유물을 찾는다(초상화). 없으면 초상화를 숨긴다.")]
+        [SerializeField] private RelicTable _relicTable;
 
         [Header("페이즈")]
-        [Tooltip("이번 판의 정화 페이즈(1 봉인 해제, 2 기억 회복, 3 오염 관리). 시작 연출에 쓴다.")]
-        [SerializeField] [Range(1, 3)] private int _phase = 1;   // TODO: 서버 PurificationStartResponse의 페이즈 연동 후 교체
+        [Tooltip("단독 실행용(1 봉인 해제, 2 기억 회복, 3 오염 관리), 작업대에서는 PlaySetup 값을 씀")]
+        [SerializeField] [Range(1, 3)] private int _phase = 1;
 
         [Header("연쇄 연출")]
         [Tooltip("도움 타일이 한 줄을 열 때, 도움 타일에서 한 칸 멀어질 때마다 늦게 깨지는 시간(초). 0이면 한 번에 깨진다.")]
@@ -52,11 +57,20 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Header("봉인 매개체 스킨")]
         [SerializeField] private SealMediumCatalog _sealMediumCatalog;
         [SerializeField] private BackgroundView _backgroundView;
-        [SerializeField] private SealMedium _sealMedium;     // TODO: 서버 PurificationStartResponse.sealMedium 연동 후 제거
+        [Tooltip("단독 실행용, 작업대에서는 PlaySetup 값을 씀")]
+        [SerializeField] private SealMedium _sealMedium;
 
         [Header("페이즈 연출")]
         [Tooltip("페이즈마다 배경 밝기와 배경 연출 세기를 정한다. 비어 있으면 모든 페이즈를 같은 연출로 보여 준다.")]
         [SerializeField] private PhaseCatalog _phaseCatalog;
+        
+        [Header("작업대 연결")]
+        [Tooltip("켜면 Start에서 인스펙터 값으로 바로 판을 연다(Minigame 씬 단독 실행). 작업대에서는 Begin(PlaySetup)으로 연다.")]
+        [SerializeField] private bool _autoStart = true;
+
+        private MinigameBoardConfig _config;
+        private bool _hasExternalSetup;
+        private bool _hasReported;
 
         private MinigameSession _session;
         private Dictionary<Vector2Int, TileView> _tileViews;
@@ -85,6 +99,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public event Action<Vector2Int, bool> HelperChainStarted;
         /// <summary>누른 칸에서 도구를 쓰지 못했을 때. 누른 칸 좌표와 이유를 전달한다. 화면 안내에 쓴다.</summary>
         public event Action<Vector2Int, TileActionRejectReason> TileActionRejected;
+        /// <summary>이번 판이 끝나 결과 화면을 띄울 때 한 번 알린다. 포기하면 바로 알린다.</summary>
+        public event Action<PlayReport> PlayFinished;
+        
         public MinigameSession Session => _session;
         /// <summary>현재 판의 봉인 매개체 스킨. 형상 미리보기 등 UI가 같은 그림을 쓰도록 노출한다.</summary>
         public SealMediumData CurrentSkin { get; private set; }
@@ -92,6 +109,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         public PhaseData CurrentPhaseData { get; private set; }
         /// <summary>판이 끝나고 정답 공개 연출까지 마쳐 결과 화면을 띄워도 되면 true.</summary>
         public bool IsResultReady { get; private set; }
+        /// <summary>이번 판의 보고. 알리기 전에는 null. 결과 창이 같은 숫자를 보여 주는 데 쓴다.</summary>
+        public PlayReport LastReport { get; private set; }
         /// <summary>현재 판에서 정화하는 유물. 연결되지 않았으면 null.</summary>
         public RelicData CurrentRelic => _relic;
         public IReadOnlyDictionary<Vector2Int, TileView> TileViews => _tileViews;
@@ -108,33 +127,23 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         /// </summary>
         /// <remarks>타일은 OnMouseDown으로 눌리므로 UI 창이 덮여 있어도 입력이 들어온다. 그래서 따로 막는다.</remarks>
         public bool IsInputBlocked { get; set; }
-        public bool CanAcceptInput => isActiveAndEnabled && !IsInputBlocked && Time.timeScale > 0f &&
-            (!_inputCamera || _inputCamera.isActiveAndEnabled);
-
+        /// <summary>새 판을 열여도 되는지(도움말 창, 페이즈 연출 중이거나 일시정지면 안 됨). 판이 끝났는지는 보지 않는다.</summary>
+        public bool CanBeginSession => isActiveAndEnabled && !IsInputBlocked && Time.timeScale > 0f;
+        public bool CanAcceptInput => CanBeginSession && (!_inputCamera || _inputCamera.isActiveAndEnabled) && !_hasReported;
+        /// <summary>작업대가 Begin(PlaySetup)으로 연 판인지. HUD가 버튼 동작을 고를 때 쓴다.</summary>
+        public bool HasExternalSetup => _hasExternalSetup;
+        
         private void Start()
         {
-            if (_difficultyTable == null)
-            {
-                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _difficultyTable이 연결되지 않았습니다.", this);
-                return;
-            }
-            if (_sealMediumCatalog == null)
-            {
-                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _sealMediumCatalog가 연결되지 않았습니다.", this);
-                return;
-            }
-            if (_backgroundView == null)
-            {
-                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _backgroundView가 연결되지 않았습니다.", this);
-                return;
-            }
+            if (!_autoStart || _hasExternalSetup) return;
+            if (!HasRequiredReferences()) return;
             
             BeginSession();
         }
 
         private SealMediumData ResolveSkin()
         {
-            if (_relic == null) return _sealMediumCatalog.GetSealMediumData(_sealMedium);
+            if (_hasExternalSetup || _relic == null) return _sealMediumCatalog.GetSealMediumData(_sealMedium);
             if (_relic.SealMedium != null) return _relic.SealMedium;
 
             Debug.LogWarning($"{nameof(MinigameSessionAdapter)}: 유물 '{_relic.name}'에 봉인 매개체가 없어 {_sealMedium}을 씁니다.", this);
@@ -145,6 +154,32 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         {
             long seed = ResolveSeed(_useFixedSeed, _fixedSeed);
             BeginSession(seed);
+        }
+
+        /// <summary>작업대가 정화 시작 응답으로 판을 연다. 인스펙터의 페이즈·난이도·봉인 매개체·시드 대신 이 값을 쓴다.</summary>
+        /// <returns>판을 열었으면 true. 필수 참조가 빠져 열지 못하면 false(호출한 쪽이 셸 잠금 해제·실패 안내를 맡는다).</returns>
+        public bool Begin(PlaySetup setup)
+        {
+            if (setup == null) throw new ArgumentNullException(nameof(setup));
+            if (!HasRequiredReferences()) return false;
+
+            _phase = setup.Phase.Order();
+            _difficulty = setup.Difficulty;
+            _sealMedium = setup.SealMedium;
+
+            _hasExternalSetup = true;
+
+            if (_relicTable)
+            {
+                _relicTable.TryGetRelic(setup.RelicId, out _relic);
+            }
+            else
+            {
+                _relic = null;
+            }
+            
+            BeginSession(setup.Seed);
+            return true;
         }
 
         /// <summary>다음 페이즈로 넘어가 새 판을 시작한다. 마지막 페이즈면 아무 일도 하지 않는다.</summary>
@@ -179,6 +214,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             }
             
             _hasHandledEnd = false;
+            _hasReported = false;
+            LastReport = null;
             IsResultReady = false;
             // 이전 판의 연쇄·정답 공개 연출이 새 판 타일을 건드리지 않도록 모두 멈춘다
             StopAllCoroutines();
@@ -189,6 +226,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             
             // 2. 새 세션 생성
             MinigameBoardConfig config = _difficultyTable.GetConfig(_difficulty);
+            _config = config;
             _session = new MinigameSession(config, seed);
             Debug.Log($"[Minigame] seed: {_session.Seed}");
             _tileViews = new Dictionary<Vector2Int, TileView>();
@@ -228,6 +266,17 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _session.TileRevealAttempted += OnTileRevealAttempted;
             FeedbackChanged?.Invoke("타일을 선택해 발굴하세요.");
             SessionBegan?.Invoke();
+        }
+
+        /// <summary>중도 포기. 진행 중인 판만 포기할 수 있다.</summary>
+        public void GiveUp()
+        {
+            if (_session == null) return;
+            if (_session.State != SessionState.InProgress) return;
+            if (_hasReported) return;
+
+            StopAllCoroutines();
+            NotifyFinished(true);
         }
 
         private void Update()
@@ -272,6 +321,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
                     if (_tileViews[coord] != null) ShowTileContent(_tileViews[coord], coord);
                 }
                 IsResultReady = true;
+                NotifyFinished(false);
             }
         }
 
@@ -577,6 +627,19 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             if (_resultDelay > 0f) yield return new WaitForSeconds(_resultDelay);
             _endRevealRoutine = null;
             IsResultReady = true;
+            NotifyFinished(false);
+        }
+
+        /// <summary>이번 판의 보고를 한 번만 알린다.</summary>
+        private void NotifyFinished(bool gaveUp)
+        {
+            if (_hasReported) return;
+            if (_session == null) return;
+
+            _hasReported = true;
+            PlayReport report = MinigameReport.From(_session, _config, gaveUp);
+            LastReport = report;
+            PlayFinished?.Invoke(report);
         }
 
         /// <summary>
@@ -604,6 +667,27 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             }
 
             return DateTime.UtcNow.Ticks;
+        }
+
+        private bool HasRequiredReferences()
+        {
+            if (_difficultyTable == null)
+            {
+                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _difficultyTable이 연결되지 않았습니다.", this);
+                return false;
+            }
+            if (_sealMediumCatalog == null)
+            {
+                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _sealMediumCatalog가 연결되지 않았습니다.", this);
+                return false;
+            }
+            if (_backgroundView == null)
+            {
+                Debug.LogError($"{nameof(MinigameSessionAdapter)}: _backgroundView가 연결되지 않았습니다.", this);
+                return false;
+            }
+
+            return true;
         }
     }
 }

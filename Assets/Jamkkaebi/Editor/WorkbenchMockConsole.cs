@@ -57,13 +57,10 @@ namespace Jamkkaebi.Editor
             PlayPlanner planner = new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default,
                 MinigameDifficulty.Normal);
             _backend = new MockWorkbenchBackend(inventory, planner, TotalRelics,
-                DefaultSpiritName, new System.Random(_seed), () => Now, 0f);
+                WorkbenchRelicSeed.Instance, new System.Random(_seed), () => Now, 0f);
 
             Log($"새 모의 백엔드 (전체 유물 {TotalRelics}개, 용량 {RelicInventory.DefaultWorkbenchCapacity}, 시드 {_seed})");
         }
-
-        private static string DefaultSpiritName(int relicId) =>
-            WorkbenchRelicSeed.Instance.TryFind(relicId, out WorkbenchRelicInfo info) ? info.DefaultSpiritName : $"정령{relicId}";
 
         private void OnGUI()
         {
@@ -191,7 +188,7 @@ namespace Jamkkaebi.Editor
                 (c, f) => _backend.StartPurification(relicId, difficulty, c, f), session =>
                 {
                     _lastToken = session.SessionToken;
-                    Log($"  토큰 {Short(session.SessionToken)} · {session.Route} · {session.Phase} · {session.Difficulty}");
+                    Log($"  토큰 {Short(session.SessionToken)} · {session.Route} · {session.Phase} · {session.Difficulty} · {session.SealMedium} · 시드 {session.Seed}");
                 });
         }
 
@@ -204,8 +201,12 @@ namespace Jamkkaebi.Editor
         private void Report(PlayResult result)
         {
             string token = _lastToken;
+            // 콘솔은 결과만 고르고 나머지 보고 값은 고정한다(같은 버튼을 다시 누르면 같은 보고 → 재보고 확인용).
+            PlayReport report = result == PlayResult.Success
+                ? new PlayReport(PlayResult.Success, null, 5, 1, 30, 0)
+                : new PlayReport(PlayResult.Failure, FailReason.DamageFull, 5, 1, PlayReport.MaxDamage, 0);
             Call<SettlementResult>($"보고 {result} {Short(token)}",
-                (c, f) => _backend.ReportPurification(token, result, c, f), settlement =>
+                (c, f) => _backend.ReportPurification(token, report, c, f), settlement =>
                 {
                     string revealed = settlement.Revealed.HasValue ? $" · 공개 {settlement.Revealed.Value}" : "";
                     string completed = settlement.CompletedNow ? " · 최초 정화 완료" : "";

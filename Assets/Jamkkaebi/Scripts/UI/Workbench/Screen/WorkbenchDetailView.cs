@@ -33,8 +33,6 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
         public event Action BackClicked;
         public event Action PurifyClicked;
-        public event Action<bool> ReportClicked;   // true면 성공으로 보고
-        public event Action QuitPlayClicked;
         public event Action ConfirmClicked;
         public event Action RetryClicked;
         public event Action<MinigameDifficulty> DifficultySelected;
@@ -190,7 +188,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             RenameInput = null;
         }
 
-        /// <summary>정화 중. 4단계에서 미니게임으로 바뀔 자리라 결과를 고르는 임시 버튼만 둔다.</summary>
+        /// <summary>정화 중. 미니게임이 셸을 가리는 동안에는 보이지 않고, 미니게임이 내려간 뒤 보고 응답을 기다리는 동안 보인다.</summary>
         public void RenderPlaying(string title, string detail)
         {
             Begin();
@@ -199,11 +197,6 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 new Vector2(.5f, .5f), Vector2.zero, new Vector2(940, 70)).fontStyle = FontStyle.Bold;
             WorkbenchUI.Label("Detail", _root, _font, detail, 28, WorkbenchUI.Muted, new Vector2(.5f, .72f),
                 new Vector2(.5f, .5f), new Vector2(0, -80), new Vector2(940, 100));
-            WorkbenchUI.Label("Placeholder", _root, _font, "[임시] 미니게임은 4단계에서 연결합니다.\n결과를 골라 보고하세요.", 26,
-                WorkbenchUI.Muted, new Vector2(.5f, .55f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(940, 100));
-            ActionButton(_root, "ReportSuccess", "성공으로 보고", new Vector2(.5f, .42f), () => ReportClicked?.Invoke(true));
-            ActionButton(_root, "ReportFailure", "실패로 보고", new Vector2(.5f, .34f), () => ReportClicked?.Invoke(false));
-            ActionButton(_root, "QuitPlay", "그만두기", new Vector2(.5f, .26f), () => QuitPlayClicked?.Invoke());
             _status = WorkbenchUI.Label("Status", _root, _font, "", 26, WorkbenchUI.Muted, new Vector2(.5f, .19f),
                 new Vector2(.5f, .5f), Vector2.zero, new Vector2(940, 60));
             End();

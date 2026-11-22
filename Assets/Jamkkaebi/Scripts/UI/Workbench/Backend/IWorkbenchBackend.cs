@@ -26,7 +26,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             Action<PurificationSession> completed, Action<string> failed);
 
         /// <summary>POST /api/purifications/{sessionToken}/result</summary>
-        IEnumerator ReportPurification(string sessionToken, PlayResult result, Action<SettlementResult> completed,
+        IEnumerator ReportPurification(string sessionToken, PlayReport report, Action<SettlementResult> completed,
             Action<string> failed);
 
         /// <summary>

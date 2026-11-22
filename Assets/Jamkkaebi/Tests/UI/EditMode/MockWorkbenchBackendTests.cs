@@ -31,8 +31,34 @@ namespace Jamkkaebi.Tests.UI.EditMode
 
         // ---------- 준비 도우미 ----------
 
-        /// <summary>기본 정령 이름. 서버의 유물 마스터 데이터 대신 쓴다.</summary>
-        private static string SpiritName(int relicId) => "정령" + relicId;
+        /// <summary>
+        /// 테스트용 유물 카탈로그. relicId 1 이상이면 기본 정령 이름 "정령{id}"와 봉인 매개체를 돌려준다.
+        /// unknownIds에 든 relicId는 모르는 유물로 본다.
+        /// </summary>
+        private sealed class TestCatalog : IWorkbenchRelicCatalog
+        {
+            private readonly int[] _unknownIds;
+            public TestCatalog(int count, params int[] unknownIds) { Count = count; _unknownIds = unknownIds; }
+            public int Count { get; }
+
+            public bool TryFind(int relicId, out WorkbenchRelicInfo info)
+            {
+                if (relicId < 1 || Array.IndexOf(_unknownIds, relicId) >= 0)
+                {
+                    info = null;
+                    return false;
+                }
+                info = new WorkbenchRelicInfo(relicId, "시대", "별칭" + relicId, "유물" + relicId, "정령" + relicId,
+                    relicId % 2 == 0 ? SealMedium.Fog : SealMedium.Root);
+                return true;
+            }
+        }
+
+        private static readonly TestCatalog SpiritName = new TestCatalog(10);
+
+        private static PlayReport ReportOf(PlayResult result) => result == PlayResult.Success
+            ? new PlayReport(PlayResult.Success, null, 3, 1, 10, 0)
+            : new PlayReport(PlayResult.Failure, FailReason.DamageFull, 3, 1, 100, 0);
 
         private static PlayPlanner CreatePlanner() =>
             new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default, MinigameDifficulty.Normal);
@@ -98,7 +124,10 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Run<PurificationSession>((c, f) => _backend.StartPurification(relicId, difficulty, c, f));
 
         private CallResult<SettlementResult> Report(string token, PlayResult result) =>
-            Run<SettlementResult>((c, f) => _backend.ReportPurification(token, result, c, f));
+            Report(token, ReportOf(result));
+
+        private CallResult<SettlementResult> Report(string token, PlayReport report) =>
+            Run<SettlementResult>((c, f) => _backend.ReportPurification(token, report, c, f));
 
         /// <summary>뽑을 relicId를 미리 정해 두는 Random. 예상하지 못한 뽑기가 일어나면 바로 실패한다.</summary>
         private sealed class QueuedRandom : Random
@@ -594,6 +623,76 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(Phase.Unseal, relic.CurrentPhase);
         }
 
+        // ---------- 응답 유실 흉내(DropReportResponses) ----------
+
+        /// <summary>응답 유실을 켜면 정산은 하고 실패를 돌려주며, 같은 보고로 다시 보내면 정산을 한 번만 반영한 결과를 받는지 검사합니다.</summary>
+        [Test]
+        public void Report_DroppedResponse_SettlesOnceAndRetrySucceeds()
+        {
+            OwnedRelic relic = InProgress(1);
+            CreateBackend(3, 10, relic);
+            string token = Start(1, null).Value.SessionToken;
+            _backend.DropReportResponses = 1;
+
+            CallResult<SettlementResult> dropped = Report(token, PlayResult.Success);
+
+            Assert.AreEqual(1, dropped.FailedCount);
+            Assert.AreEqual(0, _backend.DropReportResponses);
+            Assert.AreEqual(Phase.Recall, relic.CurrentPhase, "응답만 잃었을 뿐 정산은 이미 반영되어야 합니다.");
+
+            CallResult<SettlementResult> retry = Report(token, PlayResult.Success);
+
+            Assert.IsTrue(retry.Succeeded);
+            Assert.AreEqual(Phase.Recall, relic.CurrentPhase, "재전송이 다시 정산하면 안 됩니다.");
+        }
+
+        /// <summary>횟수가 2면 처음 보고와 첫 재전송이 모두 실패하고, 그다음 재전송에서 첫 정산을 그대로 받는지 검사합니다.</summary>
+        [Test]
+        public void Report_DroppedTwice_SecondRetrySucceedsWithSameSettlement()
+        {
+            OwnedRelic relic = InProgress(1);
+            CreateBackend(3, 10, relic);
+            string token = Start(1, null).Value.SessionToken;
+            _backend.DropReportResponses = 2;
+
+            Assert.AreEqual(1, Report(token, PlayResult.Success).FailedCount);
+            Assert.AreEqual(1, Report(token, PlayResult.Success).FailedCount);
+            Assert.AreEqual(0, _backend.DropReportResponses);
+
+            CallResult<SettlementResult> third = Report(token, PlayResult.Success);
+            CallResult<SettlementResult> fourth = Report(token, PlayResult.Success);
+
+            Assert.IsTrue(third.Succeeded);
+            Assert.AreSame(third.Value, fourth.Value);
+            Assert.AreEqual(Phase.Recall, relic.CurrentPhase);
+        }
+
+        /// <summary>정산에 이르지 못한 실패(모르는 토큰·다른 결과 충돌)는 유실 횟수를 쓰지 않는지 검사합니다.</summary>
+        [Test]
+        public void Report_OtherFailures_DoNotConsumeDrops()
+        {
+            CreateBackend(3, 10, InProgress(1));
+            string token = Start(1, null).Value.SessionToken;
+            Assert.IsTrue(Report(token, PlayResult.Failure).Succeeded);
+            _backend.DropReportResponses = 1;
+
+            Assert.AreEqual(1, Report("unknown", PlayResult.Success).FailedCount);
+            Assert.AreEqual(1, Report(token, PlayResult.Success).FailedCount);
+
+            Assert.AreEqual(1, _backend.DropReportResponses);
+        }
+
+        /// <summary>유실 횟수는 음수를 거부하고 0은 받아들이는지 검사합니다(경계값).</summary>
+        [Test]
+        public void DropReportResponses_Negative_Throws()
+        {
+            CreateBackend(3, 10, InProgress(1));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => _backend.DropReportResponses = -1);
+            _backend.DropReportResponses = 0;
+            Assert.AreEqual(0, _backend.DropReportResponses);
+        }
+
         /// <summary>발급한 적 없는 토큰이나 비어 있는 토큰은 실패하는지 검사합니다.</summary>
         [Test]
         public void Report_UnknownOrEmptyToken_Fails()
@@ -605,14 +704,14 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(1, Report("", PlayResult.Success).FailedCount);
         }
 
-        /// <summary>정의되지 않은 결과는 판을 소모하지 않고 실패해, 나중에 올바른 결과로 보고할 수 있는지 검사합니다.</summary>
+        /// <summary>보고가 null이면 판을 소모하지 않고 실패해, 나중에 올바른 결과로 보고할 수 있는지 검사합니다.</summary>
         [Test]
-        public void Report_UndefinedResult_FailsAndKeepsPlay()
+        public void Report_NullReport_FailsAndKeepsPlay()
         {
             CreateBackend(3, 10, InProgress(1));
             string token = Start(1, null).Value.SessionToken;
 
-            Assert.AreEqual(1, Report(token, (PlayResult)99).FailedCount);
+            Assert.AreEqual(1, Report(token, (PlayReport)null).FailedCount);
 
             Assert.IsTrue(Report(token, PlayResult.Success).Succeeded);
         }
@@ -646,9 +745,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
         private CallResult<string> Rename(int relicId, string name) =>
             Run<string>((c, f) => _backend.RenameSpirit(relicId, name, c, f));
 
-        /// <summary>기본 이름 함수가 null이면 거부하는지 검사합니다.</summary>
+        /// <summary>유물 카탈로그가 null이면 거부하는지 검사합니다.</summary>
         [Test]
-        public void Constructor_NullDefaultSpiritName_Throws()
+        public void Constructor_NullCatalog_Throws()
         {
             RelicInventory inventory = new RelicInventory(ClarityPolicy.Default, 3, new OwnedRelic[0]);
 
@@ -737,6 +836,64 @@ namespace Jamkkaebi.Tests.UI.EditMode
             }
 
             Assert.AreEqual("정령1", Detail(1).Value.SpiritName);
+        }
+
+        // ---------- 시작 설정·보고 내용 ----------
+
+        /// <summary>정화를 시작하면 카탈로그의 봉인 매개체와 시드가 세션에 담기고, 미니게임 시작 설정으로 바뀌는지 검사합니다.</summary>
+        [Test]
+        public void Start_SessionCarriesSealMediumAndSeed()
+        {
+            CreateBackend(3, 10, InProgress(2));
+
+            PurificationSession session = Start(2, null).Value;
+            PlaySetup setup = session.ToSetup();
+
+            Assert.AreEqual(SealMedium.Fog, session.SealMedium);
+            Assert.AreEqual(2, setup.RelicId);
+            Assert.AreEqual(Phase.Unseal, setup.Phase);
+            Assert.AreEqual(MinigameDifficulty.Normal, setup.Difficulty);
+            Assert.AreEqual(SealMedium.Fog, setup.SealMedium);
+            Assert.AreEqual(session.Seed, setup.Seed);
+        }
+
+        /// <summary>카탈로그에 없는 유물은 봉인 매개체를 정할 수 없어 정화를 시작하지 못하는지 검사합니다.</summary>
+        [Test]
+        public void Start_UnknownRelic_Fails()
+        {
+            _inventory = new RelicInventory(ClarityPolicy.Default, 3, new[] { InProgress(1) });
+            _random = new QueuedRandom();
+            _backend = new MockWorkbenchBackend(_inventory, CreatePlanner(), 10, new TestCatalog(10, 1), _random, () => _now, 0f);
+
+            CallResult<PurificationSession> result = Start(1, null);
+
+            Assert.AreEqual(1, result.FailedCount);
+            Assert.IsNull(result.Value);
+        }
+
+        /// <summary>모르는 정령의 이름은 예외 없이 "알 수 없는 유물"로 보이는지 검사합니다.</summary>
+        [Test]
+        public void SpiritName_UnknownRelic_ShowsUnknown()
+        {
+            _inventory = new RelicInventory(ClarityPolicy.Default, 3, new[] { CompletedDaysAgo(3, 1) });
+            _random = new QueuedRandom();
+            _backend = new MockWorkbenchBackend(_inventory, CreatePlanner(), 10, new TestCatalog(10, 3), _random, () => _now, 0f);
+
+            Assert.AreEqual(WorkbenchText.UnknownRelic, Workbench().Value.Spirits[0].SpiritName);
+        }
+
+        /// <summary>같은 결과라도 보고 내용(사용 횟수 등)이 다르면 충돌로 거부하는지 검사합니다(서버 matches).</summary>
+        [Test]
+        public void Report_SameResultDifferentDetails_Fails()
+        {
+            OwnedRelic relic = InProgress(1);
+            CreateBackend(3, 10, relic);
+            string token = Start(1, null).Value.SessionToken;
+            SettlementResult first = Report(token, new PlayReport(PlayResult.Success, null, 3, 1, 10, 2)).Value;
+
+            Assert.AreEqual(1, Report(token, new PlayReport(PlayResult.Success, null, 3, 1, 10, 5)).FailedCount);
+            Assert.AreSame(first, Report(token, new PlayReport(PlayResult.Success, null, 3, 1, 10, 2)).Value);
+            Assert.AreEqual(Phase.Recall, relic.CurrentPhase);
         }
 
         // ---------- 전체 흐름 ----------

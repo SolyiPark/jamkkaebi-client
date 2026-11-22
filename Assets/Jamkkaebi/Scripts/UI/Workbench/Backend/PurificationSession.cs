@@ -14,9 +14,11 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public EntryRoute Route { get; }
         public Phase Phase { get; }
         public MinigameDifficulty Difficulty { get; }
+        public SealMedium SealMedium { get; }
+        public long Seed { get; }
 
         public PurificationSession(string sessionToken, int relicId, EntryRoute route,
-            Phase phase, MinigameDifficulty difficulty)
+            Phase phase, MinigameDifficulty difficulty, SealMedium sealMedium, long seed)
         {
             if (sessionToken == null) throw new ArgumentNullException(nameof(sessionToken));
             if (sessionToken.Length == 0) throw new ArgumentException("sessionToken이 비어있습니다.", nameof(sessionToken));
@@ -27,12 +29,21 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 throw new ArgumentException($"페이즈 {phase}는 정의되지 않았습니다.", nameof(phase));
             if (!Enum.IsDefined(typeof(MinigameDifficulty), difficulty))
                 throw new ArgumentException($"미니게임 난이도 {difficulty}는 정의되지 않았습니다.", nameof(difficulty));
+            if (!Enum.IsDefined(typeof(SealMedium), sealMedium))
+                throw new ArgumentException($"SealMedium {sealMedium}은 정의되지 않았습니다.", nameof(sealMedium));
 
             SessionToken = sessionToken;
             RelicId = relicId;
             Route = route;
             Phase = phase;
             Difficulty = difficulty;
+            SealMedium = sealMedium;
+            Seed = seed;
+        }
+
+        public PlaySetup ToSetup()
+        {
+            return new PlaySetup(RelicId, Phase, Difficulty, SealMedium, Seed);
         }
     }
 }

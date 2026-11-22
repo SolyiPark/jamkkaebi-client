@@ -12,7 +12,7 @@ namespace Jamkkaebi.Scripts.UI.Minigame
     /// <remarks>
     /// <see cref="UILoader"/>가 프리팹에서 만든다.
     /// - 성공: 결과 수치 + [다음 단계](다음 페이즈가 있을 때) + [나가기]
-    /// - 실패: 안내 문구와 떠다니는 위협 아이콘 + [다시 하기] + [나가기]
+    /// - 실패: 안내 문구와 떠다니는 위협 아이콘 + [다시 하기](CanRetry일 때만) + [나가기]
     /// 버튼을 눌러도 직접 판을 바꾸지 않고 이벤트로 알리기만 한다. 어떻게 처리할지는 받는 쪽이 정한다.
     /// </remarks>
     public class ResultPopup : UIPopup
@@ -83,12 +83,12 @@ namespace Jamkkaebi.Scripts.UI.Minigame
 
             // 숫자만 색을 바꾸려고 TMP 리치 텍스트의 <color> 태그를 쓴다
             if (_damageText != null)
-                _damageText.text = $"손상도 {Colorize($"{Mathf.RoundToInt(data.Damage * 100f)}%", _damageValueColor)}";
+                _damageText.text = $"손상도 {Colorize($"{data.DamagePercent}%", _damageValueColor)}";
             if (_bonusText != null)
                 _bonusText.text = $"획득한 정성 {Colorize($"{data.BonusCount}개", _bonusValueColor)}";
 
             if (_nextButton != null) _nextButton.gameObject.SetActive(succeeded && data.HasNextPhase);
-            if (_retryButton != null) _retryButton.gameObject.SetActive(!succeeded);
+            if (_retryButton != null) _retryButton.gameObject.SetActive(data.CanRetry && !data.Succeeded);
         }
 
         private static string Colorize(string text, Color color) =>

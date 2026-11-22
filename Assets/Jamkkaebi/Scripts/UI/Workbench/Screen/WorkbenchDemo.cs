@@ -25,12 +25,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
             RelicInventory inventory = new RelicInventory(ClarityPolicy.Default, RelicInventory.DefaultWorkbenchCapacity, relics);
             PlayPlanner planner = new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default, MinigameDifficulty.Normal);
-            return new MockWorkbenchBackend(inventory, planner, WorkbenchRelicSeed.Instance.Count, DefaultSpiritName,
+            return new MockWorkbenchBackend(inventory, planner, WorkbenchRelicSeed.Instance.Count, WorkbenchRelicSeed.Instance,
                 new Random(), clock, delaySeconds);
         }
-
-        public static string DefaultSpiritName(int relicId) =>
-            WorkbenchRelicSeed.Instance.TryFind(relicId, out WorkbenchRelicInfo info) ? info.DefaultSpiritName : WorkbenchText.UnknownRelic;
 
         private static OwnedRelic Spirit(int relicId, DateTime lastPurifiedAt) =>
             new OwnedRelic(relicId, lastPurifiedAt - TimeSpan.FromDays(1), RelicStatus.Completed, Phase.Guard,

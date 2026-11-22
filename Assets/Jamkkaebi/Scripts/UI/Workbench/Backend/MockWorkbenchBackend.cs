@@ -24,7 +24,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private readonly PlayPlanner _planner;
         private readonly PurificationSettlement _settlement;
         private readonly int _totalRelics;
-        private readonly Func<int, string> _defaultSpiritName;
+        private readonly IWorkbenchRelicCatalog _catalog;
         private readonly System.Random _random;
         private readonly Func<DateTime> _clock;
         private readonly float _delaySeconds;
@@ -37,13 +37,28 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private readonly Dictionary<string, SettledPlay> _settled = new();
         // relicId → 사용자가 지은 정령 이름. 없으면 기본 이름을 쓴다.
         private readonly Dictionary<int, string> _customNames = new();
+        private int _dropReportResponses;
+        
+        /// <summary>
+        /// 개발용. 0보다 크면 보고를 정산한 뒤 응답만 실패로 돌려준다(응답 유실 흉내). 한 번 흉내 낼 때마다 1 줄어든다.
+        /// 재전송이 같은 정산을 받는지 확인할 때 쓴다.
+        /// </summary>
+        public int DropReportResponses
+        {
+            get => _dropReportResponses;
+            set
+            {
+                if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+                _dropReportResponses = value;
+            }
+        }
 
         /// <param name="totalRelics">전체 유물 수. relicId는 1..totalRelics에서 뽑는다.</param>
-        /// <param name="defaultSpiritName">relicId의 기본 정령 이름. 서버의 유물 마스터 데이터 대신 주입한다.</param>
+        /// <param name="catalog">relic ID로 유물 기본 이름과 봉인 매개체를 찾는 카탈로그</param>
         /// <param name="clock">지금 시각. 테스트에서 시간을 움직이려고 주입한다.</param>
         /// <param name="delaySeconds">가짜 네트워크 지연. 테스트에서는 0.</param>
         public MockWorkbenchBackend(RelicInventory inventory, PlayPlanner planner, int totalRelics,
-            Func<int, string> defaultSpiritName, System.Random random, Func<DateTime> clock, float delaySeconds = 0.3f)
+            IWorkbenchRelicCatalog catalog, System.Random random, Func<DateTime> clock, float delaySeconds = 0.3f)
         {
             if (inventory  == null) throw new ArgumentNullException(nameof(inventory));
             if (planner  == null) throw new ArgumentNullException(nameof(planner));
@@ -56,7 +71,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             // 정령 정렬(인벤토리)과 응답의 선명도(계획기)가 같은 기준을 쓰도록 짝을 맞춘다.
             if (!ReferenceEquals(inventory.ClarityPolicy, planner.ClarityPolicy))
                 throw new ArgumentException("인벤토리와 계획기는 같은 선명도 정책을 써야 합니다.", nameof(planner));
-            if (defaultSpiritName == null) throw new ArgumentNullException(nameof(defaultSpiritName));
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             if (random  == null) throw new ArgumentNullException(nameof(random));
             if (clock  == null) throw new ArgumentNullException(nameof(clock));
             if (delaySeconds < 0f) throw new ArgumentOutOfRangeException(nameof(delaySeconds));
@@ -65,7 +80,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _planner = planner;
             _settlement = new PurificationSettlement(planner);
             _totalRelics = totalRelics;
-            _defaultSpiritName = defaultSpiritName;
+            _catalog = catalog;
             _random  = random;
             _clock = clock;
             _delaySeconds = delaySeconds;
@@ -201,6 +216,14 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             PlayPlan plan = _planner.PlanFor(relic, now);
             MinigameDifficulty chosen;
 
+            if (!_catalog.TryFind(relicId, out WorkbenchRelicInfo info))
+            {
+                failed($"{WorkbenchText.UnknownRelic}");
+                yield break;
+            }
+
+            SealMedium medium = info.SealMedium;
+
             if (!difficulty.HasValue)
             {
                 if (plan.DifficultySelectable)
@@ -239,10 +262,12 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             
             _pending.Add(token, play);
 
-            completed(new PurificationSession(token, relicId, plan.Route, plan.Phase, chosen));
+            long seed = _random.Next();
+
+            completed(new PurificationSession(token, relicId, plan.Route, plan.Phase, chosen, medium, seed));
         }
 
-        public IEnumerator ReportPurification(string sessionToken, PlayResult result,
+        public IEnumerator ReportPurification(string sessionToken, PlayReport report,
             Action<SettlementResult> completed, Action<string> failed)
         {
             yield return Delay();
@@ -252,7 +277,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 failed("결과를 확인할 수 없어요.");
                 yield break;
             }
-            if (!Enum.IsDefined(typeof(PlayResult), result))
+            if (report == null)
             {
                 failed("결과를 확인할 수 없어요.");
                 yield break;
@@ -260,8 +285,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
             if (_settled.TryGetValue(sessionToken, out SettledPlay settled))
             {
-                if (settled.Result == result)
+                if (settled.Report.SameAs(report))
                 {
+                    if (TryDropResponse(failed)) yield break;
                     completed(settled.Settlement);
                     yield break;
                 }
@@ -285,12 +311,13 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             }
             DateTime now = _clock();
             
-            SettlementResult settlement = _settlement.Settle(relic, pending.Plan, pending.Difficulty, result, now);
-            SettledPlay play = new SettledPlay(result, settlement);
+            SettlementResult settlement = _settlement.Settle(relic, pending.Plan, pending.Difficulty, report.Result, now);
+            SettledPlay play = new SettledPlay(report, settlement);
             
             _pending.Remove(sessionToken);
             _settled.Add(sessionToken, play);
 
+            if (TryDropResponse(failed)) yield break;
             completed(settlement);
         }
 
@@ -321,10 +348,13 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             completed(SpiritNameOf(relicId));
         }
 
-        /// <summary>서버 spiritNameOf와 같다. 사용자 이름이 있으면 그것, 없으면 기본 이름.</summary>
+        /// <summary>서버 spiritNameOf와 같다. 사용자 이름이 있으면 그것, 없으면 기본 이름. 찾지 못하면 작업대 고정 문구를 돌려준다.</summary>
         private string SpiritNameOf(int relicId)
         {
-            return _customNames.TryGetValue(relicId, out string custom) ? custom : _defaultSpiritName(relicId);
+            if (_customNames.TryGetValue(relicId, out string custom)) return custom;
+            return (_catalog.TryFind(relicId, out WorkbenchRelicInfo relic)
+                ? relic.DefaultSpiritName
+                : WorkbenchText.UnknownRelic);
         }
 
         private IEnumerator Delay()
@@ -350,14 +380,23 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         /// <summary>이미 정산한 판. 같은 보고가 다시 오면 Settlement를 그대로 돌려준다.</summary>
         private sealed class SettledPlay
         {
-            public PlayResult Result { get; }
+            public PlayReport Report { get; }
             public SettlementResult Settlement { get; }
 
-            public SettledPlay(PlayResult result, SettlementResult settlement)
+            public SettledPlay(PlayReport report, SettlementResult settlement)
             {
-                Result = result;
+                Report = report;
                 Settlement = settlement;
             }
+        }
+
+        /// <summary>DropReportResponses 횟수가 남아 있으면 횟수를 1만큼 줄이고 true. 횟수가 0이면 false.</summary>
+        private bool TryDropResponse(Action<string> failed)
+        {
+            if (DropReportResponses == 0) return false;
+            DropReportResponses -= 1;
+            failed("응답을 받지 못했어요. (모의 응답 유실)");
+            return true;
         }
     }
 }

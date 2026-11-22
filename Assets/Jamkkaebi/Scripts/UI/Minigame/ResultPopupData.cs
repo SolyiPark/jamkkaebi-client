@@ -11,18 +11,21 @@ namespace Jamkkaebi.Scripts.UI.Minigame
     {
         public bool Succeeded { get; }
         /// <summary>손상도. 0이 멀쩡함, 1이 다 상함.</summary>
-        public float Damage { get; }
+        public int DamagePercent { get; }
         /// <summary>찾은 정성 타일 수.</summary>
         public int BonusCount { get; }
         /// <summary>이어서 할 다음 페이즈가 있는지. 마지막 페이즈면 false.</summary>
         public bool HasNextPhase { get; }
+        /// <summary>실패했을 때 "다시 하기"를 보여 줄지. 작업대에서는 정화를 새로 시작해야 해서 false.</summary>
+        public bool CanRetry { get; }
 
-        public ResultPopupData(bool succeeded, float damage, int bonusCount, bool hasNextPhase)
+        public ResultPopupData(bool succeeded, int damagePercent, int bonusCount, bool hasNextPhase, bool canRetry)
         {
             Succeeded = succeeded;
-            Damage = damage;
+            DamagePercent = damagePercent;
             BonusCount = bonusCount;
             HasNextPhase = hasNextPhase;
+            CanRetry = canRetry;
         }
     }
 }
