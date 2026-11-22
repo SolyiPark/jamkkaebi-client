@@ -9,6 +9,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
     /// </summary>
     public sealed class PlaySetup
     {
+        /// <summary>정화하는 유물(서버 RelicMaster.id). 초상화 같은 유물별 그림을 고를 때 쓴다.</summary>
+        public int RelicId { get; }
         public Phase Phase { get; }
         public MinigameDifficulty Difficulty { get; }
         public SealMedium SealMedium { get; }
@@ -16,8 +18,9 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         /// <summary>보드 시드. 같은 설정·같은 시드면 같은 보드가 나온다.</summary>
         public long Seed { get; }
 
-        public PlaySetup(Phase phase, MinigameDifficulty difficulty, SealMedium sealMedium, long seed)
+        public PlaySetup(int relicId, Phase phase, MinigameDifficulty difficulty, SealMedium sealMedium, long seed)
         {
+            if (relicId <= 0) throw new ArgumentOutOfRangeException(nameof(relicId), "relicId는 1부터 시작합니다.");
             if (!Enum.IsDefined(typeof(Phase), phase))
                 throw new ArgumentException($"Phase {phase}는 정의되지 않았습니다.", nameof(phase));
             if (!Enum.IsDefined(typeof(MinigameDifficulty), difficulty))
@@ -25,6 +28,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
             if (!Enum.IsDefined(typeof(SealMedium), sealMedium))
                 throw new ArgumentException($"SealMedium {sealMedium}은 정의되지 않았습니다.", nameof(sealMedium));
             
+            RelicId = relicId;
             Phase = phase;
             Difficulty = difficulty;
             SealMedium = sealMedium;

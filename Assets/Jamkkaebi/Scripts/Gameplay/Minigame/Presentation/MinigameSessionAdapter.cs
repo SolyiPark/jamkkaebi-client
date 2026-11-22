@@ -35,6 +35,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         [Header("유물")]
         [Tooltip("단독 실행용. 연결하면 이 유물의 봉인 매개체, 초상화를 쓴다. 작업대에서는 매개체에 쓰지 않는다.")]
         [SerializeField] private RelicData _relic;
+        [Tooltip("작업대에서 연 판은 PlaySetup.RelicId로 이 표에서 유물을 찾는다(초상화). 없으면 초상화를 숨긴다.")]
+        [SerializeField] private RelicTable _relicTable;
 
         [Header("페이즈")]
         [Tooltip("단독 실행용(1 봉인 해제, 2 기억 회복, 3 오염 관리), 작업대에서는 PlaySetup 값을 씀")]
@@ -165,6 +167,16 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _sealMedium = setup.SealMedium;
 
             _hasExternalSetup = true;
+
+            if (_relicTable)
+            {
+                _relicTable.TryGetRelic(setup.RelicId, out _relic);
+            }
+            else
+            {
+                _relic = null;
+            }
+            
             BeginSession(setup.Seed);
         }
 

@@ -321,6 +321,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(-42L, session.Seed);
 
             PlaySetup setup = session.ToSetup();
+            Assert.AreEqual(4, setup.RelicId);
             Assert.AreEqual(Phase.Recall, setup.Phase);
             Assert.AreEqual(MinigameDifficulty.Hard, setup.Difficulty);
             Assert.AreEqual(SealMedium.Soot, setup.SealMedium);

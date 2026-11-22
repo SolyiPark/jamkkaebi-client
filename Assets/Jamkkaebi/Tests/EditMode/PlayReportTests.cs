@@ -119,8 +119,9 @@ namespace Jamkkaebi.Tests.EditMode
         [Test]
         public void PlaySetup_StoresValues()
         {
-            PlaySetup setup = new PlaySetup(Phase.Recall, MinigameDifficulty.Hard, SealMedium.Fog, -1234567890123L);
+            PlaySetup setup = new PlaySetup(7, Phase.Recall, MinigameDifficulty.Hard, SealMedium.Fog, -1234567890123L);
 
+            Assert.AreEqual(7, setup.RelicId);
             Assert.AreEqual(Phase.Recall, setup.Phase);
             Assert.AreEqual(MinigameDifficulty.Hard, setup.Difficulty);
             Assert.AreEqual(SealMedium.Fog, setup.SealMedium);
@@ -131,9 +132,20 @@ namespace Jamkkaebi.Tests.EditMode
         [Test]
         public void PlaySetup_UndefinedEnums_Throw()
         {
-            Assert.Throws<ArgumentException>(() => new PlaySetup((Phase)99, MinigameDifficulty.Normal, SealMedium.Rust, 1));
-            Assert.Throws<ArgumentException>(() => new PlaySetup(Phase.Unseal, default(MinigameDifficulty), SealMedium.Rust, 1));
-            Assert.Throws<ArgumentException>(() => new PlaySetup(Phase.Unseal, MinigameDifficulty.Normal, (SealMedium)99, 1));
+            Assert.Throws<ArgumentException>(() => new PlaySetup(1, (Phase)99, MinigameDifficulty.Normal, SealMedium.Rust, 1));
+            Assert.Throws<ArgumentException>(() => new PlaySetup(1, Phase.Unseal, default(MinigameDifficulty), SealMedium.Rust, 1));
+            Assert.Throws<ArgumentException>(() => new PlaySetup(1, Phase.Unseal, MinigameDifficulty.Normal, (SealMedium)99, 1));
+        }
+
+        /// <summary>relicId가 1보다 작으면 거부하고, 1은 받아들이는지 검사합니다(경계값).</summary>
+        [Test]
+        public void PlaySetup_RelicIdBelowOne_Throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new PlaySetup(0, Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new PlaySetup(-1, Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 1));
+            Assert.AreEqual(1, new PlaySetup(1, Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 1).RelicId);
         }
     }
 }

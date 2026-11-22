@@ -43,7 +43,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
         public PlaySetup ToSetup()
         {
-            return new PlaySetup(Phase, Difficulty, SealMedium, Seed);
+            return new PlaySetup(RelicId, Phase, Difficulty, SealMedium, Seed);
         }
     }
 }
