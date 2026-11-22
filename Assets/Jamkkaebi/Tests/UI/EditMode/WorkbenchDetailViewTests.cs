@@ -70,22 +70,25 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(1, back);
         }
 
-        /// <summary>정화 중 화면의 성공·실패·그만두기 버튼이 이벤트를 알리는지 검사합니다.</summary>
+        /// <summary>정화 중 화면은 제목·설명만 보이고 버튼이 없는지 검사합니다(결과는 미니게임이 보고합니다).</summary>
         [Test]
-        public void RenderPlaying_ReportButtons()
+        public void RenderPlaying_ShowsTextWithoutButtons()
         {
-            bool? reported = null;
-            int quit = 0;
-            _view.ReportClicked += success => reported = success;
-            _view.QuitPlayClicked += () => quit++;
             _view.RenderPlaying("기억 회복", "백제, 향이 스민 산맥");
 
-            _view.Buttons["ReportFailure"].onClick.Invoke();
-            Assert.AreEqual(false, reported);
-            _view.Buttons["ReportSuccess"].onClick.Invoke();
-            Assert.AreEqual(true, reported);
-            _view.Buttons["QuitPlay"].onClick.Invoke();
-            Assert.AreEqual(1, quit);
+            Assert.AreEqual("기억 회복", Find("Title").GetComponent<Text>().text);
+            Assert.AreEqual("백제, 향이 스민 산맥", Find("Detail").GetComponent<Text>().text);
+            Assert.AreEqual(0, _view.Buttons.Count);
+        }
+
+        /// <summary>정화 중 화면에서도 보고 진행 문장을 보일 수 있는지 검사합니다.</summary>
+        [Test]
+        public void RenderPlaying_ShowStatus()
+        {
+            _view.RenderPlaying("기억 회복", "");
+            _view.ShowStatus("결과를 보내는 중…");
+
+            Assert.AreEqual("결과를 보내는 중…", Find("Status").GetComponent<Text>().text);
         }
 
         /// <summary>결과 화면은 제목과 문장을 보이고 확인을 알리는지 검사합니다.</summary>
@@ -127,7 +130,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
 
             Assert.IsFalse(_view.Buttons.ContainsKey("Purify"));
             Assert.IsNull(Find("Step_Unseal"));
-            Assert.IsTrue(_view.Buttons.ContainsKey("ReportSuccess"));
+            Assert.AreEqual(0, _view.Buttons.Count);
+            Assert.AreEqual("기억 회복", Find("Title").GetComponent<Text>().text);
         }
 
         // ---------- 정령 상세 ----------

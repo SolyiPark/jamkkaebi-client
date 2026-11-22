@@ -47,7 +47,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private MinigameDifficulty _difficulty = MinigameDifficulty.Normal; // 관리 플레이에서 고른 난이도
         private string _pendingDetailStatus;   // 다음에 상세를 그린 뒤 보일 문장(이름 저장 등)
         private PurificationSession _session;  // 시작한 판
-        private PlayResult _reported;          // 보고한 결과(실패 시 같은 내용으로 다시 보낸다)
+        private MinigameLauncher _launcher;
+        private PlayReport _reported;          // 보낸 보고. 보고가 실패하면 이것을 그대로 다시 보낸다(서버는 같은 내용이어야 정산을 돌려줌)
         private SettlementData _settlement;
 
         /// <summary>상자 열기·정화 시작·보고처럼 상태를 바꾸는 요청이 진행 중인지. 진행 중에는 버튼을 다시 받지 않는다.</summary>
@@ -70,6 +71,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _backend = backend ?? WorkbenchDemo.CreateBackend(_clock);
             _builder = new WorkbenchViewDataBuilder(WorkbenchRelicSeed.Instance, IntimacyPolicy.Default, RestorePolicy.Default);
             _canvas = CreateCanvas();
+            _launcher = GetComponent<MinigameLauncher>();
+            if (!_launcher) _launcher = gameObject.AddComponent<MinigameLauncher>();
+            _launcher.Initialize(_root);
 
             _home = new WorkbenchHomeView(_canvas, font);
             _home.Rebuilt += ApplyLayer;
@@ -81,8 +85,6 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _detail.Rebuilt += ApplyLayer;
             _detail.BackClicked += OnBack;
             _detail.PurifyClicked += StartPurification;
-            _detail.ReportClicked += OnReportClicked;
-            _detail.QuitPlayClicked += QuitPlay;
             _detail.ConfirmClicked += ConfirmResult;
             _detail.RetryClicked += RetryReport;
             _detail.DifficultySelected += SelectDifficulty;
@@ -125,8 +127,6 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 _detail.Rebuilt -= ApplyLayer;
                 _detail.BackClicked -= OnBack;
                 _detail.PurifyClicked -= StartPurification;
-                _detail.ReportClicked -= OnReportClicked;
-                _detail.QuitPlayClicked -= QuitPlay;
                 _detail.ConfirmClicked -= ConfirmResult;
                 _detail.RetryClicked -= RetryReport;
                 _detail.DifficultySelected -= SelectDifficulty;
@@ -248,6 +248,18 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                         + (session.Route == EntryRoute.Care ? " · 관리 플레이" : "");
                     _detail.RenderPlaying(title,
                         $"{TitleOf(relicId)}\n난이도 {WorkbenchText.DifficultyName(session.Difficulty)}");
+                    int playSequence = _viewSequence;
+                    StartCoroutine(_launcher.Run(session.ToSetup(), report =>
+                    {
+                        if (playSequence != _viewSequence) return;
+                        Report(report);
+                    }, error =>
+                    {
+                        if (playSequence != _viewSequence) return;
+                        _session = null;
+                        _pendingDetailStatus = error;
+                        OpenDetail(relicId);
+                    }));
                 },
                 error =>
                 {
@@ -258,19 +270,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         }
 
         // ---------- 정화 중·결과 ----------
-
-        private void OnReportClicked(bool success) => Report(success ? PlayResult.Success : PlayResult.Failure);
-
-        private void Report(PlayResult result)
+        
+        private void Report(PlayReport report)
         {
-            if (Busy || _session == null) return;
+            if (Busy || _session == null || report == null) return;
             Busy = true;
-            _reported = result;
+            _reported = report;
             string token = _session.SessionToken;
             int relicId = _session.RelicId;
             int sequence = _viewSequence;
-            PlayReport report = new PlayReport(result, result == PlayResult.Failure ? FailReason.GaveUp : null, 5, 1,
-                33, 0);
             _detail.ShowStatus("결과를 보내는 중…");
             Request<SettlementResult>((done, fail) => _backend.ReportPurification(token, report, done, fail),
                 settlement =>
@@ -297,15 +305,6 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             if (_session == null) return;
             SetPage(Page.Playing);
             Report(_reported);
-        }
-
-        /// <summary>그만두면 이번 판은 보고하지 않는다. 같은 유물로 새 판을 시작하면 서버가 이 판을 대체한다.</summary>
-        private void QuitPlay()
-        {
-            // 보고를 보내는 중에 그만두면 보고 실패 시 다시 보낼 토큰이 사라진다.
-            if (Busy) return;
-            _session = null;
-            OpenDetail(_relicId);
         }
 
         private void ConfirmResult()
