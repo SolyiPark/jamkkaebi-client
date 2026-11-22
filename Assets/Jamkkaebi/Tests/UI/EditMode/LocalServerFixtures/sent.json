@@ -1,0 +1,1 @@
+{"code":"OK","data":{"direction":"SENT","count":1,"limit":10,"requests":[{"player":{"friendCode":"JYCS53KG","nickname":"은하수","streakDays":1,"collectionRate":0},"createdAt":"2026-11-20T16:27:01.741973","expiresAt":"2026-12-04T16:27:01.741973"}]},"message":"친구 요청 목록을 조회했습니다.","success":true,"timestamp":"2026-11-20T16:56:06.7552071"}
