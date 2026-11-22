@@ -137,11 +137,11 @@ namespace Jamkkaebi.Tests.UI.EditMode
         // ---------- 정령 상세 ----------
 
         private static SpiritDetailData Spirit(params MinigameDifficulty[] difficulties) => new SpiritDetailData(8, "말발굽", "마패", "조선",
-            Clarity.Faded, new IntimacyGauge(2, 1, 4), WorkbenchViewDataBuilder.RestoreSteps(new[] { Phase.Recall, Phase.Guard }),
-            "마지막 정화로부터 7일째", "유물 정화하기 - 기억 회복",
+            Clarity.Faded, new IntimacyGauge(2, 1, 4), WorkbenchViewDataBuilder.ClaritySteps(Clarity.Faded),
+            "선명까지 한 단계 남았어요 · 6일 뒤 재봉인 상태가 돼요", "마지막 정화로부터 7일째", "유물 정화하기 - 기억 회복",
             difficulties.Select(d => new DifficultyOption(d, RestoreEffect.OneStep)).ToList());
 
-        /// <summary>정령 상세는 이름·친밀도·경과일·이름 바꾸기·정화 버튼을 만들고, 고를 수 있으면 난이도 버튼을 만드는지 검사합니다.</summary>
+        /// <summary>정령 상세는 이름·친밀도·선명도 단계·안내·경과일·이름 바꾸기·정화 버튼을 만들고, 고를 수 있으면 난이도 버튼을 만드는지 검사합니다.</summary>
         [Test]
         public void RenderSpirit_BuildsParts()
         {
@@ -150,6 +150,12 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual("말발굽", Find("Title").GetComponent<Text>().text);
             Assert.AreEqual("친밀도 Lv.2 · 1/4", Find("IntimacyLabel").GetComponent<Text>().text);
             Assert.AreEqual("마지막 정화로부터 7일째", Find("Days").GetComponent<Text>().text);
+            Assert.AreEqual("선명까지 한 단계 남았어요 · 6일 뒤 재봉인 상태가 돼요", Find("ClarityNotice").GetComponent<Text>().text);
+            Assert.AreEqual("완료", Find("Step_Resealed").Find("State").GetComponent<Text>().text);
+            Assert.AreEqual("지금", Find("Step_Faded").Find("State").GetComponent<Text>().text);
+            Assert.AreEqual("잠김", Find("Step_Clear").Find("State").GetComponent<Text>().text);
+            Assert.AreEqual("흐려짐", Find("Step_Faded").parent.GetComponentsInChildren<Text>()
+                .First(t => t.name == "Name" && t.text == "흐려짐").text);
             Assert.IsTrue(_view.Buttons.ContainsKey("Rename"));
             Assert.IsTrue(_view.Buttons.ContainsKey("Purify"));
             Assert.IsTrue(_view.Buttons.ContainsKey("Difficulty_Normal"));

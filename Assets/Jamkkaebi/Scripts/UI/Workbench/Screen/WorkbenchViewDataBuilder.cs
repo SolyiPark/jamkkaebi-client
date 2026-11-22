@@ -14,6 +14,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
     public sealed class WorkbenchViewDataBuilder
     {
         private static readonly Phase[] AllPhases = { Phase.Unseal, Phase.Recall, Phase.Guard };
+        private static readonly Clarity[] AllClarities = { Clarity.Resealed, Clarity.Faded, Clarity.Clear };
 
         private readonly IWorkbenchRelicCatalog _catalog;
         private readonly IntimacyPolicy _intimacy;
@@ -91,6 +92,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                         lines.Add($"다음 단계 · {WorkbenchText.PhaseName(result.NextPlan.Phase)}");
                         break;
                     case NextAction.ContinueRestore:
+                        // 관리 계획에는 선명도가 있다. 이번 판으로 오른 선명도다.
+                        lines.Add($"{WorkbenchText.ClarityName(result.NextPlan.Clarity.Value)}까지 회복했어요.");
                         lines.Add($"남은 복구 · {WorkbenchText.PhaseName(result.NextPlan.Phase)}");
                         break;
                     case NextAction.Retry:
@@ -134,14 +137,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
             // 완료한 정령은 RelicDetail 생성자가 선명도와 마지막 정화 시각을 보장한다.
             int days = DaysBetween(detail.LastPurifiedAt.Value, now);
+            Clarity clarity = detail.Clarity.Value;
 
             List<DifficultyOption> difficulties = plan.AllowedDifficulties
                 .Select(d => new DifficultyOption(d, _restore.EffectOf(d)))
                 .ToList();
 
             return new SpiritDetailData(detail.RelicId, detail.SpiritName, info?.RealName ?? WorkbenchText.UnknownRelic,
-                info?.EraName ?? WorkbenchText.UnknownEra, detail.Clarity.Value, _intimacy.GaugeOf(detail.CareCount),
-                RestoreSteps(plan.RemainingPhases), WorkbenchText.DaysSincePurified(days),
+                info?.EraName ?? WorkbenchText.UnknownEra, clarity, _intimacy.GaugeOf(detail.CareCount),
+                ClaritySteps(clarity), ClarityNotice(clarity, detail.ClarityChangesAt, now), WorkbenchText.DaysSincePurified(days),
                 WorkbenchText.PurifyPhaseButton(plan.Phase), difficulties.AsReadOnly());
         }
 
@@ -155,16 +159,29 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 .ToList().AsReadOnly();
         }
 
-        /// <summary>관리 복구 진행: 남은 순서에 없으면 완료, 남은 순서의 첫 페이즈는 현재, 나머지는 잠김.</summary>
-        public static IReadOnlyList<PhaseStep> RestoreSteps(IReadOnlyList<Phase> remaining)
+        /// <summary>복구 진행: 재봉인 → 흐려짐 → 선명 중 지금 선명도가 현재, 그보다 나쁜 칸은 완료, 좋은 칸은 잠김.</summary>
+        public static IReadOnlyList<ClarityStep> ClaritySteps(Clarity current)
         {
-            if (remaining == null) throw new ArgumentNullException(nameof(remaining));
-
-            return AllPhases.Select(phase => new PhaseStep(phase,
-                    !remaining.Contains(phase) ? PhaseStepState.Done
-                    : phase == remaining[0] ? PhaseStepState.Current
+            // Clarity 값은 선명 0 → 재봉인 2라 클수록 나쁘다. 화면은 나쁜 쪽부터 보인다.
+            return AllClarities.Select(clarity => new ClarityStep(clarity,
+                    clarity > current ? PhaseStepState.Done
+                    : clarity == current ? PhaseStepState.Current
                     : PhaseStepState.Locked))
                 .ToList().AsReadOnly();
+        }
+
+        /// <summary>
+        /// 선명까지 남은 단계와 다음 변화 안내. 재봉인은 더 떨어지지 않으므로 남은 단계만 알린다.
+        /// 남은 날은 24시간 단위 올림이다(방금 오른 정령은 7일 - 몇 초가 남아도 "7일 뒤"). 하루가 안 남았으면 "하루 안에"라고 쓴다.
+        /// </summary>
+        public static string ClarityNotice(Clarity clarity, DateTime? changesAt, DateTime now)
+        {
+            string remaining = WorkbenchText.StepsToClear(clarity);
+            if (clarity == Clarity.Resealed || !changesAt.HasValue) return remaining;
+
+            double days = (changesAt.Value - now).TotalDays;
+            string change = WorkbenchText.ClarityChangeIn(days < 1 ? 0 : (int)Math.Ceiling(days), clarity.StepDown());
+            return remaining == null ? change : $"{remaining} · {change}";
         }
 
         /// <summary>마지막 정화부터 지난 날수(24시간 단위, 내림). 기기 시각이 앞서 있으면 0.</summary>

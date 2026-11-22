@@ -161,8 +161,9 @@ namespace Jamkkaebi.Editor
             Call<RelicDetail>($"상세 #{relicId}", (c, f) => _backend.GetRelicDetail(relicId, c, f), detail =>
             {
                 string clarity = detail.Clarity.HasValue ? detail.Clarity.Value.ToString() : "-";
-                string resealAt = detail.ResealAt.HasValue ? $"{detail.ResealAt.Value:MM-dd HH:mm}" : "-";
-                Log($"  {detail.Status} · 이름 {detail.SpiritName ?? "-"} · 선명도 {clarity} · 재봉인 {resealAt} · 돌봄 {detail.CareCount}회");
+                string changesAt = detail.ClarityChangesAt.HasValue ? $"{detail.ClarityChangesAt.Value:MM-dd HH:mm}" : "-";
+                string purifiedAt = detail.LastPurifiedAt.HasValue ? $"{detail.LastPurifiedAt.Value:MM-dd HH:mm}" : "-";
+                Log($"  {detail.Status} · 이름 {detail.SpiritName ?? "-"} · 선명도 {clarity} · 다음 변화 {changesAt} · 마지막 정화 {purifiedAt} · 돌봄 {detail.CareCount}회");
                 Log($"  다음: {Describe(detail.NextPlay)}");
             });
         }

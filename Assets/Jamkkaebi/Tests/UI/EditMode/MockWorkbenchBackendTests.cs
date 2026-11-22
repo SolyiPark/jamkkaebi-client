@@ -74,9 +74,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
         private static OwnedRelic InProgress(int relicId, double hoursLater = 0) =>
             OwnedRelic.Acquired(relicId, BaseTime + TimeSpan.FromHours(hoursLater));
 
-        /// <summary>최초 정화를 마친 정령. 마지막 정화 시각을 직접 정한다.</summary>
+        /// <summary>최초 정화를 마친 정령. 마지막 정화 시각을 직접 정하고, 선명도 기준 시각도 같은 값이다.</summary>
         private static OwnedRelic Completed(int relicId, DateTime lastPurifiedAt) =>
-            new OwnedRelic(relicId, BaseTime, RelicStatus.Completed, Phase.Guard, lastPurifiedAt, null, null, 0);
+            new OwnedRelic(relicId, BaseTime, RelicStatus.Completed, Phase.Guard, lastPurifiedAt, lastPurifiedAt, 0);
 
         private OwnedRelic CompletedDaysAgo(int relicId, double daysAgo) =>
             Completed(relicId, _now - TimeSpan.FromDays(daysAgo));
@@ -265,7 +265,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.IsNull(result.Value);
         }
 
-        /// <summary>최초 정화 중이면 선명도·재봉인 시각 없이 최초 정화 계획을 담는지 검사합니다.</summary>
+        /// <summary>최초 정화 중이면 선명도·다음 변화 시각 없이 최초 정화 계획을 담는지 검사합니다.</summary>
         [Test]
         public void GetRelicDetail_InProgress_NoClarity()
         {
@@ -275,14 +275,14 @@ namespace Jamkkaebi.Tests.UI.EditMode
 
             Assert.AreEqual(RelicStatus.InProgress, detail.Status);
             Assert.IsNull(detail.Clarity);
-            Assert.IsNull(detail.ResealAt);
+            Assert.IsNull(detail.ClarityChangesAt);
             Assert.AreEqual(EntryRoute.First, detail.NextPlay.Route);
             Assert.AreEqual(Phase.Unseal, detail.NextPlay.Phase);
         }
 
-        /// <summary>완료한 정령이면 선명도와 재봉인 시각(마지막 정화 + 14일), 관리 계획을 담는지 검사합니다.</summary>
+        /// <summary>흐려진 정령이면 선명도와 다음 변화 시각(재봉인 = 기준 + 14일), 관리 계획을 담는지 검사합니다.</summary>
         [Test]
-        public void GetRelicDetail_Completed_HasClarityAndResealAt()
+        public void GetRelicDetail_Completed_HasClarityAndChangesAt()
         {
             DateTime lastPurifiedAt = _now - TimeSpan.FromDays(10);
             CreateBackend(3, 10, Completed(2, lastPurifiedAt));
@@ -290,9 +290,28 @@ namespace Jamkkaebi.Tests.UI.EditMode
             RelicDetail detail = Detail(2).Value;
 
             Assert.AreEqual(Clarity.Faded, detail.Clarity);
-            Assert.AreEqual(lastPurifiedAt + ClarityPolicy.DefaultResealedAfter, detail.ResealAt);
+            Assert.AreEqual(lastPurifiedAt + ClarityPolicy.DefaultResealedAfter, detail.ClarityChangesAt);
+            Assert.AreEqual(lastPurifiedAt, detail.LastPurifiedAt);
             Assert.AreEqual(EntryRoute.Care, detail.NextPlay.Route);
             Assert.AreEqual(Clarity.Faded, detail.NextPlay.Clarity);
+        }
+
+        /// <summary>
+        /// 재봉인 정령을 보통으로 한 판 복구하면 상세가 흐려짐이 되고, 마지막 정화는 오늘, 다음 변화(재봉인)는 7일 뒤인지 검사합니다.
+        /// </summary>
+        [Test]
+        public void GetRelicDetail_AfterResealedStep_ShowsFaded()
+        {
+            CreateBackend(3, 10, CompletedDaysAgo(2, 20));
+            string token = Start(2, MinigameDifficulty.Normal).Value.SessionToken;
+            Assert.IsTrue(Report(token, PlayResult.Success).Succeeded);
+
+            RelicDetail detail = Detail(2).Value;
+
+            Assert.AreEqual(Clarity.Faded, detail.Clarity);
+            Assert.AreEqual(_now, detail.LastPurifiedAt);
+            Assert.AreEqual(_now + TimeSpan.FromDays(7), detail.ClarityChangesAt);
+            Assert.AreEqual(Phase.Recall, detail.NextPlay.Phase);
         }
 
         // ---------- OpenBox ----------
@@ -717,8 +736,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
         }
 
         /// <summary>
-        /// 흐려짐에서 기억 회복을 시작하고, 재봉인 경계를 넘긴 뒤 보고하면 시작 시점 계획으로 정산하는지 검사합니다.
-        /// (지금 상태로 계획을 새로 만들면 봉인 해제부터가 되어 진행이 바뀐다)
+        /// 흐려짐에서 기억 회복을 시작하고, 재봉인 경계를 넘긴 뒤 보고하면 시작 시점 계획(흐려짐)에서 한 칸 올라 선명이 되는지 검사합니다.
+        /// (지금 상태로 계획을 새로 만들면 재봉인에서 오르게 되어 흐려짐에 머문다)
         /// </summary>
         [Test]
         public void Report_UsesPlanFromStart_AcrossResealedBoundary()
@@ -734,10 +753,9 @@ namespace Jamkkaebi.Tests.UI.EditMode
             _now = lastPurifiedAt + ClarityPolicy.DefaultResealedAfter + TimeSpan.FromMinutes(1);
             SettlementResult result = Report(session.SessionToken, PlayResult.Success).Value;
 
-            Assert.AreEqual(Phase.Recall, relic.RestorePhase);
-            Assert.AreEqual(Clarity.Resealed, relic.RestoreClarity);
-            Assert.AreEqual(NextAction.ContinueRestore, result.Next);
-            CollectionAssert.AreEqual(new[] { Phase.Guard }, result.NextPlan.RemainingPhases);
+            Assert.AreEqual(NextAction.Done, result.Next);
+            Assert.AreEqual(_now, relic.ClarityAnchorAt);
+            Assert.AreEqual(Clarity.Clear, Detail(2).Value.Clarity);
         }
 
         // ---------- 정령 이름 ----------

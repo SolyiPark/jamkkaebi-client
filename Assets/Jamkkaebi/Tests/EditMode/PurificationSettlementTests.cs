@@ -26,11 +26,11 @@ namespace Jamkkaebi.Tests.EditMode
             _settlement = new PurificationSettlement(_planner);
         }
 
-        /// <summary>최초 정화를 마친 유물(마지막 정화 시각 LastPurifiedAt).</summary>
+        /// <summary>최초 정화를 마친 유물(마지막 정화 시각과 선명도 기준 시각 모두 LastPurifiedAt).</summary>
         private static OwnedRelic CreateCompleted()
         {
             return new OwnedRelic(RelicId, AcquiredAt, RelicStatus.Completed, Phase.Guard,
-                LastPurifiedAt, null, null, 0);
+                LastPurifiedAt, LastPurifiedAt, 0);
         }
 
         private static DateTime DaysAfterPurified(double days) => LastPurifiedAt + TimeSpan.FromDays(days);
@@ -78,6 +78,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(RevealLevel.Named, result.Revealed);
             Assert.IsTrue(relic.IsCompleted);
             Assert.AreEqual(LastPurifiedAt, relic.LastPurifiedAt);
+            Assert.AreEqual(LastPurifiedAt, relic.ClarityAnchorAt);
         }
 
         /// <summary>실패면 상태를 바꾸지 않고 같은 페이즈를 다시 하는지 검사합니다.</summary>
@@ -173,7 +174,7 @@ namespace Jamkkaebi.Tests.EditMode
         //      관리 플레이
         // ==============================
 
-        /// <summary>선명한 정령을 쉬움으로 돌보면 회복되고 Done이며 돌봄이 1 오르는지 검사합니다.</summary>
+        /// <summary>선명한 정령을 쉬움으로 돌보면 선명 타이머가 새로 시작되고 Done이며 돌봄이 1 오르는지 검사합니다.</summary>
         [Test]
         public void Settle_CareClearEasy_RefreshesAndDone()
         {
@@ -189,12 +190,16 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.IsFalse(result.CompletedNow);
             Assert.IsNull(result.Revealed);
             Assert.AreEqual(now, relic.LastPurifiedAt);
+            Assert.AreEqual(now, relic.ClarityAnchorAt);
             Assert.AreEqual(1, relic.CareCount);
         }
 
-        /// <summary>재봉인 정령을 보통으로 봉인 해제하면 한 단계만 복구되고 기억 회복이 이어지는지 검사합니다.</summary>
+        /// <summary>
+        /// 재봉인 정령을 보통으로 봉인 해제하면 흐려짐으로 한 칸 오르고 기억 회복이 이어지는지 검사합니다.
+        /// 마지막 정화 시각은 지금, 선명도 기준 시각은 흐려짐이 막 시작된 시점(지금 - 7일)입니다.
+        /// </summary>
         [Test]
-        public void Settle_CareResealedNormal_ContinuesRestore()
+        public void Settle_CareResealedNormal_StepsUpToFaded()
         {
             OwnedRelic relic = CreateCompleted();
             DateTime now = DaysAfterPurified(15);
@@ -205,31 +210,62 @@ namespace Jamkkaebi.Tests.EditMode
 
             Assert.AreEqual(NextAction.ContinueRestore, result.Next);
             Assert.AreEqual(EntryRoute.Care, result.NextPlan.Route);
+            Assert.AreEqual(Clarity.Faded, result.NextPlan.Clarity);
             Assert.AreEqual(Phase.Recall, result.NextPlan.Phase);
-            Assert.AreEqual(Phase.Unseal, relic.RestorePhase);
-            Assert.AreEqual(Clarity.Resealed, relic.RestoreClarity);
-            Assert.AreEqual(LastPurifiedAt, relic.LastPurifiedAt);
+            Assert.AreEqual(now, relic.LastPurifiedAt);
+            Assert.AreEqual(now - TimeSpan.FromDays(7), relic.ClarityAnchorAt);
             Assert.AreEqual(1, relic.CareCount);
         }
 
-        /// <summary>재봉인 정령을 보통으로 세 판 복구하면 마지막에 Done이고 돌봄이 3 오르는지 검사합니다.</summary>
+        /// <summary>흐려진 정령을 보통으로 기억 회복하면 선명이 되어 복구가 끝나는지 검사합니다.</summary>
         [Test]
-        public void Settle_CareResealedNormal_ThreePlaysToDone()
+        public void Settle_CareFadedNormal_StepsUpToClearAndDone()
+        {
+            OwnedRelic relic = CreateCompleted();
+            DateTime now = DaysAfterPurified(10);
+            PlayPlan plan = _planner.PlanFor(relic, now);
+
+            SettlementResult result = _settlement.Settle(relic, plan, MinigameDifficulty.Normal,
+                PlayResult.Success, now);
+
+            Assert.AreEqual(NextAction.Done, result.Next);
+            Assert.IsNull(result.NextPlan);
+            Assert.AreEqual(now, relic.LastPurifiedAt);
+            Assert.AreEqual(now, relic.ClarityAnchorAt);
+        }
+
+        /// <summary>재봉인 정령을 보통으로 두 판(봉인 해제 → 기억 회복) 복구하면 선명이 되고 돌봄이 2 오르는지 검사합니다.</summary>
+        [Test]
+        public void Settle_CareResealedNormal_TwoPlaysToDone()
         {
             OwnedRelic relic = CreateCompleted();
             DateTime now = DaysAfterPurified(15);
-            SettlementResult result = null;
 
-            for (int i = 0; i < 3; i++)
-            {
-                result = _settlement.Settle(relic, _planner.PlanFor(relic, now), MinigameDifficulty.Normal,
-                    PlayResult.Success, now);
-            }
+            SettlementResult first = _settlement.Settle(relic, _planner.PlanFor(relic, now), MinigameDifficulty.Normal,
+                PlayResult.Success, now);
+            SettlementResult second = _settlement.Settle(relic, _planner.PlanFor(relic, now), MinigameDifficulty.Normal,
+                PlayResult.Success, now);
+
+            Assert.AreEqual(NextAction.ContinueRestore, first.Next);
+            Assert.AreEqual(NextAction.Done, second.Next);
+            Assert.AreEqual(Clarity.Clear, _planner.PlanFor(relic, now).Clarity);
+            Assert.AreEqual(2, relic.CareCount);
+        }
+
+        /// <summary>선명한 정령을 보통으로 오염 관리하면 선명 타이머가 새로 시작되고 Done인지 검사합니다.</summary>
+        [Test]
+        public void Settle_CareClearNormal_RefreshesAndDone()
+        {
+            OwnedRelic relic = CreateCompleted();
+            DateTime now = DaysAfterPurified(3);
+            PlayPlan plan = _planner.PlanFor(relic, now);
+            Assert.AreEqual(Phase.Guard, plan.Phase);
+
+            SettlementResult result = _settlement.Settle(relic, plan, MinigameDifficulty.Normal,
+                PlayResult.Success, now);
 
             Assert.AreEqual(NextAction.Done, result.Next);
-            Assert.AreEqual(now, relic.LastPurifiedAt);
-            Assert.IsNull(relic.RestorePhase);
-            Assert.AreEqual(3, relic.CareCount);
+            Assert.AreEqual(now, relic.ClarityAnchorAt);
         }
 
         /// <summary>재봉인 정령을 어려움으로 돌보면 한 판에 전체 복구되는지 검사합니다.</summary>
@@ -246,7 +282,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(NextAction.Done, result.Next);
             Assert.IsNull(result.NextPlan);
             Assert.AreEqual(now, relic.LastPurifiedAt);
-            Assert.IsNull(relic.RestorePhase);
+            Assert.AreEqual(now, relic.ClarityAnchorAt);
             Assert.AreEqual(1, relic.CareCount);
         }
 
@@ -264,7 +300,7 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(0, relic.CareCount);
         }
 
-        /// <summary>관리 플레이 실패면 돌봄·복구 진행이 바뀌지 않고 Retry인지 검사합니다.</summary>
+        /// <summary>관리 플레이 실패면 돌봄·두 시각이 바뀌지 않고 Retry인지 검사합니다.</summary>
         [Test]
         public void Settle_CareFailure_RetryWithoutChange()
         {
@@ -278,8 +314,31 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(NextAction.Retry, result.Next);
             Assert.AreEqual(Phase.Unseal, result.NextPlan.Phase);
             Assert.AreEqual(0, relic.CareCount);
-            Assert.IsNull(relic.RestorePhase);
             Assert.AreEqual(LastPurifiedAt, relic.LastPurifiedAt);
+            Assert.AreEqual(LastPurifiedAt, relic.ClarityAnchorAt);
+        }
+
+        /// <summary>
+        /// 두 시각이 다른 정령(재봉인에서 흐려짐으로 오른 뒤)이 다음 판을 실패하면 두 시각과 돌봄이 각각 그대로인지 검사합니다.
+        /// </summary>
+        [Test]
+        public void Settle_CareFailureAfterStep_KeepsBothTimes()
+        {
+            OwnedRelic relic = CreateCompleted();
+            DateTime steppedAt = DaysAfterPurified(15);
+            _settlement.Settle(relic, _planner.PlanFor(relic, steppedAt), MinigameDifficulty.Normal,
+                PlayResult.Success, steppedAt);
+            DateTime anchor = relic.ClarityAnchorAt.Value;
+            Assert.AreNotEqual(relic.LastPurifiedAt, anchor);
+
+            DateTime now = steppedAt + TimeSpan.FromDays(2);
+            SettlementResult result = _settlement.Settle(relic, _planner.PlanFor(relic, now), MinigameDifficulty.Normal,
+                PlayResult.Failure, now);
+
+            Assert.AreEqual(NextAction.Retry, result.Next);
+            Assert.AreEqual(steppedAt, relic.LastPurifiedAt);
+            Assert.AreEqual(anchor, relic.ClarityAnchorAt);
+            Assert.AreEqual(1, relic.CareCount);
         }
 
         /// <summary>
@@ -333,42 +392,37 @@ namespace Jamkkaebi.Tests.EditMode
         }
 
         /// <summary>
-        /// 흐려짐에서 시작한 기억 회복이 재봉인 경계를 넘어 끝나면, 진행이 정산 순간의 선명도(재봉인)로 저장되어
-        /// 다음 계획은 오염 관리만 남는지 검사합니다. (서버와 같은 관대한 규칙, 2026-11-16)
+        /// 흐려짐에서 시작한 기억 회복이 재봉인 경계를 넘어 끝나도, 시작할 때의 선명도(흐려짐)에서 한 칸 올라 선명이 되는지 검사합니다.
+        /// (관대한 쪽, 2026-11-22 결정)
         /// </summary>
         [Test]
-        public void Settle_MiddlePhaseCrossesResealedBoundary_KeepsProgressAtSettledClarity()
+        public void Settle_MiddlePhaseCrossesResealedBoundary_StepsUpFromPlanClarity()
         {
             OwnedRelic relic = CreateCompleted();
             PlayPlan plan = _planner.PlanFor(relic, DaysAfterPurified(14) - TimeSpan.FromMinutes(1));
             DateTime now = DaysAfterPurified(14) + TimeSpan.FromMinutes(1);
-            Assert.AreEqual(Phase.Recall, plan.Phase);
+            Assert.AreEqual(Clarity.Faded, plan.Clarity);
 
             SettlementResult result = _settlement.Settle(relic, plan, MinigameDifficulty.Normal,
                 PlayResult.Success, now);
 
+            Assert.AreEqual(NextAction.Done, result.Next);
+            Assert.AreEqual(now, relic.ClarityAnchorAt);
             Assert.AreEqual(1, relic.CareCount);
-            Assert.AreEqual(Phase.Recall, relic.RestorePhase);
-            Assert.AreEqual(Clarity.Resealed, relic.RestoreClarity);
-            Assert.AreEqual(NextAction.ContinueRestore, result.Next);
-            CollectionAssert.AreEqual(new[] { Phase.Guard }, result.NextPlan.RemainingPhases);
         }
 
         /// <summary>
-        /// 판과 판 사이에 재봉인 경계를 넘으면(이번 판은 흐려짐 안에서 끝남) 지난 진행을 버리고 봉인 해제부터인지 검사합니다.
-        /// (7번 규칙은 그대로)
+        /// 재봉인에서 흐려짐으로 오른 뒤 다음 판 없이 7일이 지나면 다시 재봉인되는지 검사합니다(흐려짐 구간을 온전히 받음).
         /// </summary>
         [Test]
-        public void Settle_ResealedBetweenPlays_RestartsFromUnseal()
+        public void Settle_FadedAfterStep_ResealsAfterFullWindow()
         {
             OwnedRelic relic = CreateCompleted();
-            PlayPlan plan = _planner.PlanFor(relic, DaysAfterPurified(10));
-            _settlement.Settle(relic, plan, MinigameDifficulty.Normal, PlayResult.Success, DaysAfterPurified(10));
-            Assert.AreEqual(Clarity.Faded, relic.RestoreClarity);
+            DateTime now = DaysAfterPurified(15);
+            _settlement.Settle(relic, _planner.PlanFor(relic, now), MinigameDifficulty.Normal, PlayResult.Success, now);
 
-            PlayPlan next = _planner.PlanFor(relic, DaysAfterPurified(15));
-
-            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall, Phase.Guard }, next.RemainingPhases);
+            Assert.AreEqual(Clarity.Faded, _planner.PlanFor(relic, now + TimeSpan.FromDays(7) - TimeSpan.FromMinutes(1)).Clarity);
+            Assert.AreEqual(Clarity.Resealed, _planner.PlanFor(relic, now + TimeSpan.FromDays(7)).Clarity);
         }
 
         // ==============================
@@ -415,6 +469,7 @@ namespace Jamkkaebi.Tests.EditMode
 
             Assert.AreEqual(NextAction.Done, result.Next);
             Assert.AreEqual(DaysAfterPurified(8), relic.LastPurifiedAt);
+            Assert.AreEqual(DaysAfterPurified(8), relic.ClarityAnchorAt);
             Assert.AreEqual(1, relic.CareCount);
         }
     }
