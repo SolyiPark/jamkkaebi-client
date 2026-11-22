@@ -40,6 +40,9 @@ namespace Jamkkaebi.Scripts.UI.Shell
         private Vector2Int[] textureSizes;
         private int pendingTab = -1;
         private bool _navigationLocked;
+        private bool _shellCovered;
+        // 셸 장면의 카메라. 콘텐츠가 화면 전체를 직접 그리는 동안(CoverShell) 끈다.
+        private Camera _shellCamera;
 
         /// <summary>
         /// 탭 씬을 배경 실행 정책에 따라 로드하고 동기 렌더링으로 초기 미리보기를 캡처한 뒤 시작 탭을 표시합니다.
@@ -52,6 +55,7 @@ namespace Jamkkaebi.Scripts.UI.Shell
             textures = new RenderTexture[roots.Length];
             visited = new bool[roots.Length];
             textureSizes = new Vector2Int[roots.Length];
+            _shellCamera = FindShellCamera();
             _transition = gameObject.AddComponent<TabTransition>();
             _transition.Initialize(this);
             input.ConfigureHost(this);
@@ -142,11 +146,11 @@ namespace Jamkkaebi.Scripts.UI.Shell
         /// </summary>
         private void Layout(int index)
         {
-            profileBar.SetActive(catalog.tabs[index].showProfile);
+            profileBar.SetActive(catalog.tabs[index].showProfile && !_shellCovered);
             bool locked = ActiveRoot && ActiveRoot.NavigationLocked;
-            toolbar.gameObject.SetActive(!locked);
+            toolbar.gameObject.SetActive(!locked && !_shellCovered);
             // Tabs의 부모가 배경·구분선을 포함한 하단 바입니다.
-            toolbar.parent.gameObject.SetActive(!locked);
+            toolbar.parent.gameObject.SetActive(!locked && !_shellCovered);
             viewport.offsetMin = new Vector2(0, locked ? 0 : toolbarHeight);
             viewport.offsetMax = Vector2.zero;
             FitDisplay(mirror, index);
@@ -191,6 +195,13 @@ namespace Jamkkaebi.Scripts.UI.Shell
                 Layout(ActiveIndex);
                 Canvas.ForceUpdateCanvases();
             }
+            bool covered = ActiveRoot && ActiveRoot.CoverShell;
+            if (_shellCovered != covered)
+            {
+                _shellCovered = covered;
+                if (covered) input.Cancel();
+                ApplyShellCover();
+            }
             bool resized = false;
             for (int i = 0; i < roots.Length; i++)
             {
@@ -210,6 +221,30 @@ namespace Jamkkaebi.Scripts.UI.Shell
             for (int i = 0; i < roots.Length; i++)
                 if (roots[i]) roots[i].SetPaused(i != ActiveIndex && catalog.tabs[i].backgroundPolicy != BackgroundPolicy.ContinueRunning);
             RefreshStyles();
+        }
+        /// <summary>
+        /// 활성 탭이 화면 전체를 직접 그리는 동안(추가 로드한 미니게임 등) 미러 화면·프로필 바·하단 바와 셸 카메라를 숨깁니다.
+        /// 뷰포트 크기는 그대로 두어 렌더 텍스처를 다시 만들지 않습니다. 미러 화면을 끄면 미러 입력도 함께 멈춥니다.
+        /// </summary>
+        private void ApplyShellCover()
+        {
+            mirror.gameObject.SetActive(!_shellCovered);
+            profileBar.SetActive(!_shellCovered && catalog.tabs[ActiveIndex].showProfile);
+            bool showToolbar = !_shellCovered && !_navigationLocked;
+            toolbar.gameObject.SetActive(showToolbar);
+            toolbar.parent.gameObject.SetActive(showToolbar);
+            if (_shellCamera) _shellCamera.enabled = !_shellCovered;
+            Canvas.ForceUpdateCanvases();
+        }
+        /// <summary>셸 장면(탭 씬이 아닌 이 오브젝트의 씬)에 있는 카메라를 찾습니다. 없으면 null입니다.</summary>
+        private Camera FindShellCamera()
+        {
+            foreach (var obj in gameObject.scene.GetRootGameObjects())
+            {
+                var found = obj.GetComponentInChildren<Camera>(true);
+                if (found) return found;
+            }
+            return null;
         }
         /// <summary>
         /// 로드된 루트에 고정 시간 간격의 물리 시뮬레이션을 요청합니다. 일시정지 여부는 각 루트가 검사합니다.
