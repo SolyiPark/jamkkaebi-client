@@ -20,21 +20,21 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void ProgressChangesDoNotMutatePreviouslyRenderedData()
         {
             var progress = new CollectionProgress(_catalog);
-            progress.RegisterRestorationCompleted("samguk-crown");
+            progress.RegisterRestorationCompleted("samguk-frog-figurine");
             var before = new CollectionViewData(progress, null, CollectionPage.Era, "samguk", null);
 
-            progress.MarkViewed("samguk-crown");
-            progress.RegisterRestorationCompleted("samguk-standing-buddha");
+            progress.MarkViewed("samguk-frog-figurine");
+            progress.RegisterRestorationCompleted("samguk-turtle-water-dropper");
             progress.RegisterRestorationCompleted("samguk-incense-burner");
 
             Assert.That(before.RestoredCount, Is.EqualTo(1));
-            Assert.That(before.IsUnread("samguk-crown"), Is.True);
-            Assert.That(before.IsRestored("samguk-standing-buddha"), Is.False);
+            Assert.That(before.IsUnread("samguk-frog-figurine"), Is.True);
+            Assert.That(before.IsRestored("samguk-turtle-water-dropper"), Is.False);
             Assert.That(before.RestoredInEra("samguk"), Is.EqualTo(1));
             Assert.That(before.IsBuildingUnlocked("samguk"), Is.False);
 
             var after = new CollectionViewData(progress, null, CollectionPage.Era, "samguk", null);
-            Assert.That(after.IsUnread("samguk-crown"), Is.False);
+            Assert.That(after.IsUnread("samguk-frog-figurine"), Is.False);
             Assert.That(after.RestoredInEra("samguk"), Is.EqualTo(3));
             Assert.That(after.IsBuildingUnlocked("samguk"), Is.True);
         }
@@ -44,17 +44,17 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void SnapshotPreservesDomainDecisionsWithoutAcknowledgingUnreadRecords()
         {
             var progress = CollectionDemoData.CreateProgress(_catalog);
-            var data = new CollectionViewData(progress, null, CollectionPage.Relic, "samguk", "samguk-crown");
+            var data = new CollectionViewData(progress, null, CollectionPage.Relic, "samguk", "samguk-frog-figurine");
 
             Assert.That(data.Catalog, Is.SameAs(_catalog));
-            Assert.That(data.SelectedRelicId, Is.EqualTo("samguk-crown"));
+            Assert.That(data.SelectedRelicId, Is.EqualTo("samguk-frog-figurine"));
             Assert.That(data.RestoredCount, Is.EqualTo(5));
             Assert.That(data.TotalCount, Is.EqualTo(9));
             Assert.That(data.CompletedBuildingCount, Is.EqualTo(1));
             Assert.That(data.IsBuildingUnlocked("goryeo"), Is.True);
             Assert.That(data.IsBuildingUnlocked("samguk"), Is.False);
             Assert.That(data.HasUnreadInEra("samguk"), Is.True);
-            Assert.That(progress.IsUnread("samguk-crown"), Is.True);
+            Assert.That(progress.IsUnread("samguk-frog-figurine"), Is.True);
             Assert.That(data.IsRestored(null), Is.False);
             Assert.That(data.TotalInEra("unknown"), Is.Zero);
         }

@@ -318,19 +318,12 @@ namespace Jamkkaebi.Scripts.UI.Collection
         {
             switch (relic.Id)
             {
-                case "samguk-standing-buddha":
-                case "goryeo-stone-buddha":
-                    return CollectionArtworkKind.Buddha;
                 case "samguk-incense-burner":
                     return CollectionArtworkKind.IncenseBurner;
-                case "samguk-crown":
-                    return CollectionArtworkKind.Crown;
                 case "goryeo-celadon":
                     return CollectionArtworkKind.Vessel;
                 case "goryeo-lacquerware":
                     return CollectionArtworkKind.Lacquerware;
-                case "joseon-royal-seal":
-                    return CollectionArtworkKind.RoyalSeal;
                 case "joseon-horse-medallion":
                     return CollectionArtworkKind.HorseMedallion;
                 case "joseon-cat-sparrow-painting":

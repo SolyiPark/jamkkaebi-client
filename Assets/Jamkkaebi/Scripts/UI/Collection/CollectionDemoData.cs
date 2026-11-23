@@ -16,12 +16,12 @@ namespace Jamkkaebi.Scripts.UI.Collection
         public static CollectionProgress CreateProgress(CollectionCatalog catalog)
         {
             CollectionProgress progress = new CollectionProgress(catalog);
-            progress.RegisterRestorationCompleted("samguk-crown");
+            progress.RegisterRestorationCompleted("samguk-frog-figurine");
             progress.RegisterRestorationCompleted("goryeo-celadon");
-            progress.RegisterRestorationCompleted("goryeo-stone-buddha");
+            progress.RegisterRestorationCompleted("goryeo-pomegranate-water-dropper");
             progress.RegisterRestorationCompleted("goryeo-lacquerware");
-            progress.RegisterRestorationCompleted("joseon-royal-seal");
-            progress.MarkViewed("goryeo-stone-buddha");
+            progress.RegisterRestorationCompleted("joseon-phoenix-hairpin");
+            progress.MarkViewed("goryeo-pomegranate-water-dropper");
             progress.MarkViewed("goryeo-lacquerware");
             return progress;
         }

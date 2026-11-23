@@ -19,7 +19,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [TearDown]
         public void TearDown() => Object.DestroyImmediate(_catalog);
 
-        /// <summary>시대와 유물의 ID·소속·순서가 확정 시트와, 명칭이 서버 시드와 일치하는지 검사합니다.</summary>
+        /// <summary>시대와 유물의 ID·소속·순서·명칭이 서버 시드(relicId 1~9 순서)와 일치하는지 검사합니다.</summary>
         [Test]
         public void CatalogMatchesConfirmedSheetRowsInOrder()
         {
@@ -30,13 +30,13 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(_catalog.Relics.Select(relic => relic.Id + ":" + relic.EraId + ":" + relic.Name),
                 Is.EqualTo(new[]
                 {
-                    "samguk-standing-buddha:samguk:금동연가7년명여래입상",
+                    "samguk-turtle-water-dropper:samguk:거북이 모양 연적",
                     "samguk-incense-burner:samguk:금동대향로",
-                    "samguk-crown:samguk:금관총 금관",
-                    "goryeo-stone-buddha:goryeo:논산 관촉사 석조미륵보살입상",
-                    "goryeo-celadon:goryeo:상감청자",
+                    "samguk-frog-figurine:samguk:개구리 모양 토우",
+                    "goryeo-pomegranate-water-dropper:goryeo:청자 석류 모양 연적",
+                    "goryeo-celadon:goryeo:상감 청자 매병",
                     "goryeo-lacquerware:goryeo:나전칠기",
-                    "joseon-royal-seal:joseon:유서지보",
+                    "joseon-phoenix-hairpin:joseon:봉 뒤꽂이",
                     "joseon-horse-medallion:joseon:마패",
                     "joseon-cat-sparrow-painting:joseon:묘작도"
                 }));
@@ -48,7 +48,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         {
             Assert.That(_catalog.Relics.Select(relic => relic.SpiritName), Is.EqualTo(new[]
             {
-                "불꽃걸음", "향산이", "금빛숲", "미륵이", "구름결", "밤바다", "붉은당부", "말발굽", "묘작이"
+                "거북이", "향산이", "개굴이", "석류동이", "구름결", "밤바다", "봉이", "말발굽", "묘작이"
             }));
             Assert.That(_catalog.Eras.Select(era => era.BuildingName), Is.EqualTo(new[]
             {
@@ -96,13 +96,13 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(progress.IsBuildingUnlocked("goryeo"), Is.True);
             Assert.That(progress.IsBuildingUnlocked("samguk"), Is.False);
             Assert.That(progress.IsBuildingUnlocked("joseon"), Is.False);
-            Assert.That(progress.IsRestored("samguk-crown"), Is.True);
-            Assert.That(progress.IsRestored("joseon-royal-seal"), Is.True);
-            Assert.That(progress.IsUnread("goryeo-stone-buddha"), Is.False);
+            Assert.That(progress.IsRestored("samguk-frog-figurine"), Is.True);
+            Assert.That(progress.IsRestored("joseon-phoenix-hairpin"), Is.True);
+            Assert.That(progress.IsUnread("goryeo-pomegranate-water-dropper"), Is.False);
             Assert.That(progress.IsUnread("goryeo-lacquerware"), Is.False);
             Assert.That(progress.IsUnread("goryeo-celadon"), Is.True);
-            Assert.That(progress.IsUnread("samguk-crown"), Is.True);
-            Assert.That(progress.IsUnread("joseon-royal-seal"), Is.True);
+            Assert.That(progress.IsUnread("samguk-frog-figurine"), Is.True);
+            Assert.That(progress.IsUnread("joseon-phoenix-hairpin"), Is.True);
         }
     }
 }

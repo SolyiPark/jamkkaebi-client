@@ -45,14 +45,14 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(_view.LastData.Page, Is.EqualTo(CollectionPage.Overview));
 
             _view.SelectEra("samguk");
-            _view.SelectRelic("samguk-standing-buddha");
+            _view.SelectRelic("samguk-turtle-water-dropper");
             Assert.That(_presenter.Page, Is.EqualTo(CollectionPage.Era));
             Assert.That(_presenter.Progress.RestoredCount, Is.EqualTo(5));
 
-            _view.SelectRelic("samguk-crown");
+            _view.SelectRelic("samguk-frog-figurine");
             Assert.That(_view.LastData.Page, Is.EqualTo(CollectionPage.Relic));
-            Assert.That(_view.LastData.SelectedRelicId, Is.EqualTo("samguk-crown"));
-            Assert.That(_presenter.Progress.IsUnread("samguk-crown"), Is.False);
+            Assert.That(_view.LastData.SelectedRelicId, Is.EqualTo("samguk-frog-figurine"));
+            Assert.That(_presenter.Progress.IsUnread("samguk-frog-figurine"), Is.False);
             _view.Back();
             _view.Back();
             Assert.That(_presenter.Page, Is.EqualTo(CollectionPage.Overview));
