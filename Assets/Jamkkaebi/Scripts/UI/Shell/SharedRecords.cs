@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Collection;
 using Jamkkaebi.Scripts.UI.Workbench;
 using UnityEngine;
@@ -47,17 +48,11 @@ namespace Jamkkaebi.Scripts.UI.Shell
             Current = this;
         }
 
-        /// <summary>시작할 때 이미 최초 정화를 마친 정령을 도감에 확인한 상태로 채운다.</summary>
+        /// <summary>시작할 때 이미 최초 정화를 마친 정령을 도감에 확인한 상태로 채운다(작업대 홈 조회가 먼저 왔으면 그쪽이 이미 채웠다).</summary>
         private IEnumerator Start()
         {
             yield return Workbench.GetWorkbench(
-                snapshot =>
-                {
-                    foreach (WorkbenchSpirit spirit in snapshot.Spirits)
-                    {
-                        Recorder.RegisterCompleted(spirit.RelicId, true);
-                    }
-                },
+                snapshot => Recorder.SyncCompleted(snapshot.Spirits.Select(spirit => spirit.RelicId)),
                 error => { Debug.LogWarning($"작업대를 조회하지 못했습니다. {error}", this); });
         }
 

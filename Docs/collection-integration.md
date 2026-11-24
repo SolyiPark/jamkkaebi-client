@@ -152,11 +152,11 @@ $collectionSyncLog = Join-Path $collectionLogFolder 'catalog-sync.log'
 2. 셸의 `SharedRecords._collectionCatalog`와 도감 `CollectionPresenter._catalog`는 같은 `CollectionCatalog.asset`을 연결한다. 같은 자산이면 같은 인스턴스이므로 카탈로그 검사를 통과한다.
 3. 작업대 `WorkbenchPresenter`가 `SharedRecords.Current`의 백엔드·시계·`CollectionRecorder`를 `WorkbenchScreenController.Initialize`에 넘긴다. 컨트롤러는 전역 상태를 직접 읽지 않는다. 셸이 없으면 기존처럼 자기 데모 백엔드를 만들고 도감에 등록하지 않는다.
 4. 정산 결과의 `CompletedNow`가 true일 때(최초 정화의 마지막 페이즈 성공)만 `RegisterCompleted(relicId, alreadySeen: false)`로 신규 등록한다. 개별 페이즈 성공, 상자 열기, 관리 플레이로 선명도가 오르는 것은 등록 조건이 아니다. 응답 전에 화면을 옮겨도 등록이 빠지지 않도록 화면 갱신 세대 검사보다 먼저 처리한다.
-5. 셸이 시작할 때 이미 최초 정화를 마친 정령은 `alreadySeen: true`로 등록한다. 등록 직후 `MarkViewed`를 불러 신규 표시를 남기지 않는다.
+5. 작업대 조회(`GetWorkbench`)의 정령 목록으로 빠진 등록을 채운다(`CollectionRecorder.SyncCompleted`). 셸 시작 시 채우기와 작업대 홈 조회가 모두 이 메서드를 부른다. 처음 받은 목록은 시작 상태로 보고 신규 표시 없이(`alreadySeen: true`, 등록 직후 `MarkViewed`) 등록하고, 그 뒤 목록에서 새로 보이는 정령은 신규로 등록한다. 둘 중 먼저 온 응답이 시작 상태가 된다.
 
 `CollectionPresenter.BindProgress(progress)`는 화면이 떠 있는 동안 기록을 교체할 때(계정 전환 등) 쓴다. 이전 기록의 구독을 해제하고 새 기록을 구독하며 화면 갱신을 요청한다. 카탈로그가 다른 기록과 `null`은 거절한다. 시작할 때는 `Awake`에서 공유 기록을 바로 넣으므로 쓰지 않는다.
 
-보고 응답을 잃어 같은 결과를 다시 보내도 서버·모의 백엔드는 한 번만 정산하고, `RegisterRestorationCompleted`는 이미 등록한 종류에 false를 돌려주므로 종류 등록·건물 해금 개수는 증가하지 않는다. 보고 중에 작업대 탭이 숨겨지면 컨트롤러가 늦은 응답을 버리므로, 그 판의 도감 등록은 다시 보내기로 결과를 받을 때 이뤄진다. 도감 모델은 인스턴스 ID, 보유 수량, 복원 중 단계, 실패·재시도, 보상, 저장 성공을 판단하지 않는다. 이 책임은 작업대·인벤토리·저장 계층에서 맡는다.
+보고 응답을 잃어 같은 결과를 다시 보내도 서버·모의 백엔드는 한 번만 정산하고, `RegisterRestorationCompleted`는 이미 등록한 종류에 false를 돌려주므로 종류 등록·건물 해금 개수는 증가하지 않는다. 마지막 페이즈의 정산 응답을 잃은 채 재전송 화면에서 `홈으로` 나가거나, 보고 중에 작업대 탭이 숨겨져 컨트롤러가 늦은 응답을 버리면 `RegisterCompleted`가 불리지 않는다. 이때는 다음 작업대 홈 조회의 `SyncCompleted`가 백엔드의 정령 목록을 기준으로 신규 등록해 누락을 메운다(`CollectionRecorderTests.ReportResponseLostThenHome_WorkbenchSnapshotRegistersCompletedSpirit`). 도감 모델은 인스턴스 ID, 보유 수량, 복원 중 단계, 실패·재시도, 보상, 저장 성공을 판단하지 않는다. 이 책임은 작업대·인벤토리·저장 계층에서 맡는다.
 
 ## 저장과 전시관의 미구현 범위
 

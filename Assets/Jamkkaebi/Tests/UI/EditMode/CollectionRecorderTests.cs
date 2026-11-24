@@ -1,5 +1,10 @@
+using System;
+using System.Collections;
+using System.Linq;
 using Jamkkaebi.Scripts.Gameplay.Collection;
 using Jamkkaebi.Scripts.Gameplay.Data;
+using Jamkkaebi.Scripts.Gameplay.Purification;
+using Jamkkaebi.Scripts.Gameplay.Relic;
 using Jamkkaebi.Scripts.UI.Shell;
 using Jamkkaebi.Scripts.UI.Workbench;
 using NUnit.Framework;
@@ -119,8 +124,125 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [Test]
         public void Constructor_Null_Throws()
         {
-            Assert.Throws<System.ArgumentNullException>(() => new CollectionRecorder(null, WorkbenchRelicSeed.Instance));
-            Assert.Throws<System.ArgumentNullException>(() => new CollectionRecorder(_progress, null));
+            Assert.Throws<ArgumentNullException>(() => new CollectionRecorder(null, WorkbenchRelicSeed.Instance));
+            Assert.Throws<ArgumentNullException>(() => new CollectionRecorder(_progress, null));
+        }
+
+        // ---------- 작업대 조회로 누락 채우기 ----------
+
+        /// <summary>처음 받은 정령 목록은 시작 상태로 보고 신규 표시 없이 등록하는지 검사합니다.</summary>
+        [Test]
+        public void SyncCompleted_FirstSnapshot_RegistersAsViewed()
+        {
+            Assert.That(_recorder.SyncCompleted(new[] { 2, 8, 9 }), Is.EqualTo(3));
+
+            Assert.That(_progress.RestoredCount, Is.EqualTo(3));
+            foreach (int relicId in new[] { 2, 8, 9 })
+                Assert.That(_progress.IsUnread(CollectionIdOf(relicId)), Is.False, $"relicId {relicId}");
+        }
+
+        /// <summary>
+        /// 시작 상태 뒤의 목록에서 새로 보이는 정령은 신규(N)로 등록하고, 이미 등록된 정령은 그대로 두는지 검사합니다.
+        /// (정산 응답을 잃고 홈으로 나온 뒤 작업대를 다시 조회한 경우)
+        /// </summary>
+        [Test]
+        public void SyncCompleted_LaterSnapshot_RegistersMissingAsUnread()
+        {
+            _recorder.SyncCompleted(new[] { 2, 8, 9 });
+            _changedCount = 0;
+
+            Assert.That(_recorder.SyncCompleted(new[] { 2, 7, 8, 9 }), Is.EqualTo(1));
+
+            Assert.That(_progress.RestoredCount, Is.EqualTo(4));
+            Assert.That(_progress.IsUnread(CollectionIdOf(7)), Is.True);
+            Assert.That(_progress.IsUnread(CollectionIdOf(2)), Is.False);
+            Assert.That(_changedCount, Is.EqualTo(1));
+        }
+
+        /// <summary>시작 상태 목록이 비어 있어도 시작 상태로 치고, 그 뒤 정령은 신규로 등록하는지 검사합니다.</summary>
+        [Test]
+        public void SyncCompleted_EmptyFirstSnapshot_StillSetsBaseline()
+        {
+            Assert.That(_recorder.SyncCompleted(Array.Empty<int>()), Is.Zero);
+
+            _recorder.SyncCompleted(new[] { 7 });
+
+            Assert.That(_progress.IsUnread(CollectionIdOf(7)), Is.True);
+        }
+
+        /// <summary>정산 응답으로 이미 신규 등록한 정령은 다음 조회에서 다시 세거나 N을 지우지 않는지 검사합니다.</summary>
+        [Test]
+        public void SyncCompleted_AfterRegisterCompleted_KeepsUnreadAndDoesNotRecount()
+        {
+            _recorder.SyncCompleted(new[] { 2 });
+            _recorder.RegisterCompleted(7, alreadySeen: false);
+            _changedCount = 0;
+
+            Assert.That(_recorder.SyncCompleted(new[] { 2, 7 }), Is.Zero);
+
+            Assert.That(_progress.IsUnread(CollectionIdOf(7)), Is.True);
+            Assert.That(_progress.RestoredCount, Is.EqualTo(2));
+            Assert.That(_changedCount, Is.Zero);
+        }
+
+        /// <summary>정령 목록이 null이면 거부하는지 검사합니다.</summary>
+        [Test]
+        public void SyncCompleted_Null_Throws()
+        {
+            Assert.Throws<ArgumentNullException>(() => _recorder.SyncCompleted(null));
+        }
+
+        /// <summary>
+        /// 회귀 검사: 마지막 페이즈 정산 응답을 잃고(등록 호출 없음) 홈으로 나간 뒤 작업대를 다시 조회하면,
+        /// 백엔드에 남은 완료 정령이 도감에 신규로 등록되는지 모의 백엔드로 검사합니다.
+        /// </summary>
+        [Test]
+        public void ReportResponseLostThenHome_WorkbenchSnapshotRegistersCompletedSpirit()
+        {
+            DateTime now = new DateTime(2026, 11, 25, 9, 0, 0, DateTimeKind.Utc);
+            OwnedRelic lastPhase = new OwnedRelic(7, now - TimeSpan.FromDays(1), RelicStatus.InProgress, Phase.Guard, null, null, 0);
+            OwnedRelic spirit = new OwnedRelic(2, now - TimeSpan.FromDays(9), RelicStatus.Completed, Phase.Guard,
+                now - TimeSpan.FromDays(3), now - TimeSpan.FromDays(3), 0);
+            var inventory = new RelicInventory(ClarityPolicy.Default, RelicInventory.DefaultWorkbenchCapacity, new[] { lastPhase, spirit });
+            var planner = new PlayPlanner(ClarityPolicy.Default, RestorePolicy.Default, MinigameDifficulty.Normal);
+            var backend = new MockWorkbenchBackend(inventory, planner, WorkbenchRelicSeed.Instance.Count, WorkbenchRelicSeed.Instance,
+                new System.Random(0), () => now, 0f);
+
+            // 시작 시 채우기
+            _recorder.SyncCompleted(Run<WorkbenchSnapshot>((c, f) => backend.GetWorkbench(c, f)).Spirits.Select(s => s.RelicId));
+            Assert.That(_progress.IsRestored(CollectionIdOf(7)), Is.False);
+
+            // 마지막 페이즈를 성공으로 보고했지만 응답을 잃어 RegisterCompleted가 불리지 않았다
+            PurificationSession session = Run<PurificationSession>((c, f) => backend.StartPurification(7, null, c, f));
+            SettlementResult lost = Run<SettlementResult>((c, f) => backend.ReportPurification(session.SessionToken,
+                new PlayReport(PlayResult.Success, null, 3, 1, 10, 0), c, f));
+            Assert.That(lost.CompletedNow, Is.True, "준비 확인: 이 보고로 최초 정화가 끝나야 합니다.");
+            Assert.That(_progress.IsRestored(CollectionIdOf(7)), Is.False);
+
+            // 홈으로 나가 작업대를 다시 조회
+            _recorder.SyncCompleted(Run<WorkbenchSnapshot>((c, f) => backend.GetWorkbench(c, f)).Spirits.Select(s => s.RelicId));
+
+            Assert.That(_progress.IsRestored(CollectionIdOf(7)), Is.True);
+            Assert.That(_progress.IsUnread(CollectionIdOf(7)), Is.True);
+            Assert.That(_progress.IsUnread(CollectionIdOf(2)), Is.False);
+        }
+
+        /// <summary>지연 0인 모의 백엔드 코루틴을 끝까지 돌리고 성공 값을 돌려준다.</summary>
+        private static T Run<T>(Func<Action<T>, Action<string>, IEnumerator> call)
+        {
+            T value = default;
+            string error = null;
+            Drain(call(v => value = v, e => error = e));
+            Assert.That(error, Is.Null);
+            return value;
+        }
+
+        private static void Drain(IEnumerator routine)
+        {
+            while (routine.MoveNext())
+            {
+                if (routine.Current is IEnumerator inner) Drain(inner);
+            }
         }
 
         /// <summary>모든 relicId를 카탈로그에 없는 도감 ID로 돌려주는 유물 목록.</summary>
