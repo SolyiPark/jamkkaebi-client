@@ -40,6 +40,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         private int _viewSequence;     // 화면을 바꿀 때마다 올린다. 이전 화면에서 시작한 요청의 응답은 화면을 바꾸지 않는다.
         private string _pendingStatus; // 다음에 홈을 그린 뒤 안내 자리에 보일 문장(상자 결과 등)
         private bool _initialized;
+        private CollectionRecorder _recorder; // 셸이 없으면 null. 최초 정화를 마치면 도감에 등록한다.
 
         private Func<DateTime> _clock;
         private int _relicId;                  // 상세·정화 중인 유물
@@ -63,13 +64,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
         /// <summary>화면을 만든다. 씬의 WorkbenchPresenter가 Awake에서 부른다.</summary>
         /// <param name="clock">지금 시각. 백엔드와 같은 시계를 써야 경과일이 맞는다. 생략하면 UTC 현재 시각.</param>
-        public void Initialize(MirrorSceneRoot root, Font font, IWorkbenchBackend backend = null, Func<DateTime> clock = null)
+        /// <param name="recorder">최초 정화를 마친 유물을 도감에 등록한다. 생략하면(셸 없이 단독 실행) 등록하지 않는다.</param>
+        public void Initialize(MirrorSceneRoot root, Font font, IWorkbenchBackend backend = null, Func<DateTime> clock = null, CollectionRecorder recorder = null)
         {
             if (_initialized) return;
             _root = root ? root : throw new ArgumentNullException(nameof(root));
             if (!font) throw new ArgumentNullException(nameof(font));
 
             _clock = clock ?? (() => DateTime.UtcNow);
+            _recorder = recorder;
             _backend = backend ?? WorkbenchDemo.CreateBackend(_clock);
             _builder = new WorkbenchViewDataBuilder(WorkbenchRelicSeed.Instance, IntimacyPolicy.Default, RestorePolicy.Default);
             _canvas = CreateCanvas();
@@ -150,6 +153,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             Request<WorkbenchSnapshot>((done, fail) => _backend.GetWorkbench(done, fail),
                 snapshot =>
                 {
+                    // 정산 응답을 잃고 홈으로 나왔으면 완료 등록이 빠져 있다. 정령 목록으로 도감을 맞춘다(화면이 바뀌어도 맞춘다).
+                    _recorder?.SyncCompleted(snapshot.Spirits.Select(spirit => spirit.RelicId));
                     if (sequence != _viewSequence) return;
                     _home.Render(_builder.Home(snapshot));
                     ShowPendingStatus();
@@ -286,6 +291,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 settlement =>
                 {
                     Busy = false;
+                    if (settlement.CompletedNow) _recorder?.RegisterCompleted(relicId, false);
                     if (sequence != _viewSequence) return;
                     _session = null;
                     _settlement = _builder.Settlement(relicId, settlement);

@@ -7,6 +7,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
     public sealed class WorkbenchRelicInfo
     {
         public int RelicId { get; }
+        
+        /// <summary>도감(CollectionCatalog)의 유물 종류 ID. 최초 정화를 마치면 이 ID로 도감에 등록한다.</summary>
+        public string CollectionId { get; }
 
         /// <summary>시대 표시명. 예: "삼국".</summary>
         public string EraName { get; }
@@ -22,9 +25,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         
         public SealMedium SealMedium { get; }
 
-        public WorkbenchRelicInfo(int relicId, string eraName, string poeticAlias, string realName, string defaultSpiritName, SealMedium sealMedium)
+        public WorkbenchRelicInfo(int relicId, string collectionId, string eraName, string poeticAlias, string realName, string defaultSpiritName, SealMedium sealMedium)
         {
             if (relicId <= 0) throw new ArgumentOutOfRangeException(nameof(relicId), "relicId는 1부터 시작합니다.");
+            if (string.IsNullOrEmpty(collectionId)) throw new ArgumentException("도감 ID가 비어 있습니다.", nameof(collectionId));
             if (string.IsNullOrEmpty(eraName)) throw new ArgumentException("시대 이름이 비어 있습니다.", nameof(eraName));
             if (string.IsNullOrEmpty(poeticAlias)) throw new ArgumentException("별칭이 비어 있습니다.", nameof(poeticAlias));
             if (string.IsNullOrEmpty(realName)) throw new ArgumentException("유물 이름이 비어 있습니다.", nameof(realName));
@@ -34,6 +38,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 throw new ArgumentException($"SealMedium {sealMedium}은 정의되지 않았습니다.", nameof(sealMedium));
 
             RelicId = relicId;
+            CollectionId = collectionId;
             EraName = eraName;
             PoeticAlias = poeticAlias;
             RealName = realName;

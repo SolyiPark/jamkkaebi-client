@@ -33,7 +33,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
             WorkbenchScreenController screen = GetComponent<WorkbenchScreenController>();
             if (!screen) screen = gameObject.AddComponent<WorkbenchScreenController>();
-            screen.Initialize(GetComponent<MirrorSceneRoot>(), summary.font);
+            SharedRecords shared = SharedRecords.Current;
+            screen.Initialize(GetComponent<MirrorSceneRoot>(), summary.font, shared?.Workbench, shared?.Clock, shared?.Recorder);
         }
 
         private void OnEnable()

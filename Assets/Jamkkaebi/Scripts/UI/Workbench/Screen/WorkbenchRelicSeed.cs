@@ -15,15 +15,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
         private readonly Dictionary<int, WorkbenchRelicInfo> _relics = new WorkbenchRelicInfo[]
         {
-            new(1, "삼국", "고구려, 벼루 곁에 엎드린 거북", "거북이 모양 연적", "거북이", SealMedium.Root),
-            new(2, "삼국", "백제, 향이 스민 산맥", "금동대향로", "향산이", SealMedium.Soot),
-            new(3, "삼국", "신라, 흙에서 깨어난 개구리", "개구리 모양 토우", "개굴이", SealMedium.Root),
-            new(4, "고려", "고려, 석류를 끌어안은 원숭이", "청자 석류 모양 연적", "석류동이", SealMedium.Root),
-            new(5, "고려", "고려, 살결에 새긴 구름", "상감 청자 매병", "구름결", SealMedium.Fog),
-            new(6, "고려", "고려, 바다를 두른 검은 밤", "나전칠기", "밤바다", SealMedium.Fog),
-            new(7, "조선", "조선, 쪽머리에 내려앉은 봉황", "봉 뒤꽂이", "봉이", SealMedium.Rust),
-            new(8, "조선", "조선, 밤길을 여는 말굽", "마패", "말발굽", SealMedium.Rust),
-            new(9, "조선", "조선, 참새를 올려다보는 눈", "묘작도", "묘작이", SealMedium.Soot)
+            new(1, "samguk-turtle-water-dropper", "삼국", "고구려, 벼루 곁에 엎드린 거북", "거북이 모양 연적", "거북이", SealMedium.Root),
+            new(2, "samguk-incense-burner", "삼국", "백제, 향이 스민 산맥", "금동대향로", "향산이", SealMedium.Soot),
+            new(3, "samguk-frog-figurine", "삼국", "신라, 흙에서 깨어난 개구리", "개구리 모양 토우", "개굴이", SealMedium.Root),
+            new(4, "goryeo-pomegranate-water-dropper", "고려", "고려, 석류를 끌어안은 원숭이", "청자 석류 모양 연적", "석류동이", SealMedium.Root),
+            new(5, "goryeo-celadon", "고려", "고려, 살결에 새긴 구름", "상감 청자 매병", "구름결", SealMedium.Fog),
+            new(6, "goryeo-lacquerware", "고려", "고려, 바다를 두른 검은 밤", "나전칠기", "밤바다", SealMedium.Fog),
+            new(7, "joseon-phoenix-hairpin", "조선", "조선, 쪽머리에 내려앉은 봉황", "봉 뒤꽂이", "봉이", SealMedium.Rust),
+            new(8, "joseon-horse-medallion", "조선", "조선, 밤길을 여는 말굽", "마패", "말발굽", SealMedium.Rust),
+            new(9, "joseon-cat-sparrow-painting", "조선", "조선, 참새를 올려다보는 눈", "묘작도", "묘작이", SealMedium.Soot)
         }.ToDictionary(info => info.RelicId);
 
         private WorkbenchRelicSeed()

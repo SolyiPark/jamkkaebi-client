@@ -1,6 +1,6 @@
 # 도감 구현과 작업대 연결 계약
 
-이 문서는 현재 도감 화면과 향후 작업대 연결 계층의 경계를 기록한다. 작업대 연동, 유물 인스턴스 인벤토리, 복원 페이즈 진행, 저장·서버 기능은 아직 구현하지 않았다. 이번 도감은 샘플 기록으로 화면을 실행한다.
+이 문서는 현재 도감 화면과 작업대 연결 계층의 경계를 기록한다. 2026-11-25부터 도감은 셸의 공유 기록(`SharedRecords`)을 보고, 작업대가 최초 정화를 마친 유물을 그 기록에 등록한다. 작업대 백엔드는 아직 모의 백엔드이며 저장·서버 기능은 구현하지 않았다.
 
 ## 현재 구조
 
@@ -11,15 +11,18 @@
 - `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionPresenter.cs`: 화면 이동, 신규 확인과 변경 이벤트 구독. 표시 데이터 복사본을 View에 전달하며 UI 배치는 소유하지 않는다.
 - `CollectionView` / `CollectionDefaultView`: 교체 가능한 표시 계약과 기존 디자인 구현. 그림·좌표·색상·UI 생성은 기본 View에 있다. Presenter의 선택적 `_view`에 다른 씬 View 인스턴스를 연결할 수 있다. 교체 방법과 아직 프리팹화하지 않은 범위는 [표시 계층 분리 기록](collection-view-separation.md)을 참고한다.
 - `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionCatalogData.cs`: 확정 시트의 시대·유물 명칭과 순서를 바탕으로 고정 카탈로그를 생성한다. 설명·복원 이야기와 실제 아트는 임시 콘텐츠다.
-- `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionDemoData.cs`: 화면 검토를 위한 초기 수집 기록만 주입한다. 고정 카탈로그 정의와 더미 사용자 기록을 분리한다.
+- `Assets/Jamkkaebi/Scripts/UI/Shell/SharedRecords.cs`: 셸(`UIPrototype.unity`의 `Shared Records` 오브젝트) 수명의 공유 기록. 작업대 백엔드·시계·도감 기록(`CollectionProgress`)·`CollectionRecorder`를 하나씩 만들고 `SharedRecords.Current`로 노출한다.
+- `Assets/Jamkkaebi/Scripts/UI/Shell/CollectionRecorder.cs`: 작업대 `relicId`를 `WorkbenchRelicInfo.CollectionId`(도감 종류 ID)로 바꿔 등록한다.
 
-현재 `CollectionPresenter.Awake()`는 `CollectionDemoData.CreateProgress(_catalog)`를 호출한다. 시작 상태는 유물 5/9종 복원 완료, 고려 건물 1개 해금이다. 삼국 금관총 금관·고려 3종·조선 유서지보가 복원된 상태다. 금관총 금관·상감청자·유서지보는 신규 상태이며 논산 관촉사 석조미륵보살입상·나전칠기는 확인한 상태다. 재실행하면 이 샘플 상태로 초기화된다. 기록은 플레이 세션 메모리에만 존재한다.
+`CollectionPresenter.Awake()`는 `SharedRecords.Current`가 있으면 그 `Collection`을 `Progress`로 쓴다. 공유 기록의 카탈로그가 도감의 `_catalog`와 다른 인스턴스면 오류를 남기고 빈 기록으로 시작한다. 셸 없이 도감 씬만 열리면(EditMode 테스트 포함) 빈 기록으로 시작한다. 예전 화면 검토용 샘플 기록(`CollectionDemoData`, 5/9종)은 2026-11-25에 삭제했다.
+
+셸로 시작하면 `SharedRecords.Start`가 작업대 조회의 정령 목록(모의 백엔드는 2·8·9번)을 신규 표시 없이 등록해 3/9종으로 시작한다. 모의 응답은 0.3초 뒤에 오므로 도감이 먼저 그려지면 잠깐 0/9가 보였다가 `Changed` 알림으로 다시 그려진다. 기록은 플레이 세션 메모리에만 존재하며 재실행하면 초기화된다.
 
 ## 확정 목록의 원본과 적용 범위
 
-시대와 유물의 구성·순서는 [확정 Google Sheet의 시트1](https://docs.google.com/spreadsheets/d/1h2kPX9OrotI1mofpJxDIXg06z8RpFlT2e5LXNudL_rw/edit?gid=0) `A2:C10`을 따른다. 시대 표시명은 **삼국·고려·조선**이고 각 시대의 유물은 아래 표에 나오는 순서다. `CollectionCatalogData.CreateCatalog()`가 이 목록을 생성하며, 런타임 화면은 저장된 `CollectionCatalog.asset`을 사용한다.
+2026-11-24부터 시대와 유물의 구성·순서·이름은 서버 `ContentSeedData`(2026-11-19 확인)를 따른다. 유물 순서는 서버 `relicId` 1~9 순서이고 시대 표시명은 **삼국·고려·조선**이다. 처음 목록의 원본이었던 [「깨비별 특성」 시트1](https://docs.google.com/spreadsheets/d/1h2kPX9OrotI1mofpJxDIXg06z8RpFlT2e5LXNudL_rw/edit?gid=0) `A2:C10`과는 1·3·4·5·7번 유물이 다르다. `CollectionCatalogData.CreateCatalog()`가 이 목록을 생성하며, 런타임 화면은 저장된 `CollectionCatalog.asset`을 사용한다.
 
-2026년 11월 5일부터 유물·도깨비·건물 이름의 기준은 서버 `ContentSeedData`([`be72ae8`](https://github.com/SolyiPark/jamkkaebi-server/blob/be72ae8/src/main/java/com/example/jamkkaebi/relic/service/ContentSeedData.java))의 `realName`, `spiritDefaultName`, 건물 `name`이다. 클라이언트에 복사한 값이므로 서버 시드가 바뀌면 함께 갱신한다. 도깨비 이름은 주인이 짓기 전의 기본 이름이며 친구 전시 응답의 `spiritName`과 다를 수 있다. 화면의 "도깨비" 표기와 도깨비 이름은 확정 전 임시 내용이다. `SpiritName`, `_spiritName`, `SpiritIllustration` 같은 코드·직렬화 식별자는 씬·자산 참조를 지키기 위해 바꾸지 않았다.
+유물·도깨비·건물 이름의 기준은 서버 `ContentSeedData`의 `realName`, `spiritDefaultName`, 건물 `name`이다. 작업대 모의 백엔드가 쓰는 `WorkbenchRelicSeed`도 같은 시드를 옮긴 것이며, `WorkbenchRelicSeedTests`가 두 목록의 이름·시대·도감 ID가 같은지 검사한다. 클라이언트에 복사한 값이므로 서버 시드가 바뀌면 함께 갱신한다. 도깨비 이름은 주인이 짓기 전의 기본 이름이며 친구 전시 응답의 `spiritName`과 다를 수 있다. 화면의 "도깨비" 표기와 도깨비 이름은 확정 전 임시 내용이다. `SpiritName`, `_spiritName`, `SpiritIllustration` 같은 코드·직렬화 식별자는 씬·자산 참조를 지키기 위해 바꾸지 않았다.
 
 같은 시트의 `D:I`는 아트 방향 후보다. 물음표·`X` 등 후보 상태를 포함하므로 해당 특성을 확정 도감 설명, 복원·보존 이야기로 해석하지 않는다. 유물 설명과 복원 이야기는 임시 초안임을 화면에 표시하고, 실제 자료와 아트가 준비되면 별도로 교체한다.
 
@@ -32,23 +35,23 @@
 | `CollectionEraDefinition` | ID, 이름, 표시용 시대 문구, 설명, 해금 건물 이름, 강조색, 선택적 `OverviewIllustration`, `ContextIllustration`, `BuildingIllustration`, `LockedBuildingIllustration`, `BackgroundIllustration` |
 | `CollectionRelicDefinition` | ID, 시대 ID, 유물 이름, 도깨비 이름, 유물 설명, 복원·보존 이야기 초안, 강조색, 선택적 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` |
 
-고정 ID와 표시명은 아래와 같다. 표의 위에서 아래 순서는 원본 `A2:C10`과 같다. 유물 ID는 이름과 별개이므로 이름이 바뀌어도, 이후 그림·설명을 교체해도 변경하지 않는다. 서버 번호는 이름을 맞춘 기준이며 코드에는 아직 이 대응이 없다.
+고정 ID와 표시명은 아래와 같다. 유물 ID는 이름과 별개이므로 그림·설명을 교체해도 변경하지 않는다. 서버 `relicId`와 도감 유물 ID의 대응은 작업대의 `WorkbenchRelicInfo.CollectionId`에 있다(서버는 도감 ID를 모른다).
 
-| 원본 행 | 시대 표시명 / ID | 유물 표시명 | 도깨비 기본 이름 | 유물 ID | 서버 `relicId` |
+| 순서 | 시대 표시명 / ID | 유물 표시명 | 도깨비 기본 이름 | 유물 ID | 서버 `relicId` |
 | --- | --- | --- | --- | --- | --- |
-| 2 | 삼국 / `samguk` | 금동연가7년명여래입상 | 불꽃걸음 | `samguk-standing-buddha` | 1 |
-| 3 | 삼국 / `samguk` | 금동대향로 | 향산이 | `samguk-incense-burner` | 2 |
-| 4 | 삼국 / `samguk` | 금관총 금관 | 금빛숲 | `samguk-crown` | 3 |
-| 5 | 고려 / `goryeo` | 논산 관촉사 석조미륵보살입상 | 미륵이 | `goryeo-stone-buddha` | 4 |
-| 6 | 고려 / `goryeo` | 상감청자 | 구름결 | `goryeo-celadon` | 5 |
-| 7 | 고려 / `goryeo` | 나전칠기 | 밤바다 | `goryeo-lacquerware` | 6 |
-| 8 | 조선 / `joseon` | 유서지보 | 붉은당부 | `joseon-royal-seal` | 7 |
-| 9 | 조선 / `joseon` | 마패 | 말발굽 | `joseon-horse-medallion` | 8 |
-| 10 | 조선 / `joseon` | 묘작도 | 묘작이 | `joseon-cat-sparrow-painting` | 9 |
+| 1 | 삼국 / `samguk` | 거북이 모양 연적 | 거북이 | `samguk-turtle-water-dropper` | 1 |
+| 2 | 삼국 / `samguk` | 금동대향로 | 향산이 | `samguk-incense-burner` | 2 |
+| 3 | 삼국 / `samguk` | 개구리 모양 토우 | 개굴이 | `samguk-frog-figurine` | 3 |
+| 4 | 고려 / `goryeo` | 청자 석류 모양 연적 | 석류동이 | `goryeo-pomegranate-water-dropper` | 4 |
+| 5 | 고려 / `goryeo` | 상감 청자 매병 | 구름결 | `goryeo-celadon` | 5 |
+| 6 | 고려 / `goryeo` | 나전칠기 | 밤바다 | `goryeo-lacquerware` | 6 |
+| 7 | 조선 / `joseon` | 봉 뒤꽂이 | 봉이 | `joseon-phoenix-hairpin` | 7 |
+| 8 | 조선 / `joseon` | 마패 | 말발굽 | `joseon-horse-medallion` | 8 |
+| 9 | 조선 / `joseon` | 묘작도 | 묘작이 | `joseon-cat-sparrow-painting` | 9 |
 
 시대별 건물 이름은 삼국 석굴암(서버 `buildingId` 1), 고려 경천사지 십층석탑(2), 조선 경복궁(3)이다.
 
-초기 샘플의 `samguk-pottery`, `goryeo-bronze-mirror`, `goryeo-bell`, `joseon-white-porcelain`, `joseon-brush`, `joseon-sundial`은 폐기했다. 영속 저장이 아직 연결되지 않았으므로 이전 ID에서 새 ID로의 별칭이나 저장 마이그레이션은 만들지 않는다. 향후 작업대는 위 확정 목록의 종류 ID를 사용한다.
+초기 샘플의 `samguk-pottery`, `goryeo-bronze-mirror`, `goryeo-bell`, `joseon-white-porcelain`, `joseon-brush`, `joseon-sundial`은 폐기했다. 2026-11-24에는 서버 시드에 맞추면서 `samguk-standing-buddha`, `samguk-crown`, `goryeo-stone-buddha`, `joseon-royal-seal`을 위 표의 새 ID로 바꿨다(연결된 그림이 없어 잃은 참조는 없다). 영속 저장이 아직 연결되지 않았으므로 이전 ID에서 새 ID로의 별칭이나 저장 마이그레이션은 만들지 않는다. 작업대는 위 확정 목록의 종류 ID로 등록한다.
 
 실제 문화유산 설명과 발굴·복원·보존 이야기를 제공하려면 현재 가상 초안을 출처가 확인된 콘텐츠로 별도 교체한다. 그림 교체는 아래 자산 설정으로 처리하며, 유물 종류 ID와 수집 기록을 변경하지 않는다.
 
@@ -143,33 +146,17 @@ $collectionSyncLog = Join-Path $collectionLogFolder 'catalog-sync.log'
 
 `CollectionPresenter.ShowRelic(id)`는 존재하면서 복원 완료된 유물에만 상세 진입을 허용하고, 정상 진입 시 `MarkViewed(id)`를 호출한다. 미복원 항목은 잠금과 `???`로 표시한다. 이후 같은 종류를 다시 복원해도 신규 표시를 다시 켜지 않는다.
 
-## 향후 작업대 연결 순서
+## 작업대 연결
 
-1. 공통 셸 수명으로 도감 기록 서비스를 구성한다. 작업대는 숨겨질 때 비활성화되는 `Pause While Hidden` 탭이므로, 공유 기록의 소유자를 작업대의 비활성 루트에 두지 않는다.
-2. 셸과 도감이 같은 `CollectionCatalog.asset` 인스턴스를 사용해 공유 `CollectionProgress`를 생성한다.
-3. 도감 씬이 준비된 후 `CollectionPresenter.BindProgress(sharedProgress)`로 주입한다. 이 메서드는 이전 기록의 구독을 해제하고 새 기록을 구독하며 화면 갱신을 요청한다. 카탈로그가 다른 기록과 `null`은 거절한다.
-4. 현재 `Awake()`의 더미 초기 기록 주입을 실제 공유 기록 구성으로 교체한다. 더미 초기화와 실제 저장 기록 초기화를 동시에 유지하지 않는다.
-5. 작업대 연결 계층은 인스턴스별 진행과 결과를 확인한 뒤, **3페이즈 전체의 최종 복원이 완료되었을 때만** 종류 ID로 `RegisterRestorationCompleted(kindId)`를 호출한다. 각 페이즈 성공, 발굴 시작, 유물 획득만으로 호출하지 않는다.
+1. 공유 기록은 셸 수명의 `SharedRecords`가 소유한다. 작업대는 숨겨질 때 비활성화되는 `Pause While Hidden` 탭이므로, 공유 기록의 소유자를 작업대의 비활성 루트에 두지 않는다.
+2. 셸의 `SharedRecords._collectionCatalog`와 도감 `CollectionPresenter._catalog`는 같은 `CollectionCatalog.asset`을 연결한다. 같은 자산이면 같은 인스턴스이므로 카탈로그 검사를 통과한다.
+3. 작업대 `WorkbenchPresenter`가 `SharedRecords.Current`의 백엔드·시계·`CollectionRecorder`를 `WorkbenchScreenController.Initialize`에 넘긴다. 컨트롤러는 전역 상태를 직접 읽지 않는다. 셸이 없으면 기존처럼 자기 데모 백엔드를 만들고 도감에 등록하지 않는다.
+4. 정산 결과의 `CompletedNow`가 true일 때(최초 정화의 마지막 페이즈 성공)만 `RegisterCompleted(relicId, alreadySeen: false)`로 신규 등록한다. 개별 페이즈 성공, 상자 열기, 관리 플레이로 선명도가 오르는 것은 등록 조건이 아니다. 응답 전에 화면을 옮겨도 등록이 빠지지 않도록 화면 갱신 세대 검사보다 먼저 처리한다.
+5. 작업대 조회(`GetWorkbench`)의 정령 목록으로 빠진 등록을 채운다(`CollectionRecorder.SyncCompleted`). 셸 시작 시 채우기와 작업대 홈 조회가 모두 이 메서드를 부른다. 처음 받은 목록은 시작 상태로 보고 신규 표시 없이(`alreadySeen: true`, 등록 직후 `MarkViewed`) 등록하고, 그 뒤 목록에서 새로 보이는 정령은 신규로 등록한다. 둘 중 먼저 온 응답이 시작 상태가 된다.
 
-향후 구성 계층과 최종 완료 처리에서 사용할 최소 예시는 다음과 같다. 아래 코드는 현재 작업대에 연결된 구현이 아니다.
+`CollectionPresenter.BindProgress(progress)`는 화면이 떠 있는 동안 기록을 교체할 때(계정 전환 등) 쓴다. 이전 기록의 구독을 해제하고 새 기록을 구독하며 화면 갱신을 요청한다. 카탈로그가 다른 기록과 `null`은 거절한다. 시작할 때는 `Awake`에서 공유 기록을 바로 넣으므로 쓰지 않는다.
 
-```csharp
-using Jamkkaebi.Scripts.Gameplay.Collection;
-using Jamkkaebi.Scripts.UI.Collection;
-
-// 공통 셸이 도감 씬 준비 후 구성한다.
-CollectionCatalog catalog = presenter.Catalog;
-CollectionProgress sharedProgress = new CollectionProgress(catalog);
-presenter.BindProgress(sharedProgress);
-
-// 작업대 연결 계층이 3페이즈 전체의 최종 완료를 확인한 다음 호출한다.
-string kindId = "samguk-crown";
-bool registered = sharedProgress.RegisterRestorationCompleted(kindId);
-// registered가 false이면 모르는 ID 또는 이미 기록한 종류다.
-// 이미 기록한 종류의 재복원은 새 도감 등록 이벤트를 만들지 않는다.
-```
-
-최종 복원 완료와 도감 등록 사이에 결과가 중복 전달되어도 종류 등록·건물 해금 개수는 증가하지 않는다. 도감 모델은 인스턴스 ID, 보유 수량, 복원 중 단계, 실패·재시도, 보상, 저장 성공을 판단하지 않는다. 이 책임은 향후 작업대·인벤토리·저장 계층에서 맡는다.
+보고 응답을 잃어 같은 결과를 다시 보내도 서버·모의 백엔드는 한 번만 정산하고, `RegisterRestorationCompleted`는 이미 등록한 종류에 false를 돌려주므로 종류 등록·건물 해금 개수는 증가하지 않는다. 마지막 페이즈의 정산 응답을 잃은 채 재전송 화면에서 `홈으로` 나가거나, 보고 중에 작업대 탭이 숨겨져 컨트롤러가 늦은 응답을 버리면 `RegisterCompleted`가 불리지 않는다. 이때는 다음 작업대 홈 조회의 `SyncCompleted`가 백엔드의 정령 목록을 기준으로 신규 등록해 누락을 메운다(`CollectionRecorderTests.ReportResponseLostThenHome_WorkbenchSnapshotRegistersCompletedSpirit`). 도감 모델은 인스턴스 ID, 보유 수량, 복원 중 단계, 실패·재시도, 보상, 저장 성공을 판단하지 않는다. 이 책임은 작업대·인벤토리·저장 계층에서 맡는다.
 
 ## 저장과 전시관의 미구현 범위
 

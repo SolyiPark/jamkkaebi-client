@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Net;
 using Jamkkaebi.Scripts.Gameplay.Collection;
 using Jamkkaebi.Scripts.UI.Shell;
 using UnityEngine;
@@ -53,7 +54,7 @@ namespace Jamkkaebi.Scripts.UI.Collection
         /// <summary>시대 상세의 건물 해금 상태이며, 다른 화면에서는 null입니다.</summary>
         public Text BuildingStatusText => _view ? _view.BuildingStatusText : null;
 
-        /// <summary>필수 자산을 확인하고 샘플 기록, 공통 프레임과 첫 시대 목록을 생성합니다.</summary>
+        /// <summary>필수 자산을 확인하고 공유 기록으로 진행도를 세팅합니다. 공통 프레임과 첫 시대 목록을 생성합니다.</summary>
         private void Awake()
         {
             if (!_catalog || !_font)
@@ -62,8 +63,25 @@ namespace Jamkkaebi.Scripts.UI.Collection
                 enabled = false;
                 return;
             }
-            // 현재는 서버 저장을 읽는 대신 샘플 기록으로 시작합니다. View를 바꿔도 이 초기 기록 정책은 그대로입니다.
-            Progress = CollectionDemoData.CreateProgress(_catalog);
+            
+            // 셸의 공유 기록을 본다. 작업대가 최초 정화를 마치면 여기 등록된다. 셸 없이 열리면 빈 기록.
+            if (SharedRecords.Current is { } shared)
+            {
+                if (shared.Collection.Catalog != _catalog)
+                {
+                    Progress = new CollectionProgress(_catalog);
+                    Debug.LogError("셸의 공유 기록(Shared Records) 카탈로그와 도감의 카탈로그가 다릅니다.", this);
+                }
+                else
+                {
+                    Progress = shared.Collection;
+                }
+            }
+            else
+            {
+                Progress = new CollectionProgress(_catalog);
+            }
+            
             // 명시적으로 연결한 View → 계층 안에 있는 View → 기존 디자인의 기본 View 순서입니다.
             // 새 디자인을 연결하려고 기존 Collection.unity나 일회성 이관 도구를 다시 만들 필요가 없습니다.
             if (!_view) _view = GetComponentInChildren<CollectionView>(true);

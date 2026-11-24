@@ -48,7 +48,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
                     info = null;
                     return false;
                 }
-                info = new WorkbenchRelicInfo(relicId, "시대", "별칭" + relicId, "유물" + relicId, "정령" + relicId,
+                info = new WorkbenchRelicInfo(relicId, "relic-" + relicId, "시대", "별칭" + relicId, "유물" + relicId, "정령" + relicId,
                     relicId % 2 == 0 ? SealMedium.Fog : SealMedium.Root);
                 return true;
             }
