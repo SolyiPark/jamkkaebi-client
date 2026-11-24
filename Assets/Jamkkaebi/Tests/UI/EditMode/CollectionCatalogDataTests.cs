@@ -84,25 +84,5 @@ namespace Jamkkaebi.Tests.UI.EditMode
                 Assert.That(actual.ConservationNote, Is.EqualTo(expected.ConservationNote));
             }
         }
-
-        /// <summary>더미 기록이 확정 유물 5종과 고려 건물 하나만 완료하며 신규 확인 정책을 따르는지 검사합니다.</summary>
-        [Test]
-        public void DemoProgressUsesConfirmedRelicsAndKeepsCompletionRules()
-        {
-            CollectionProgress progress = CollectionDemoData.CreateProgress(_catalog);
-            Assert.That(progress.TotalCount, Is.EqualTo(9));
-            Assert.That(progress.RestoredCount, Is.EqualTo(5));
-            Assert.That(progress.CompletedBuildingCount, Is.EqualTo(1));
-            Assert.That(progress.IsBuildingUnlocked("goryeo"), Is.True);
-            Assert.That(progress.IsBuildingUnlocked("samguk"), Is.False);
-            Assert.That(progress.IsBuildingUnlocked("joseon"), Is.False);
-            Assert.That(progress.IsRestored("samguk-frog-figurine"), Is.True);
-            Assert.That(progress.IsRestored("joseon-phoenix-hairpin"), Is.True);
-            Assert.That(progress.IsUnread("goryeo-pomegranate-water-dropper"), Is.False);
-            Assert.That(progress.IsUnread("goryeo-lacquerware"), Is.False);
-            Assert.That(progress.IsUnread("goryeo-celadon"), Is.True);
-            Assert.That(progress.IsUnread("samguk-frog-figurine"), Is.True);
-            Assert.That(progress.IsUnread("joseon-phoenix-hairpin"), Is.True);
-        }
     }
 }

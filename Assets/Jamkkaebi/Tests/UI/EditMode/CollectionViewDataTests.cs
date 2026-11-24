@@ -15,6 +15,23 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [TearDown]
         public void TearDown() => Object.DestroyImmediate(_catalog);
 
+        /// <summary>
+        /// 유물 5종(삼국 1·고려 3·조선 1)을 복원해 고려 건물만 해금되고, 고려 2종은 확인한 상태의 기록.
+        /// 시대마다 복원 수·건물 해금·신규 여부가 서로 다르게 섞인 화면 검사용이다.
+        /// </summary>
+        private CollectionProgress FiveRestoredProgress()
+        {
+            var progress = new CollectionProgress(_catalog);
+            progress.RegisterRestorationCompleted("samguk-frog-figurine");
+            progress.RegisterRestorationCompleted("goryeo-celadon");
+            progress.RegisterRestorationCompleted("goryeo-pomegranate-water-dropper");
+            progress.RegisterRestorationCompleted("goryeo-lacquerware");
+            progress.RegisterRestorationCompleted("joseon-phoenix-hairpin");
+            progress.MarkViewed("goryeo-pomegranate-water-dropper");
+            progress.MarkViewed("goryeo-lacquerware");
+            return progress;
+        }
+
         /// <summary>원본 장부가 바뀌어도 이미 화면에 준 안내지가 같이 바뀌지 않는지 검사합니다.</summary>
         [Test]
         public void ProgressChangesDoNotMutatePreviouslyRenderedData()
@@ -43,7 +60,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         [Test]
         public void SnapshotPreservesDomainDecisionsWithoutAcknowledgingUnreadRecords()
         {
-            var progress = CollectionDemoData.CreateProgress(_catalog);
+            var progress = FiveRestoredProgress();
             var data = new CollectionViewData(progress, null, CollectionPage.Relic, "samguk", "samguk-frog-figurine");
 
             Assert.That(data.Catalog, Is.SameAs(_catalog));
