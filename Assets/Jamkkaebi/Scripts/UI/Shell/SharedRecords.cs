@@ -65,5 +65,12 @@ namespace Jamkkaebi.Scripts.UI.Shell
         {
             if (Current == this) Current = null;
         }
+        
+        [ContextMenu("Dev/도감 기록 출력")]
+        private void LogCollection()
+        {
+            if (Collection == null) return; // Awake에서 쓰지 않게 됐거나 Play 중이 아닐 때
+            Debug.Log($"도감 등록 {Collection.RestoredCount}/{Collection.TotalCount}", this);
+        }
     }
 }
