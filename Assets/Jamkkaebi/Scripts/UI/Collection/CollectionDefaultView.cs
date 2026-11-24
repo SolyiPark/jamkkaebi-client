@@ -203,7 +203,6 @@ namespace Jamkkaebi.Scripts.UI.Collection
                 $"복원한 유물  {_data.RestoredCount} / {_data.TotalCount}\n해금한 건물  {_data.CompletedBuildingCount} / {_data.Catalog.Eras.Count}\n수집률  {Percent(_data.CollectionRate)}%",
                 28, Ink, 450, summaryY + 22, 534, 154, TextAnchor.MiddleRight);
             ProgressBar(_content, 0, summaryY + 190, ContentWidth, _data.CollectionRate, Gold);
-            Label("Sample Notice", _content, "미리보기 · 샘플 수집 기록", 22, Muted, 0, summaryY + 220, ContentWidth, 40);
         }
 
         /// <summary>선택 시대의 유물 카드, 복원 잠금, 건물 해금 상태와 시대 설명을 구성합니다.</summary>
