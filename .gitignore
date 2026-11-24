@@ -105,6 +105,13 @@ InitTestScene*.unity*
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
+# 검증·테스트 실행 기록과 임시 검증 스크립트 (로그·빌드는 위의 /Logs/, /Builds/로 제외된다)
+.vsconfig
+/[Tt]est[Rr]esults*/
+/[Tt]est[Rr]esults*.xml
+/[Aa]ssets/**/Temp*Check.cs
+/[Aa]ssets/**/Temp*Check.cs.meta
+
 ==================
       MacOS
 ==================

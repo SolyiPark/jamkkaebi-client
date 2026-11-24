@@ -1,0 +1,292 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Jamkkaebi.Npc
+{
+    /// <summary>
+    /// 모델 런타임(LLMUnity, LiteRT-LM 등)을 감싸는 자리. 런타임마다 하나씩 구현한다 — 이 패키지에는
+    /// <see cref="LlmUnityModelBackend"/>(폰, LLMUnity)와 <see cref="LmStudioModelBackend"/>(에디터·개발용, PC 의 LM Studio)가 있다.
+    /// 무거운 일은 백그라운드 스레드에서 하고, 결과만 Task 로 돌려준다.
+    /// </summary>
+    public interface INpcModelBackend
+    {
+        /// <summary>모델이 메모리에 올라와 바로 생성할 수 있는지.</summary>
+        bool IsLoaded { get; }
+
+        Task LoadAsync(CancellationToken ct);
+
+        void Unload();
+
+        /// <summary>
+        /// 프롬프트로 한 번 생성해 모델이 낸 글을 <b>그대로</b> 돌려준다 (검사는 생성기가 한다).
+        /// 런타임이 형식 제약을 받으면 prompt.Grammar(GBNF) 나 prompt.JsonSchema 를 넘긴다.
+        /// 취소되면 OperationCanceledException 을 던진다.
+        /// </summary>
+        Task<string> CompleteAsync(NpcPrompt prompt, CancellationToken ct);
+
+        /// <summary>
+        /// 시스템 메시지를 모델에 미리 읽혀 둔다 (system + NpcPrompt.PrepareUser 로 1토큰만 생성). llama.cpp 는 앞부분이
+        /// 글자 하나까지 같으면 이미 읽은 것을 다시 쓰므로, 다음 요청은 사용자 메시지만 읽는다. 생성 요청과 같은 줄에 선다.
+        /// 앞부분을 다시 쓰지 않는 런타임은 아무것도 하지 않아도 된다. 취소되면 OperationCanceledException 을 던진다.
+        /// </summary>
+        Task PrepareAsync(string system, CancellationToken ct);
+    }
+
+    /// <summary>
+    /// 모델이 멈췄는지 알려 주는 백엔드 (<see cref="LlmUnityModelBackend"/>). 멈추면 IsLoaded 도 false 지만, 아직 안 올라온 것과 구분하려고 따로 둔다.
+    /// 이 인터페이스가 없는 백엔드는 멈추지 않는 것으로 본다.
+    /// </summary>
+    public interface INpcModelHealth
+    {
+        /// <summary>올라옴·안 올라옴·멈춤(취소한 생성이 끝나지 않아 모델을 쓰지 않는 중)을 한 번에 읽는다.</summary>
+        NpcModelStatus Status { get; }
+    }
+
+    /// <summary>모델 상태. 한 번 읽은 값으로 판단과 메모를 함께 정한다 (두 번 읽으면 그 사이에 바뀔 수 있다).</summary>
+    public enum NpcModelStatus
+    {
+        NotLoaded,
+        Ready,
+        Stalled
+    }
+
+    /// <summary>
+    /// SLM 으로 반응을 만드는 생성기. 프롬프트 조립 → 모델 호출 → 출력 검사를 하고, 검사를 통과한 것만 Success 로 돌려준다.
+    ///
+    /// <para>실패하면 예외 대신 Failed 를 돌려준다. 요청 관리자는 Failed 를 받으면 규칙 기반 생성기로 대신한다.</para>
+    /// <list type="bullet">
+    /// <item>NotReady: 모델이 아직 안 올라왔다.</item>
+    /// <item>Unsupported: 페르소나가 아직 없는 도깨비이거나, 정해진 대사를 쓰는 요청(이야기 듣기)이거나, 대사가 없는 요청(끌려갈 때)이다. 모델을 부르지 않는다.</item>
+    /// <item>NoCandidate: 후보가 없다.</item>
+    /// <item>InvalidOutput: 출력 검사(JSON · 후보 포함 · 대사 길이 · 줄바꿈 · 금칙어)에 걸렸다. FailDetail 에 이유가 있다.</item>
+    /// <item>Cancelled: 요청 관리자가 취소했다 (시간 초과 포함). 늦게 끝난 생성 결과도 버린다.</item>
+    /// <item>Error: 런타임 오류. FailDetail 에 예외 메시지가 있다.</item>
+    /// </list>
+    /// </summary>
+    public sealed class SlmReactionGenerator : INpcReactionGenerator
+    {
+        private readonly INpcModelBackend backend;
+        private readonly PromptAssembler assembler;
+        private readonly NpcOutputValidator validator;
+
+        /// <summary>이 입력의 대사 길이 제한(여유 포함). 미리 만들어 둔 대사를 꺼내 칸을 채운 뒤에도 같은 제한을 지키게 한다.</summary>
+        public int MaxLineLength(string input)
+        {
+            return validator.LimitFor(input) + NpcOutputValidator.LengthTolerance;
+        }
+
+        /// <summary>
+        /// 미리 만들어 둔 대사(칸을 채운 뒤)를 지금 규칙의 출력 검사에 한 번 더 넣는다. 통과하면 다듬어진 결과, 걸리면 null.
+        /// 파일에 남겨 둔 대사는 그 뒤에 바뀐 금칙어·검사 규칙을 모르고 만들어졌을 수 있다 (NpcLineCache.Recheck 로 쓴다).
+        /// 흐려진 안부의 '이미 한 말'(코드가 붙인 앞 문장)은 떼고 넣는다 — 검사기가 다시 붙인다.
+        /// </summary>
+        public ReactionResult Recheck(ReactionRequest request, ReactionResult stored)
+        {
+            if (request == null || stored == null || string.IsNullOrEmpty(stored.Line))
+            {
+                return null;
+            }
+            string line = PromptAssembler.StripAskPrefix(stored.Line, PromptAssembler.AskPrefixes(request));
+            string raw = "{\"action\": \"" + JsonText(stored.ActionId) + "\", \"target\": \"" + JsonText(stored.TargetId) + "\", \"line\": \"" + JsonText(line) + "\"}";
+            OutputCheck check;
+            try
+            {
+                check = validator.Check(raw, request);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return check.IsValid
+                    ? ReactionResult.Success(stored.RequestId, check.ActionId, check.TargetId, check.Line, stored.Source, stored.Note)
+                    : null;
+        }
+
+        private static string JsonText(string value)
+        {
+            var builder = new System.Text.StringBuilder();
+            foreach (char c in value ?? "")
+            {
+                switch (c)
+                {
+                    case '"': builder.Append("\\\""); break;
+                    case '\\': builder.Append("\\\\"); break;
+                    case '\n': builder.Append("\\n"); break;
+                    case '\r': builder.Append("\\r"); break;
+                    case '\t': builder.Append("\\t"); break;
+                    default: builder.Append(c); break;
+                }
+            }
+            return builder.ToString();
+        }
+
+        public SlmReactionGenerator(INpcModelBackend backend, PromptAssembler assembler, NpcOutputValidator validator)
+        {
+            if (backend == null)
+            {
+                throw new ArgumentNullException("backend");
+            }
+            if (assembler == null)
+            {
+                throw new ArgumentNullException("assembler");
+            }
+            if (validator == null)
+            {
+                throw new ArgumentNullException("validator");
+            }
+            this.backend = backend;
+            this.assembler = assembler;
+            this.validator = validator;
+            MaxAttempts = 2;
+            RetryOnlyWithin = TimeSpan.FromMilliseconds(1500);
+        }
+
+        /// <summary>
+        /// 한 번 만드는 데 이 시간보다 오래 걸렸으면 검사에 걸려도 다시 만들지 않는다 (기본 1.5초). 느린 기기에서는 한 번 만드는 데 몇 초가 걸려
+        /// 다시 만들면 두 배가 되고 응답이 늦게 뜨므로, 빨리 끝난 시도만 한 번 더 만든다. 걸리면 곧바로 기본 대사로 대신한다.
+        /// </summary>
+        public TimeSpan RetryOnlyWithin { get; set; }
+
+        /// <summary>
+        /// 출력 검사에 걸렸을 때 몇 번까지 생성하는지 (처음 포함). 다시 할 때는 곁들일 거리를 다음 것으로 바꾼다(Variation + 1).
+        /// 기본 2 (최근 대사와 90% 이상 겹치거나 문장이 끝나지 않으면 새로 만든다). 요청 관리자의 SlmTimeout 안에서만 다시 하고, 넘으면 기본 대사로 대신된다.
+        /// </summary>
+        public int MaxAttempts { get; set; }
+
+        public bool IsReady
+        {
+            get { return backend.IsLoaded; }
+        }
+
+        /// <summary>
+        /// 모델 상태를 한 번에 읽는다 (<see cref="INpcModelHealth"/>). 멈춤을 알려 주지 않는 백엔드면 IsLoaded 로 Ready·NotLoaded 만 준다.
+        /// 판단과 메모를 함께 정할 때는 IsReady·IsStalled 를 따로 읽지 말고 이것을 한 번 읽는다.
+        /// </summary>
+        public NpcModelStatus ModelStatus
+        {
+            get
+            {
+                var health = backend as INpcModelHealth;
+                if (health != null)
+                {
+                    return health.Status;
+                }
+                return backend.IsLoaded ? NpcModelStatus.Ready : NpcModelStatus.NotLoaded;
+            }
+        }
+
+        /// <summary>모델이 멈췄는지 (<see cref="INpcModelHealth"/>). 그동안 IsReady 도 false 다. 멈춤을 알려 주지 않는 백엔드면 늘 false.</summary>
+        public bool IsStalled
+        {
+            get { return ModelStatus == NpcModelStatus.Stalled; }
+        }
+
+        public Task LoadAsync(CancellationToken ct)
+        {
+            return backend.LoadAsync(ct);
+        }
+
+        public void Unload()
+        {
+            backend.Unload();
+        }
+
+        /// <summary>
+        /// 그 도깨비의 시스템 메시지를 모델에 미리 읽혀 둔다. 모델이 안 올라왔거나 페르소나가 없으면 아무것도 하지 않는다.
+        /// 게임은 요청 관리자의 PrepareAsync 를 부른다 (다른 도깨비로 넘어가면 멈춰 준다).
+        /// </summary>
+        public Task PrepareAsync(int relicId, CancellationToken ct)
+        {
+            string system = backend.IsLoaded ? assembler.SystemFor(relicId) : null;
+            return system == null ? Task.FromResult(true) : backend.PrepareAsync(system, ct);
+        }
+
+        public async Task<ReactionResult> GenerateAsync(ReactionRequest request, CancellationToken ct)
+        {
+            if (request == null)
+            {
+                return ReactionResult.Failed(null, FailReason.Error, ReactionSource.Slm, "요청이 없다");
+            }
+            string id = request.RequestId;
+            if (ct.IsCancellationRequested)
+            {
+                return ReactionResult.Failed(id, FailReason.Cancelled, ReactionSource.Slm);
+            }
+            if (!backend.IsLoaded)
+            {
+                return ReactionResult.Failed(id, FailReason.NotReady, ReactionSource.Slm);
+            }
+            if (request.Candidates == null || request.Candidates.Count == 0)
+            {
+                return ReactionResult.Failed(id, FailReason.NoCandidate, ReactionSource.Slm);
+            }
+            if (NpcActions.OnlyFixedLines(request.Candidates))
+            {
+                return ReactionResult.Failed(id, FailReason.Unsupported, ReactionSource.Slm, "이야기는 정해진 대사를 쓴다");
+            }
+            if (NpcActions.OnlySilent(request.Candidates))
+            {
+                return ReactionResult.Failed(id, FailReason.Unsupported, ReactionSource.Slm, "끌려갈 때는 대사가 없다");
+            }
+
+            // 검사(자기 이름·어미·반복 등)에 걸리면 곁들일 거리를 바꿔 다시 만든다. 걸린 이유는 결과의 Note·FailDetail 에 남긴다
+            var rejected = new List<string>();
+            int attempts = Math.Max(1, MaxAttempts);
+            for (int attempt = 1; ; attempt++)
+            {
+                Stopwatch attemptWatch = Stopwatch.StartNew();
+                NpcPrompt prompt;
+                try
+                {
+                    prompt = assembler.Build(request);
+                }
+                catch (Exception e)
+                {
+                    return ReactionResult.Failed(id, FailReason.Error, ReactionSource.Slm, "프롬프트 조립 실패: " + e.Message);
+                }
+                if (prompt == null)
+                {
+                    return ReactionResult.Failed(id, FailReason.Unsupported, ReactionSource.Slm, "페르소나가 없는 도깨비 " + request.RelicId);
+                }
+
+                string raw;
+                try
+                {
+                    raw = await backend.CompleteAsync(prompt, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return ReactionResult.Failed(id, FailReason.Cancelled, ReactionSource.Slm);
+                }
+                catch (Exception e)
+                {
+                    return ReactionResult.Failed(id, FailReason.Error, ReactionSource.Slm, "모델 호출 실패: " + e.Message);
+                }
+                if (ct.IsCancellationRequested)
+                {
+                    return ReactionResult.Failed(id, FailReason.Cancelled, ReactionSource.Slm);
+                }
+
+                OutputCheck check;
+                try
+                {
+                    check = validator.Check(raw, request);
+                }
+                catch (Exception e)
+                {
+                    return ReactionResult.Failed(id, FailReason.Error, ReactionSource.Slm, "출력 검사 실패: " + e.Message);
+                }
+                if (check.IsValid || attempt >= attempts || attemptWatch.Elapsed > RetryOnlyWithin)
+                {
+                    ReactionResult result = check.ToResult(id);
+                    return rejected.Count == 0 ? result : result.WithEarlierRejections(rejected);
+                }
+                rejected.Add(check.Problem + ": " + check.Detail);
+                request.Variation++;
+            }
+        }
+    }
+}

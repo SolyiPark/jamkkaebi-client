@@ -1,4 +1,4 @@
 {
   "name": "Jamkkaebi.Gameplay",
-  "references": ["Unity.ugui"]
+  "references": ["Unity.ugui", "Jamkkaebi.Npc"]
 }
