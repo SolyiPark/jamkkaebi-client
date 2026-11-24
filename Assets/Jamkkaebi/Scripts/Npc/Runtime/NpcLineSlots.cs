@@ -1,0 +1,270 @@
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+namespace Jamkkaebi.Npc
+{
+    /// <summary>서버가 넘겨주는 값 중 대사에 들어가는 것. 미리 만들 때는 견본, 요청 때는 실제 값이다.</summary>
+    public sealed class SlotValues
+    {
+        /// <summary>서버 시각의 시간대(새벽·아침·오전·낮·저녁·밤). 탭 인사에만 있다.</summary>
+        public string TimeWord { get; set; }
+
+        /// <summary>플레이어를 부르는 말 — 친밀도에 따라 '발굴자' 또는 닉네임(ReactionRequest.AddressName).</summary>
+        public string Address { get; set; }
+
+        /// <summary>최근 30일 방문한 날 수. 손님 장면에만 있다.</summary>
+        public int? VisitCount { get; set; }
+
+        /// <summary>마지막 관리(정화)가 며칠 전인지 (사실 last_care_days_ago). 주인 장면의 안부·관리에만 있다.</summary>
+        public int? CareDays { get; set; }
+
+        public static SlotValues FromRequest(ReactionRequest request)
+        {
+            int count;
+            int days;
+            string visits = request.FindFact(NpcFactKeys.VisitCount30d);
+            string care = request.FindFact(NpcFactKeys.LastCareDaysAgo);
+            return new SlotValues
+            {
+                TimeWord = request.FindFact(NpcFactKeys.TimeOfDay),
+                Address = request.AddressName,
+                VisitCount = visits != null && int.TryParse(visits, out count) ? count : (int?)null,
+                CareDays = care != null && int.TryParse(care, out days) ? days : (int?)null
+            };
+        }
+    }
+
+    /// <summary>
+    /// 미리 만든 대사 중 서버 값(시간대·호칭·방문 횟수)에 달린 말을 <b>변수 칸</b>으로 남겨 두고, 서버 값이 오자마자 칸에 넣어 대사를 완성한다.
+    /// 서버 값을 기다리지 않고 미리 만들 수 있고, 시간대가 바뀌거나 닉네임·방문 횟수가 달라져도 같은 대사를 다시 쓸 수 있다.
+    ///
+    /// <para>칸: <c>{시간대}</c>(아침에→저녁에), <c>{호칭}</c>(발굴자→닉네임), <c>{호칭아}</c>(부르는 말 "발굴자"/"도윤아"), <c>{횟수}</c>("7번"),
+    /// <c>{날수}</c>(마지막 관리 "9일 만이야"·"9일 전" → 실제 날 수).</para>
+    ///
+    /// <para>칸으로 만들 수 없는 대사는 보관하지 않는다(Slotify 가 null): 어제·사흘 전처럼 한글로 쓴 날짜, 마지막 관리가 아닌 날 수("3일 전"인데 견본은 9일),
+    /// '일주일·열흘·보름·한 달·사흘'처럼 정해진 길이, "아침 일찍"처럼 시간대 뒤에 조사가 없는 말, 호칭 뒤에 조사가 바로 붙은 말("도윤이"), "세 번"처럼 한글 숫자.
+    /// 이런 대사는 서버 값이 바뀌면 틀릴 수 있어서다.</para>
+    ///
+    /// <para>선명도(선명·흐려짐·재봉인)는 칸으로 만들지 않는다 — 낱말 하나가 아니라 무슨 말을 할지(고마움·닦아 달라는 부탁·깨워 줘서 고마움)를 정해서,
+    /// 상태마다 따로 만들어 둔다(NpcLineCache.TemplateKeyOf 의 열쇠에 남는다).</para>
+    /// </summary>
+    public static class NpcLineSlots
+    {
+        public const string TimeSlot = "{시간대}";
+        public const string AddressSlot = "{호칭}";
+        public const string AddressVocativeSlot = "{호칭아}";
+        public const string CountSlot = "{횟수}";
+        public const string DaysSlot = "{날수}";
+
+        private static readonly Regex DayRef = new Regex("어제|그제|그저께|엊그제|이틀 ?전|사흘 ?전|나흘 ?전|닷새 ?전|[0-9]+ ?일 ?전|하루 ?전|지난 ?주|저번 ?주|[0-9]+ ?주", RegexOptions.CultureInvariant);
+        private static readonly Regex TimeWord = new Regex("(?<![가-힣])(새벽|아침|오전|낮|저녁|밤)", RegexOptions.CultureInvariant);
+        private static readonly Regex KoreanCount = new Regex("(한|두|세|네|다섯|여섯|일곱|여덟|아홉|열) ?번", RegexOptions.CultureInvariant);
+        private static readonly Regex AnyCount = new Regex("([0-9]+) ?번", RegexOptions.CultureInvariant);
+        private static readonly Regex AnyDays = new Regex("[0-9]+ ?일", RegexOptions.CultureInvariant);
+        // 정해진 길이를 한글로 말한 것 — 날 수 칸에 넣을 수 없어 실제 날 수와 어긋날 수 있다 ("일주일 만이야"를 12일 만에 쓰면 틀린다)
+        private static readonly Regex FixedSpan = new Regex("일주일|열흘|보름(?!달)|한 ?달|이틀|사흘|나흘|닷새|엿새|여드레|아흐레", RegexOptions.CultureInvariant);
+
+        // 시간대 뒤에 와도 되는 조사 (여섯 낱말 모두 받침으로 끝나 같은 조사를 쓴다). 긴 것부터
+        private static readonly string[] TimeParticles = { "에는", "이라서", "이라고", "이구나", "부터", "마다", "까지", "이라", "이야", "이네", "이군", "에", "엔", "도", "이" };
+
+        private static readonly Dictionary<string, string[]> AllowedTimeWords = new Dictionary<string, string[]>
+        {
+            { "새벽", new[] { "새벽", "밤" } }, { "아침", new[] { "아침", "새벽", "오전" } }, { "오전", new[] { "오전", "아침", "낮" } },
+            { "낮", new[] { "낮" } }, { "저녁", new[] { "저녁" } }, { "밤", new[] { "밤", "저녁" } }
+        };
+
+        public static bool HasSlots(string line)
+        {
+            return !string.IsNullOrEmpty(line) && line.IndexOf('{') >= 0
+                    && (line.Contains(TimeSlot) || line.Contains(AddressSlot) || line.Contains(AddressVocativeSlot) || line.Contains(CountSlot) || line.Contains(DaysSlot));
+        }
+
+        /// <summary>대사에 들어 있는 칸의 이름 ("시간대·호칭" 꼴). 없으면 빈 글.</summary>
+        public static string SlotNames(string line)
+        {
+            var names = new List<string>();
+            if (line != null && line.Contains(TimeSlot)) names.Add("시간대");
+            if (line != null && (line.Contains(AddressSlot) || line.Contains(AddressVocativeSlot))) names.Add("호칭");
+            if (line != null && line.Contains(CountSlot)) names.Add("횟수");
+            if (line != null && line.Contains(DaysSlot)) names.Add("날수");
+            return string.Join("·", names.ToArray());
+        }
+
+        /// <summary>
+        /// 만든 대사에서 견본 값(sample)에 달린 말을 칸으로 바꾼다. 칸으로 만들 수 없는 대사면 null (보관하지 않는다).
+        /// 서버 값에 달린 말이 없는 대사는 그대로 돌려준다 (칸 없음).
+        /// </summary>
+        public static string Slotify(string line, SlotValues sample)
+        {
+            if (string.IsNullOrEmpty(line) || sample == null)
+            {
+                return null;
+            }
+            string text = line;
+            // 0) 마지막 관리 날 수: 마지막 관리를 말하는 꼴에서만 견본 숫자를 칸으로 — 코드가 붙인 앞 문장("마지막 관리가 9일 전이었어"·"관리받은 지 9일이 지났어")과
+            //    관리를 말하는 "9일 만에 닦아 줘서". "9일 만에 다시 만나서"·"9일 만이야"(만남의 간격)나 "9일 전에도 왔지?"(방문)는 숫자가 같아도 칸으로 만들지 않는다 —
+            //    다른 날 수로 채우면
+            //    없던 방문이 되는데 마지막 관리 사실과 같은 숫자라 기록 검사(RecordConflict)도 통과한다 (CodeRabbit 리뷰). 칸이 아닌 숫자는 아래 AnyDays 가 거른다
+            if (sample.CareDays.HasValue)
+            {
+                string n = sample.CareDays.Value.ToString();
+                text = NpcLineChecks.Cached("(?<=마지막 관리가 )" + n + "(?=일 전)|(?<=관리받은 지 )" + n + "(?=일이 지났)|(?<![0-9])" + n + "(?= ?일 ?만에 ?(?:닦|관리|깨워|깨어|씻|챙|돌봐|돌보))").Replace(text, DaysSlot);
+            }
+            if (DayRef.IsMatch(text) || KoreanCount.IsMatch(text) || AnyDays.IsMatch(text) || FixedSpan.IsMatch(text))
+            {
+                return null;
+            }
+
+            // 1) 시간대
+            string[] allowed;
+            bool known = sample.TimeWord != null && AllowedTimeWords.TryGetValue(sample.TimeWord.Trim(), out allowed);
+            allowed = known ? AllowedTimeWords[sample.TimeWord.Trim()] : new string[0];
+            var slotAt = new List<int>();
+            var slotLen = new List<int>();
+            foreach (Match m in TimeWord.Matches(text))
+            {
+                int after = m.Index + m.Length;
+                int particle = ParticleLength(text, after);
+                int end = after + particle;
+                bool compound = particle == 0 && after < text.Length && IsHangul(text[after]);
+                if (compound)
+                {
+                    continue; // 낮잠·밤바다·아침햇살처럼 다른 낱말의 일부
+                }
+                bool boundary = end >= text.Length || !IsHangul(text[end]);
+                bool spaceThenWord = particle == 0 && after < text.Length && char.IsWhiteSpace(text[after]) && NextIsHangul(text, after);
+                if (!boundary || spaceThenWord || Array.IndexOf(allowed, m.Groups[1].Value) < 0)
+                {
+                    return null; // "아침 일찍"처럼 조사가 없거나, 견본 시간대와 어긋나거나, 견본 시간대를 모른다
+                }
+                slotAt.Add(m.Index);
+                slotLen.Add(m.Length);
+            }
+            for (int i = slotAt.Count - 1; i >= 0; i--)
+            {
+                text = text.Substring(0, slotAt[i]) + TimeSlot + text.Substring(slotAt[i] + slotLen[i]);
+            }
+
+            // 2) 호칭 (발굴자 또는 닉네임)
+            if (!string.IsNullOrEmpty(sample.Address))
+            {
+                var address = new Regex("(?<![가-힣])" + Regex.Escape(sample.Address) + "(아|야)?", RegexOptions.CultureInvariant);
+                bool unsafeUse = false;
+                text = address.Replace(text, m =>
+                {
+                    int end = m.Index + m.Length;
+                    if (end < text.Length && IsHangul(text[end]))
+                    {
+                        // 조사가 바로 붙은 호칭("도윤이")은 받침에 따라 조사가 달라져 칸으로 만들 수 없다. 단 '아·야'가 호칭 뒤 부르는 말이면 통과
+                        unsafeUse = true;
+                        return m.Value;
+                    }
+                    return m.Groups[1].Success ? AddressVocativeSlot : AddressSlot;
+                });
+                if (unsafeUse)
+                {
+                    return null;
+                }
+            }
+
+            // 3) 방문 횟수 (숫자 + 번)
+            foreach (Match m in AnyCount.Matches(text))
+            {
+                if (!sample.VisitCount.HasValue || m.Groups[1].Value != sample.VisitCount.Value.ToString())
+                {
+                    return null; // 견본 횟수가 아닌 숫자는 서버 값이 아니다 — 지어낸 말일 수 있다
+                }
+            }
+            if (sample.VisitCount.HasValue)
+            {
+                text = NpcLineChecks.Cached("(?<![0-9])" + sample.VisitCount.Value + "(?= ?번)").Replace(text, CountSlot);
+            }
+            return text;
+        }
+
+        /// <summary>
+        /// 칸에 실제 서버 값을 넣어 대사를 완성한다. 대사에 있는 칸에 넣을 값이 없으면 null (그 대사는 못 쓴다).
+        /// </summary>
+        public static string Fill(string template, SlotValues actual)
+        {
+            if (string.IsNullOrEmpty(template) || !HasSlots(template))
+            {
+                return template;
+            }
+            string text = template;
+            if (text.Contains(TimeSlot))
+            {
+                if (actual == null || string.IsNullOrEmpty(actual.TimeWord))
+                {
+                    return null;
+                }
+                text = text.Replace(TimeSlot, actual.TimeWord.Trim());
+            }
+            if (text.Contains(AddressSlot) || text.Contains(AddressVocativeSlot))
+            {
+                if (actual == null || string.IsNullOrEmpty(actual.Address))
+                {
+                    return null;
+                }
+                text = text.Replace(AddressSlot, actual.Address);
+                text = text.Replace(AddressVocativeSlot, actual.Address == NpcAddress.Stranger ? actual.Address : actual.Address + VocativeSuffix(actual.Address));
+            }
+            if (text.Contains(CountSlot))
+            {
+                if (actual == null || !actual.VisitCount.HasValue)
+                {
+                    return null;
+                }
+                text = text.Replace(CountSlot, actual.VisitCount.Value.ToString());
+            }
+            if (text.Contains(DaysSlot))
+            {
+                if (actual == null || !actual.CareDays.HasValue)
+                {
+                    return null;
+                }
+                text = text.Replace(DaysSlot, actual.CareDays.Value.ToString());
+            }
+            return text;
+        }
+
+        private static string VocativeSuffix(string word)
+        {
+            char last = word[word.Length - 1];
+            bool batchim = last >= '가' && last <= '힣' && (last - 0xAC00) % 28 != 0;
+            return batchim ? "아" : "야";
+        }
+
+        private static int ParticleLength(string text, int at)
+        {
+            foreach (string particle in TimeParticles)
+            {
+                if (string.CompareOrdinal(text, at, particle, 0, particle.Length) == 0)
+                {
+                    int end = at + particle.Length;
+                    if (end >= text.Length || !IsHangul(text[end]))
+                    {
+                        return particle.Length;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        private static bool NextIsHangul(string text, int whitespaceAt)
+        {
+            int i = whitespaceAt;
+            while (i < text.Length && char.IsWhiteSpace(text[i]))
+            {
+                i++;
+            }
+            return i < text.Length && IsHangul(text[i]);
+        }
+
+        private static bool IsHangul(char c)
+        {
+            return c >= '가' && c <= '힣';
+        }
+    }
+}
