@@ -18,15 +18,13 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         public int ReinforcedOnField { get; }
         public int HelperCount { get; }
         public int BonusJeongseongCount { get; }
-        /// <summary>시대의 결정 보너스 수. 결정은 보너스로 내지 않기로 해서 클라이언트는 쓰지 않는다.</summary>
-        public int BonusCrystalCount { get; }
         public int ShapeCount { get; }
         public int ShapeCellTotal { get; }
         public int TapBudget { get; }
         public int ScoutLimit { get; }
 
         public PurificationBoardParameters(long seed, int width, int height, int threatCount, int reinforcedOnShape,
-            int reinforcedOnField, int helperCount, int bonusJeongseongCount, int bonusCrystalCount, int shapeCount,
+            int reinforcedOnField, int helperCount, int bonusJeongseongCount, int shapeCount,
             int shapeCellTotal, int tapBudget, int scoutLimit)
         {
             Seed = seed;
@@ -37,7 +35,6 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
             ReinforcedOnField = reinforcedOnField;
             HelperCount = helperCount;
             BonusJeongseongCount = bonusJeongseongCount;
-            BonusCrystalCount = bonusCrystalCount;
             ShapeCount = shapeCount;
             ShapeCellTotal = shapeCellTotal;
             TapBudget = tapBudget;
