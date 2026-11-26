@@ -1,5 +1,6 @@
 using System;
 using Jamkkaebi.Scripts.Gameplay.Data;
+using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using Jamkkaebi.Scripts.Gameplay.Purification;
 
 namespace Jamkkaebi.Scripts.UI.Workbench
@@ -17,8 +18,12 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public SealMedium SealMedium { get; }
         public long Seed { get; }
 
+        /// <summary>서버가 정한 보드. 모의 백엔드는 보드를 주지 않아 null이고, 미니게임이 난이도 표에서 고른다.</summary>
+        public MinigameBoardConfig? Board { get; }
+
         public PurificationSession(string sessionToken, int relicId, EntryRoute route,
-            Phase phase, MinigameDifficulty difficulty, SealMedium sealMedium, long seed)
+            Phase phase, MinigameDifficulty difficulty, SealMedium sealMedium, long seed,
+            MinigameBoardConfig? board = null)
         {
             if (sessionToken == null) throw new ArgumentNullException(nameof(sessionToken));
             if (sessionToken.Length == 0) throw new ArgumentException("sessionToken이 비어있습니다.", nameof(sessionToken));
@@ -39,11 +44,12 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             Difficulty = difficulty;
             SealMedium = sealMedium;
             Seed = seed;
+            Board = board;
         }
 
         public PlaySetup ToSetup()
         {
-            return new PlaySetup(RelicId, Phase, Difficulty, SealMedium, Seed);
+            return new PlaySetup(RelicId, Phase, Difficulty, SealMedium, Seed, Board);
         }
     }
 }

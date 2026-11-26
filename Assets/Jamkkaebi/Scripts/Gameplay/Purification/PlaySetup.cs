@@ -1,5 +1,6 @@
 using System;
 using Jamkkaebi.Scripts.Gameplay.Data;
+using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 
 namespace Jamkkaebi.Scripts.Gameplay.Purification
 {
@@ -18,7 +19,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         /// <summary>보드 시드. 같은 설정·같은 시드면 같은 보드가 나온다.</summary>
         public long Seed { get; }
 
-        public PlaySetup(int relicId, Phase phase, MinigameDifficulty difficulty, SealMedium sealMedium, long seed)
+        /// <summary>
+        /// 서버가 정한 보드(정화 시작 응답의 board). 있으면 어댑터의 난이도 표 대신 이 값으로 판을 만든다.
+        /// 모의 백엔드처럼 보드 값이 없으면 null이고, 난이도 표에서 고른다.
+        /// </summary>
+        public MinigameBoardConfig? Board { get; }
+
+        public PlaySetup(int relicId, Phase phase, MinigameDifficulty difficulty, SealMedium sealMedium, long seed,
+            MinigameBoardConfig? board = null)
         {
             if (relicId <= 0) throw new ArgumentOutOfRangeException(nameof(relicId), "relicId는 1부터 시작합니다.");
             if (!Enum.IsDefined(typeof(Phase), phase))
@@ -33,6 +41,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
             Difficulty = difficulty;
             SealMedium = sealMedium;
             Seed = seed;
+            Board = board;
         }
     }
 }

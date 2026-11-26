@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Jamkkaebi.Scripts.Gameplay.Data;
+using Jamkkaebi.Scripts.Gameplay.Minigame.Core;
 using Jamkkaebi.Scripts.Gameplay.Purification;
 using Jamkkaebi.Scripts.Gameplay.Relic;
 using Jamkkaebi.Scripts.UI.Workbench;
@@ -328,6 +329,29 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(MinigameDifficulty.Hard, setup.Difficulty);
             Assert.AreEqual(SealMedium.Soot, setup.SealMedium);
             Assert.AreEqual(-42L, setup.Seed);
+        }
+
+        /// <summary>보드 값이 없으면(모의 백엔드) 판 설정에도 보드가 없는지 검사합니다.</summary>
+        [Test]
+        public void Session_WithoutBoard_SetupHasNoBoard()
+        {
+            PurificationSession session = new PurificationSession("token-1", 4, EntryRoute.First,
+                Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 7L);
+
+            Assert.IsNull(session.Board);
+            Assert.IsNull(session.ToSetup().Board);
+        }
+
+        /// <summary>서버 보드 값을 판 설정까지 그대로 넘기는지 검사합니다.</summary>
+        [Test]
+        public void Session_WithBoard_PassesBoardToSetup()
+        {
+            MinigameBoardConfig board = new MinigameBoardConfig(7, 8, 3, 12, 6, 1, 2, 2, 1, 19, 3,
+                MinigameRules.AllowedThreatHits);
+            PurificationSession session = new PurificationSession("token-1", 4, EntryRoute.First,
+                Phase.Unseal, MinigameDifficulty.Normal, SealMedium.Rust, 7L, board);
+
+            Assert.AreEqual(board, session.ToSetup().Board);
         }
 
         /// <summary>정의되지 않은 봉인 매개체를 거부하는지 검사합니다.</summary>
