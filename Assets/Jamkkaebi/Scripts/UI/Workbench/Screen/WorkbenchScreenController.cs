@@ -57,6 +57,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         /// <summary>상자 열기·정화 시작·보고처럼 상태를 바꾸는 요청이 진행 중인지. 진행 중에는 버튼을 다시 받지 않는다.</summary>
         public bool Busy { get; private set; }
 
+        // 결과를 받지 못한 상자 열기 요청 번호. 성공하면 비운다(실패하면 다음 누름에 다시 쓴다).
+        private string _boxRequestId;
+
         public Page CurrentPage { get; private set; } = Page.Home;
         public WorkbenchHomeView Home => _home;
         public WorkbenchDetailView Detail => _detail;
@@ -173,11 +176,15 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             Busy = true;
             int sequence = _viewSequence;
             _home.ShowStatus("상자를 여는 중…");
-            string requestId = Guid.NewGuid().ToString();
+            // 결과를 받지 못한 요청이 있으면 같은 번호로 다시 보낸다. 서버가 이미 뽑았으면 같은 결과를 돌려주고,
+            // 뽑기 전에 거절했으면(가득 참 등) 처음 요청처럼 처리하므로 두 번 뽑히지 않는다.
+            _boxRequestId ??= Guid.NewGuid().ToString();
+            string requestId = _boxRequestId;
             Request<BoxOpenOutcome>((done, fail) => _backend.OpenBox(BoxSource.Free, requestId, done, fail),
                 outcome =>
                 {
                     Busy = false;
+                    if (_boxRequestId == requestId) _boxRequestId = null;
                     if (sequence != _viewSequence) return;
                     _pendingStatus = _builder.BoxResult(outcome);
                     ShowHome();
@@ -185,8 +192,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 error =>
                 {
                     // 실패해도 화면이 지금 상태와 어긋나 있을 수 있으니 다시 조회하고 이유를 보인다.
-                    // 모의 백엔드의 실패는 규칙 위반(가득 참 등)이라 같은 번호로 다시 보내도 결과가 같다.
-                    // 네트워크 재전송(같은 requestId)은 서버 연결 때 붙인다.
+                    // 스스로 다시 보내지 않는다. 사용자가 다시 누르면 위의 같은 requestId로 보낸다.
                     Busy = false;
                     if (sequence != _viewSequence) return;
                     _pendingStatus = error;
