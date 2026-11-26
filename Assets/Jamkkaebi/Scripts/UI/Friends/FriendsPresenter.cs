@@ -78,9 +78,9 @@ namespace Jamkkaebi.Scripts.UI.Friends
             UIFactory.Image("Paper", _canvas, Paper, Vector2.zero, Vector2.one);
             _root.uiRaycasters = new[] { canvas.GetComponent<GraphicRaycaster>() };
             Render();
-            string baseUrl = string.IsNullOrWhiteSpace(_serverBaseUrl) ? Environment.GetEnvironmentVariable("JAMKKAEBI_SERVER_URL") : _serverBaseUrl;
-            if (!string.IsNullOrWhiteSpace(baseUrl)) ConnectServer(new JamkkaebiApiClient(baseUrl,
-                Environment.GetEnvironmentVariable("JAMKKAEBI_ACCESS_TOKEN"), Environment.GetEnvironmentVariable("JAMKKAEBI_REFRESH_TOKEN")));
+            // 셸이 있으면 셸의 공용 클라이언트를 쓴다(토큰 상태를 작업대와 하나로 둔다). 친구 씬만 단독으로 열었을 때만 직접 만든다.
+            JamkkaebiApiClient client = SharedRecords.Current != null ? SharedRecords.Current.Api : ServerConnection.Create(_serverBaseUrl);
+            if (client != null) ConnectServer(client);
         }
 
         /// <summary>진행 중인 방문·소셜 요청을 취소하고 새 인증 클라이언트로 친구 상태를 조회합니다.</summary>
