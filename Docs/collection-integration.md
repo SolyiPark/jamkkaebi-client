@@ -10,7 +10,9 @@
 - `Assets/Jamkkaebi/Scripts/Gameplay/Collection/`: 고정 정의와 수집 규칙. UI, 작업대 어댑터, 전시관 배치 타입에 의존하지 않는다.
 - `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionPresenter.cs`: 화면 이동, 신규 확인과 변경 이벤트 구독. 표시 데이터 복사본을 View에 전달하며 UI 배치는 소유하지 않는다.
 - `CollectionView` / `CollectionDefaultView`: 교체 가능한 표시 계약과 기존 디자인 구현. 그림·좌표·색상·UI 생성은 기본 View에 있다. Presenter의 선택적 `_view`에 다른 씬 View 인스턴스를 연결할 수 있다. 교체 방법과 아직 프리팹화하지 않은 범위는 [표시 계층 분리 기록](collection-view-separation.md)을 참고한다.
-- `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionCatalogData.cs`: 확정 시트의 시대·유물 명칭과 순서를 바탕으로 고정 카탈로그를 생성한다. 설명·복원 이야기와 실제 아트는 임시 콘텐츠다.
+- `Assets/Jamkkaebi/Scripts/UI/Collection/CollectionCatalogData.cs`: 도감 구조(시대·유물 ID, 소속, 순서, 강조색)와 서버 시드 기준 이름(시대·건물·유물·도깨비 기본 이름)만 만든다. 화면 문구는 넣지 않는다.
+- `Assets/Jamkkaebi/Configuration/Text/collection_eras.csv`, `collection_relics.csv`: 시대 기간 문구·시대 설명, 유물 설명·복원 기록의 원본. 기획 담당의 구글 시트에서 내보낸 파일이며 에디터 임포트로만 읽는다(런타임에 파싱하지 않는다). 현재 문구는 임시 초안이다.
+- `Assets/Jamkkaebi/Editor/TextTables/`: 에디터 전용 어셈블리 `Jamkkaebi.Editor.TextTables`. RFC 4180 CSV 파서(`CsvReader`), 헤더·키 검증(`TextTable`, `TextTableSchema`, `TextTableReport`), 도감 임포트(`Collection/CollectionTextImport`)가 있다. 파서와 검증은 다른 텍스트 표에도 재사용한다.
 - `Assets/Jamkkaebi/Scripts/UI/Shell/SharedRecords.cs`: 셸(`UIPrototype.unity`의 `Shared Records` 오브젝트) 수명의 공유 기록. 작업대 백엔드·시계·도감 기록(`CollectionProgress`)·`CollectionRecorder`를 하나씩 만들고 `SharedRecords.Current`로 노출한다.
 - `Assets/Jamkkaebi/Scripts/UI/Shell/CollectionRecorder.cs`: 작업대 `relicId`를 `WorkbenchRelicInfo.CollectionId`(도감 종류 ID)로 바꿔 등록한다.
 
@@ -20,11 +22,11 @@
 
 ## 확정 목록의 원본과 적용 범위
 
-2026-11-24부터 시대와 유물의 구성·순서·이름은 서버 `ContentSeedData`(2026-11-19 확인)를 따른다. 유물 순서는 서버 `relicId` 1~9 순서이고 시대 표시명은 **삼국·고려·조선**이다. 처음 목록의 원본이었던 [「깨비별 특성」 시트1](https://docs.google.com/spreadsheets/d/1h2kPX9OrotI1mofpJxDIXg06z8RpFlT2e5LXNudL_rw/edit?gid=0) `A2:C10`과는 1·3·4·5·7번 유물이 다르다. `CollectionCatalogData.CreateCatalog()`가 이 목록을 생성하며, 런타임 화면은 저장된 `CollectionCatalog.asset`을 사용한다.
+2026-11-24부터 시대와 유물의 구성·순서·이름은 서버 `ContentSeedData`(2026-11-19 확인)를 따른다. 유물 순서는 서버 `relicId` 1~9 순서이고 시대 표시명은 **삼국·고려·조선**이다. 처음 목록의 원본이었던 [「깨비별 특성」 시트1](https://docs.google.com/spreadsheets/d/1h2kPX9OrotI1mofpJxDIXg06z8RpFlT2e5LXNudL_rw/edit?gid=0) `A2:C10`과는 1·3·4·5·7번 유물이 다르다. `CollectionCatalogData.CreateCatalog()`가 이 목록을 생성하고, 도감 텍스트 임포트가 CSV 문구를 합쳐 `CollectionCatalog.asset`에 저장한다. 런타임 화면은 저장된 자산만 사용한다.
 
 유물·도깨비·건물 이름의 기준은 서버 `ContentSeedData`의 `realName`, `spiritDefaultName`, 건물 `name`이다. 작업대 모의 백엔드가 쓰는 `WorkbenchRelicSeed`도 같은 시드를 옮긴 것이며, `WorkbenchRelicSeedTests`가 두 목록의 이름·시대·도감 ID가 같은지 검사한다. 클라이언트에 복사한 값이므로 서버 시드가 바뀌면 함께 갱신한다. 도깨비 이름은 주인이 짓기 전의 기본 이름이며 친구 전시 응답의 `spiritName`과 다를 수 있다. 화면의 "도깨비" 표기와 도깨비 이름은 확정 전 임시 내용이다. `SpiritName`, `_spiritName`, `SpiritIllustration` 같은 코드·직렬화 식별자는 씬·자산 참조를 지키기 위해 바꾸지 않았다.
 
-같은 시트의 `D:I`는 아트 방향 후보다. 물음표·`X` 등 후보 상태를 포함하므로 해당 특성을 확정 도감 설명, 복원·보존 이야기로 해석하지 않는다. 유물 설명과 복원 이야기는 임시 초안임을 화면에 표시하고, 실제 자료와 아트가 준비되면 별도로 교체한다.
+같은 시트의 `D:I`는 아트 방향 후보다. 물음표·`X` 등 후보 상태를 포함하므로 해당 특성을 확정 도감 설명, 복원·보존 이야기로 해석하지 않는다. 유물 설명과 복원 이야기는 임시 초안임을 화면에 표시하고, 실제 자료가 준비되면 아래 [도감 텍스트를 시트에서 갱신하는 방법](#도감-텍스트를-시트에서-갱신하는-방법)으로 교체한다.
 
 ## 데이터 자산 계약
 
@@ -106,11 +108,36 @@ Unity 자산과 스크립트의 `.meta`를 함께 유지하고, 자산 이동·�
 
 위 슬롯은 도감 콘텐츠 씬 안의 그림을 대상으로 한다. 화면 위의 프로필 바와 화면 아래의 탭 버튼은 공통 셸 소유이므로 `CollectionAppearance`로 교체하지 않으며, 해당 공통 셸 자산에서 별도로 설정한다.
 
-## 확정 목록을 저장 자산에 반영하는 방법
+## 도감 텍스트를 시트에서 갱신하는 방법
 
-Unity 메뉴 **`Prototype > Collection > Sync Catalog From Confirmed Data`** 또는 batch mode의 **`CollectionSetup.SyncCatalog`**로 `CollectionCatalogData.CreateCatalog()`의 정의를 `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`에 반영한다. 이 명령은 도감 씬을 이관하거나 재구성하지 않는다. `CollectionSetup.Apply()`는 초기 씬 이관 전용이므로 목록 갱신에 재실행하지 않는다.
+시대 기간 문구·시대 설명, 유물 설명·복원 기록은 구글 시트 → CSV → `CollectionCatalog.asset` 순서로 반영한다. 시트 양식과 기획 담당용 안내는 [도감 텍스트 시트 안내](collection-text-sheet-guide.md)에 있다.
 
-기존 카탈로그가 있으면 같은 자산을 갱신해 `.meta` GUID와 씬의 카탈로그 참조를 유지한다. 같은 시대 ID는 기존 `OverviewIllustration`, `ContextIllustration`, `BuildingIllustration`, `LockedBuildingIllustration`, `BackgroundIllustration` 참조를 보존한다. 같은 유물 ID는 기존 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` 참조를 보존한다. 공통 `CollectionAppearance.asset`은 카탈로그 동기화 대상이 아니다. 시대·유물 순서와 이름, 도깨비 기본 이름, 건물 이름, 임시 설명·복원 이야기 등 나머지 정의는 `CollectionCatalogData`의 값으로 교체한다. 삭제된 유물 ID의 아트를 새 ID로 옮기지는 않는다.
+1. 기획 담당이 구글 시트의 `collection_eras`, `collection_relics` 탭을 고친다.
+2. 탭마다 **파일 → 다운로드 → 쉼표로 구분된 값(.csv, 현재 시트)**으로 내보낸다.
+3. 내려받은 파일 이름을 `collection_eras.csv`, `collection_relics.csv`로 바꿔 `Assets/Jamkkaebi/Configuration/Text/`의 같은 파일을 덮어쓴다. `.meta`는 그대로 둔다.
+4. Play를 종료하고 Unity 메뉴 **`Jamkkaebi > Collection > Import Text CSV`**를 실행한다. 대화 상자와 Console에 바뀐 행 수, 경고, 오류가 나온다.
+5. 오류가 있으면 자산은 바뀌지 않는다. 시트를 고쳐 2번부터 다시 한다. 경고는 반영되지만 내용을 확인한다.
+6. CSV 두 개와 `CollectionCatalog.asset`을 함께 커밋한다. `CollectionCatalogDataTests.SceneCatalogAssetMatchesStructureAndCsv`는 둘이 어긋나면(메뉴를 실행하지 않고 CSV만 커밋하면) 실패한다.
+
+| 구분 | 열 | 시트에서 바꾸면 |
+| --- | --- | --- |
+| 키 | `id` | 바꾸지 않는다. 모르는 ID·빠진 ID·중복 ID는 오류다. |
+| 반영 | `기간 문구`, `시대 설명`, `유물 설명`, `복원 기록` | 자산에 반영한다. 비어 있으면 오류다. 앞뒤 공백은 지운다. |
+| 참고 | `시대 이름(참고)`, `건물 이름(참고)`, `시대(참고)`, `유물 이름(참고)`, `도깨비 기본 이름(참고)` | 반영하지 않는다. 값이 있는데 서버 기준 이름과 다르면 경고만 한다. 열을 지우거나 비워도 된다. |
+| 무시 | `비고`, 헤더가 빈 열 | 읽지 않는다. |
+| 그 밖 | 스키마에 없는 헤더 | 읽지 않고 경고한다(헤더 오타 확인용). |
+
+행 순서는 의미가 없다. 화면 순서는 `CollectionCatalogData`(서버 `relicId` 순서)를 따른다. 모든 셀이 빈 행은 건너뛴다. 셀 안 줄바꿈은 `\n`으로 맞춰 그대로 화면 줄바꿈이 된다. CSV는 UTF-8이며 BOM이 있어도 된다. 따옴표가 닫히지 않는 등 CSV 형식이 깨지면 행 번호와 함께 오류로 보고한다. 보고의 행 번호는 시트의 행 번호(헤더가 1행)와 같다.
+
+유물·도깨비·시대·건물 이름은 서버 `ContentSeedData`가 기준이므로 시트로 바꾸지 않는다. 바꿔야 하면 서버 시드와 `CollectionCatalogData`, `WorkbenchRelicSeed`를 함께 고친 뒤 시트의 참고 열도 맞춘다.
+
+도감 화면은 legacy `Text`와 동적 폰트라 글자 제한이 없다. 이후 같은 방식으로 TMP 화면(미니게임 도움말 등)의 문구를 임포트할 때는 정적 아틀라스의 2,350자 밖 글자가 있는지 확인하고, 있으면 `Jamkkaebi/Fonts/Bake Static Font Atlases`를 실행한다.
+
+## 구조와 텍스트를 저장 자산에 반영하는 방법
+
+Unity 메뉴 **`Jamkkaebi > Collection > Import Text CSV`**, **`Prototype > Collection > Sync Catalog From Confirmed Data`**(같은 동작) 또는 batch mode의 **`CollectionSetup.SyncCatalog`**는 `CollectionCatalogData.CreateCatalog()`의 구조·이름과 `Configuration/Text`의 CSV 문구를 합쳐 `Assets/Jamkkaebi/Configuration/CollectionCatalog.asset`에 반영한다. `CollectionSetup.ConfigureImages`도 내부에서 같은 동기화를 하므로 CSV 문구를 하드코딩 문구로 덮어쓰지 않는다. 이 명령은 도감 씬을 이관하거나 재구성하지 않는다. `CollectionSetup.Apply()`는 초기 씬 이관 전용이므로 목록 갱신에 재실행하지 않는다.
+
+기존 카탈로그가 있으면 같은 자산을 갱신해 `.meta` GUID와 씬의 카탈로그 참조를 유지한다. 같은 시대 ID는 기존 `OverviewIllustration`, `ContextIllustration`, `BuildingIllustration`, `LockedBuildingIllustration`, `BackgroundIllustration` 참조를 보존한다. 같은 유물 ID는 기존 `Illustration`, `SpiritIllustration`, `Thumbnail`, `LockedIllustration`, `BackgroundIllustration` 참조를 보존한다. 공통 `CollectionAppearance.asset`은 카탈로그 동기화 대상이 아니다. 시대·유물 순서와 이름, 도깨비 기본 이름, 건물 이름은 `CollectionCatalogData`, 설명류 문구는 CSV 값으로 교체한다. 삭제된 유물 ID의 아트를 새 ID로 옮기지는 않는다. CSV 검증에 실패하면 자산을 바꾸지 않고 `InvalidOperationException`으로 멈춘다.
 
 읽기 모델 사용 중에는 카탈로그를 재구성하지 않는 계약에 따라 Play를 종료한 상태에서 실행한다. batch mode 예시는 다음과 같다. Unity 경로는 실제 설치 위치에 맞춘다.
 
@@ -124,7 +151,7 @@ $collectionSyncLog = Join-Path $collectionLogFolder 'catalog-sync.log'
     -executeMethod CollectionSetup.SyncCatalog -logFile $collectionSyncLog
 ```
 
-완료 로그의 표시는 `COLLECTION_CONFIRMED_CATALOG_SYNCED`다. 이 목록 동기화 로그만으로 도감 화면이나 전체 통합 검증의 성공을 판단하지 않는다.
+완료 로그의 표시는 `COLLECTION_CONFIRMED_CATALOG_SYNCED`이며 뒤에 바뀐 행 수와 경고 수가 붙는다. 경고는 `도감 텍스트 임포트 경고:`, 오류는 `도감 텍스트 임포트 오류:`로 시작한다. 이 목록 동기화 로그만으로 도감 화면이나 전체 통합 검증의 성공을 판단하지 않는다.
 
 ## 수집 기록 API
 
