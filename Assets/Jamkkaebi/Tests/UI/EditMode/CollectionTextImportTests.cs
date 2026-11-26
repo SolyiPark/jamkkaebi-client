@@ -102,6 +102,20 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(_report.Errors.Single(), Does.Contain("joseon"));
         }
 
+        /// <summary>한 줄 자리에 들어가는 기간 문구의 줄바꿈과 지나친 길이를 거부하는지 검사합니다.</summary>
+        [Test]
+        public void Build_PeriodMustFitSingleLine()
+        {
+            string multiline = ErasCsv.Replace("기간1", "\"첫 줄\n둘째 줄\"");
+            Assert.That(CollectionTextImport.Build(_structure, null, multiline, RelicsCsv(), _report), Is.Null);
+            Assert.That(_report.Errors.Single(), Does.Contain("samguk").And.Contain("기간 문구"));
+
+            _report = new TextTableReport();
+            string tooLong = ErasCsv.Replace("기간1", new string('가', CollectionTextImport.PeriodMaxLength + 1));
+            Assert.That(CollectionTextImport.Build(_structure, null, tooLong, RelicsCsv(), _report), Is.Null);
+            Assert.That(_report.Errors.Single(), Does.Contain("기간 문구"));
+        }
+
         /// <summary>이전 카탈로그와 텍스트가 같은 행은 바뀐 행으로 세지 않는지 검사합니다.</summary>
         [Test]
         public void Build_UnchangedRows_AreNotCounted()

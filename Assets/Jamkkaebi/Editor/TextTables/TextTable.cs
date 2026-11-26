@@ -24,7 +24,8 @@ namespace Jamkkaebi.Editor.TextTables
 
         /// <summary>
         /// CSV를 읽고 검증합니다. 다음은 오류입니다: CSV 구문 오류, 헤더 없음, 헤더 중복, 필수 열 없음,
-        /// 헤더와 셀 개수가 다른 행, 키가 빈 행, 중복 키, 기대 목록에 없는 키, 기대 목록에서 빠진 키, 비면 안 되는 셀이 빈 경우.
+        /// 헤더와 셀 개수가 다른 행, 키가 빈 행, 중복 키, 기대 목록에 없는 키, 기대 목록에서 빠진 키, 비면 안 되는 셀이 빈 경우,
+        /// 한 줄 열에 줄바꿈이 있거나 최대 글자 수를 넘는 경우.
         /// 스키마에 없고 무시 목록에도 없는 열은 경고입니다.
         /// </summary>
         /// <param name="csvText">CSV 파일 내용입니다.</param>
@@ -133,6 +134,11 @@ namespace Jamkkaebi.Editor.TextTables
                     string value = record[index].Trim();
                     if (value.Length == 0 && !column.AllowEmpty)
                         report.AddError($"{table} {sheetRow}행 ({key}): '{column.Name}'이(가) 비어 있습니다.");
+                    if (column.SingleLine && value.IndexOf('\n') >= 0)
+                        report.AddError($"{table} {sheetRow}행 ({key}): '{column.Name}'은(는) 한 줄로 써야 합니다(줄바꿈 금지).");
+                    if (column.MaxLength > 0 && value.Length > column.MaxLength)
+                        report.AddError($"{table} {sheetRow}행 ({key}): '{column.Name}'이(가) {value.Length}자입니다. " +
+                            $"{column.MaxLength}자 이하로 써 주세요.");
                     cells.Add(column.Name, value);
                 }
 

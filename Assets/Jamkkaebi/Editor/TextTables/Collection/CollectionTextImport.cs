@@ -29,13 +29,19 @@ namespace Jamkkaebi.Editor.TextTables.Collection
         public const string RelicDescriptionColumn = "유물 설명";
         public const string ConservationNoteColumn = "복원 기록";
 
+        /// <summary>
+        /// 기간 문구는 시대 카드와 시대 상세의 한 줄 자리(카드 기준 너비 500, 글자 크기 25)에 들어갑니다.
+        /// 넘치면 아래의 수집 상태와 겹치므로 임포트에서 거부합니다.
+        /// </summary>
+        public const int PeriodMaxLength = 20;
+
         /// <summary>collection_eras.csv의 열 구성입니다.</summary>
         public static TextTableSchema EraSchema { get; } = new TextTableSchema("collection_eras.csv", IdColumn,
             new[]
             {
                 TextTableColumn.Reference(EraNameColumn),
                 TextTableColumn.Reference(BuildingNameColumn),
-                TextTableColumn.Value(PeriodColumn),
+                TextTableColumn.SingleLineValue(PeriodColumn, PeriodMaxLength),
                 TextTableColumn.Value(EraDescriptionColumn)
             },
             new[] { NoteColumn });

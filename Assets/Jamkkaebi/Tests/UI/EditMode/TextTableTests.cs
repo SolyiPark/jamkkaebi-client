@@ -98,6 +98,22 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(_report.Warnings.Single(), Does.Contain("'설명'"));
         }
 
+        /// <summary>한 줄 열의 줄바꿈과 최대 글자 수 초과를 오류로 보고하는지 검사합니다.</summary>
+        [Test]
+        public void Read_SingleLineColumnRules_AreErrors()
+        {
+            TextTableSchema schema = new TextTableSchema("short.csv", "id",
+                new[] { TextTableColumn.SingleLineValue("title", 5) });
+
+            Assert.That(TextTable.Read("id,title\na,\"둘\n줄\"\nb,여섯글자이다", schema, Keys, _report), Is.Null);
+            Assert.That(_report.Errors.Count, Is.EqualTo(2), _report.Format());
+            Assert.That(_report.Errors[0], Does.Contain("2행").And.Contain("한 줄"));
+            Assert.That(_report.Errors[1], Does.Contain("3행").And.Contain("6자"));
+
+            _report = new TextTableReport();
+            Assert.That(TextTable.Read("id,title\na,다섯글자다\nb,하나", schema, Keys, _report), Is.Not.Null, _report.Format());
+        }
+
         /// <summary>CSV 구문 오류를 예외 대신 보고서 오류로 바꾸는지 검사합니다.</summary>
         [Test]
         public void Read_CsvSyntaxError_IsReported()
