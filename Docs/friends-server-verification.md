@@ -68,6 +68,8 @@
 
 기본 주소를 지정하지 않으면 기존 모의 모드를 유지하고 제목에 ‘모의’를 표시한다. 실제 서버 모드는 `FriendsPresenter.ConnectServer(authenticatedClient)`로 전환한다. 로그인 UI가 준비되기 전 데스크톱 검토에는 프로세스 환경 변수 `JAMKKAEBI_SERVER_URL`, `JAMKKAEBI_ACCESS_TOKEN`, 선택적 `JAMKKAEBI_REFRESH_TOKEN`을 사용할 수 있다. Unity가 시작되기 전에 설정해야 하며 값을 저장소에 추가하거나 채팅에 보낼 필요는 없다. `_serverBaseUrl`에는 주소만 Inspector로 지정할 수 있다. 서버 모드 제목은 ‘서버’이고 새로고침 버튼을 제공한다.
 
+2026-11-27부터 `JamkkaebiApiClient`·`ServerApiResult`는 `Scripts/UI/Common/`(네임스페이스 `Jamkkaebi.Scripts.UI.Common`)에 있다. 셸이 있으면 친구 탭은 `SharedRecords`가 만든 공용 클라이언트를 쓴다(작업대와 토큰 상태 공유, 주소는 `SharedRecords._serverBaseUrl` 또는 같은 환경 변수). 친구 씬만 단독으로 열 때만 `FriendsPresenter._serverBaseUrl`·환경 변수로 직접 만든다. 자세한 내용은 [작업대 서버 연결](workbench-server-integration.md).
+
 ## 검증 결과
 
 서버의 기존 테스트 201개가 H2 환경에서 통과했다. 서버 소스 자체는 변경하지 않고 별도 체크아웃에 테스트용 HTTP 서버 실행기를 추가했다. 실행기는 실제 Spring Controller·인증 필터·서비스·저장소·JSON 직렬화를 사용한다. 계정은 가짜 Google 식별자로 생성하고 전시 객체 공급은 서버의 `FakeExhibitionViewReader`로 구성했다. 실제 OAuth 제공자, 운영 MySQL과 실제 유물 획득·배치 과정의 종단 검증을 대신하지 않는다.
