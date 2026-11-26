@@ -12,7 +12,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 {
     /// <summary>
     /// Minigame 씬을 셸 위에 추가 로드해 한 판을 돌리고, 보고와 함께 내린다.
-    /// 로드한 씬의 EventSystem·AudioListener는 끄고(셸 것만 쓴다), 셸 화면은 가리고(CoverShell), 탭 이동은 잠근다.
+    /// 로드한 씬의 EventSystem·AudioListener는 끄고(셸 것만 쓴다. EventSystem은 씬에서 이미 꺼져 온다), 셸 화면은 가리고(CoverShell), 탭 이동은 잠근다.
     /// 탭 잠금은 풀지 않는다. 보고·결과 화면까지 잠가 둘지는 작업대 컨트롤러가 정한다.
     /// </summary>
     /// <remarks>
@@ -137,6 +137,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
 
             foreach (GameObject obj in roots)
             {
+                // 씬의 EventSystem은 꺼진 채로 저장되고 단독 Play일 때만 켜진다(StandaloneEventSystem).
+                // 로드가 끝난 뒤라 경고는 막지 못하지만, 씬 설정이 어긋나도 셸 것 하나만 남도록 한 번 더 끈다.
                 foreach (EventSystem events in obj.GetComponentsInChildren<EventSystem>(true))
                     events.gameObject.SetActive(false);
                 foreach (AudioListener listener in obj.GetComponentsInChildren<AudioListener>(true))
