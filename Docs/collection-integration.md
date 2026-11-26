@@ -112,7 +112,7 @@ Unity 자산과 스크립트의 `.meta`를 함께 유지하고, 자산 이동·�
 
 시대 기간 문구·시대 설명, 유물 설명·복원 기록은 구글 시트 → CSV → `CollectionCatalog.asset` 순서로 반영한다. 시트 양식과 기획 담당용 안내는 [도감 텍스트 시트 안내](collection-text-sheet-guide.md)에 있다.
 
-1. 기획 담당이 구글 시트의 `collection_eras`, `collection_relics` 탭을 고친다.
+1. 기획 담당이 구글 시트 [잠깨비 도감 텍스트](https://docs.google.com/spreadsheets/d/1k6CzJz-yQBEhWgbraVwkeBoApFrwjlaZlPwYRGy2VRU/edit)의 `collection_eras`, `collection_relics` 탭을 고친다. 고치는 칸은 노란색, 고치지 않는 칸은 회색이며 헤더 행과 `id` 열은 경고 보호가 걸려 있다.
 2. 탭마다 **파일 → 다운로드 → 쉼표로 구분된 값(.csv, 현재 시트)**으로 내보낸다.
 3. 내려받은 파일 이름을 `collection_eras.csv`, `collection_relics.csv`로 바꿔 `Assets/Jamkkaebi/Configuration/Text/`의 같은 파일을 덮어쓴다. `.meta`는 그대로 둔다.
 4. Play를 종료하고 Unity 메뉴 **`Jamkkaebi > Collection > Import Text CSV`**를 실행한다. 대화 상자와 Console에 바뀐 행 수, 경고, 오류가 나온다.
