@@ -11,6 +11,19 @@ namespace Jamkkaebi.Tests.EditMode
     public class StandaloneEventSystemTests
     {
         private readonly List<Object> _createdObjects = new List<Object>();
+        private readonly List<EventSystem> _suspendedEventSystems = new List<EventSystem>();
+
+        [SetUp]
+        public void SetUp()
+        {
+            // 에디터에 열린 씬(예: UIPrototype)의 EventSystem이 결과에 끼지 않도록 테스트 동안 잠시 끈다.
+            foreach (EventSystem events in Object.FindObjectsByType<EventSystem>(FindObjectsSortMode.None))
+            {
+                if (!events.enabled) continue;
+                events.enabled = false;
+                _suspendedEventSystems.Add(events);
+            }
+        }
 
         [TearDown]
         public void TearDown()
@@ -21,6 +34,14 @@ namespace Jamkkaebi.Tests.EditMode
             }
 
             _createdObjects.Clear();
+
+            // 끈 것만 되돌린다. 원래 꺼져 있던 것은 건드리지 않았다.
+            foreach (EventSystem events in _suspendedEventSystems)
+            {
+                if (events != null) events.enabled = true;
+            }
+
+            _suspendedEventSystems.Clear();
         }
 
         private GameObject CreateEventSystem(string name, bool active)
