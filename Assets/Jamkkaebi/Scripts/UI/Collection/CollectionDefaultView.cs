@@ -218,7 +218,6 @@ namespace Jamkkaebi.Scripts.UI.Collection
             var relics = _data.Catalog.Relics.Where(relic => relic.EraId == era.Id).ToArray();
             float buildingY = 290 + Mathf.CeilToInt(relics.Length / 3f) * 380;
             float contextY = buildingY + 340;
-            _content.sizeDelta = new Vector2(0, contextY + 670);
             for (int i = 0; i < relics.Length; i++)
             {
                 var relic = relics[i];
@@ -253,8 +252,12 @@ namespace Jamkkaebi.Scripts.UI.Collection
             Label("Era Context Heading", _content, "시대를 들여다보다", 34, Ink, 0, contextY, ContentWidth, 60);
             Artwork("Context Emblem", _content, KindForEra(era.Id), era.Accent, 655, contextY + 100, 270, 220,
                 FirstSprite(era.ContextIllustration, era.OverviewIllustration));
-            Label("Era Context", _content, era.Description, 28, Muted, 0, contextY + 80, 605, 315, TextAnchor.UpperLeft);
-            Label("Sample Notice", _content, "미리보기 · 도깨비·건물 이름과 설명, 그림은 임시 콘텐츠입니다.", 22, Muted, 0, contextY + 470, ContentWidth, 70);
+            var context = Label("Era Context", _content, era.Description, 28, Muted, 0, contextY + 80, 605, 315, TextAnchor.UpperLeft);
+            // 시트에서 받은 설명은 길이가 정해져 있지 않으므로, 넘친 만큼 아래 요소와 스크롤 높이를 밀어냅니다.
+            float contextExtra = GrowToFit(context, 315);
+            Label("Sample Notice", _content, "미리보기 · 도깨비·건물 이름과 설명, 그림은 임시 콘텐츠입니다.", 22, Muted, 0,
+                contextY + 470 + contextExtra, ContentWidth, 70);
+            _content.sizeDelta = new Vector2(0, contextY + 670 + contextExtra);
         }
 
         /// <summary>선택 유물과 도깨비의 그림, 설명 및 발굴과 보존 기록을 구성합니다.</summary>
@@ -262,7 +265,6 @@ namespace Jamkkaebi.Scripts.UI.Collection
         {
             var relic = _data.Catalog.FindRelic(_data.SelectedRelicId);
             var era = _data.Catalog.FindEra(relic.EraId);
-            _content.sizeDelta = new Vector2(0, 2020);
             Label("Era Tag", _content, era.Name + "  /  복원 완료", 25, era.Accent, 0, 0, ContentWidth, 45);
             Label("Relic Title", _content, relic.Name, 56, Ink, 0, 52, ContentWidth, 92);
             // 임시: 화면의 "도깨비" 표기는 확정 전 임시 내용입니다.
@@ -277,13 +279,35 @@ namespace Jamkkaebi.Scripts.UI.Collection
             Label("Spirit Caption", spiritPlate.transform, relic.SpiritName, 23, Ink, 8, 150, 224, 45, TextAnchor.MiddleCenter);
             Label("Illustration Caption", plate.transform, relic.Illustration ? "유물과 도깨비의 기록" : "유물 · 도깨비 임시 일러스트", 22, Muted, 32, 481, 650, 42);
             Label("Description Heading", _content, "유물이 품은 이야기", 36, Ink, 0, 873, ContentWidth, 64);
-            Label("Description", _content, relic.Description, 29, Ink, 0, 950, ContentWidth, 335, TextAnchor.UpperLeft);
-            Box("Description Rule", _content, new Color(.79f, .79f, .72f), 0, 1310, ContentWidth, 2,
+            var description = Label("Description", _content, relic.Description, 29, Ink, 0, 950, ContentWidth, 335, TextAnchor.UpperLeft);
+            // 시트에서 받은 본문은 길이가 정해져 있지 않으므로, 넘친 만큼 아래 요소와 스크롤 높이를 밀어냅니다.
+            float shift = GrowToFit(description, 335);
+            Box("Description Rule", _content, new Color(.79f, .79f, .72f), 0, 1310 + shift, ContentWidth, 2,
                 _data.Appearance ? _data.Appearance.Divider : null);
-            Label("Conservation Heading", _content, "발굴과 보존의 기록", 34, Ink, 0, 1360, ContentWidth, 62);
-            Label("Conservation", _content, relic.ConservationNote, 28, Muted, 0, 1445, ContentWidth, 330, TextAnchor.UpperLeft);
+            Label("Conservation Heading", _content, "발굴과 보존의 기록", 34, Ink, 0, 1360 + shift, ContentWidth, 62);
+            var conservation = Label("Conservation", _content, relic.ConservationNote, 28, Muted, 0, 1445 + shift,
+                ContentWidth, 330, TextAnchor.UpperLeft);
+            shift += GrowToFit(conservation, 330);
             Label("Draft Notice", _content, "미리보기 · 도깨비·건물 이름과 설명, 그림은 임시 콘텐츠입니다.\n실제 유물 자료와 도깨비 아트는 추후 교체됩니다.", 22,
-                Muted, 0, 1865, ContentWidth, 90);
+                Muted, 0, 1865 + shift, ContentWidth, 90);
+            _content.sizeDelta = new Vector2(0, 2020 + shift);
+        }
+
+        /// <summary>
+        /// 본문이 디자인 칸보다 길면 칸을 실제 글 높이만큼 아래로 늘리고, 늘어난 높이를 반환합니다.
+        /// 칸 안에 들어가면 그대로 두고 0을 반환합니다. 호출 측은 반환값만큼 아래 요소와 스크롤 높이를 밀어냅니다.
+        /// </summary>
+        /// <param name="label">위쪽 기준(UpperLeft)으로 배치한 본문 레이블입니다.</param>
+        /// <param name="boxHeight">디자인에서 정한 칸 높이입니다.</param>
+        /// <returns>칸을 늘린 높이이며 0 이상입니다.</returns>
+        private static float GrowToFit(Text label, float boxHeight)
+        {
+            float extra = Mathf.Ceil(label.preferredHeight) - boxHeight;
+            if (extra <= 0)
+                return 0;
+            RectTransform rect = label.rectTransform;
+            rect.offsetMin = new Vector2(rect.offsetMin.x, rect.offsetMin.y - extra);
+            return extra;
         }
 
         /// <summary>부동소수점 경계 오차를 보정한 뒤 수집률의 소수 부분을 버려 정수 백분율로 표시합니다.</summary>

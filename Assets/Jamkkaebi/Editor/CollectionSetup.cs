@@ -1,5 +1,8 @@
 using System;
-using System.Linq;
+using System.IO;
+using System.Text;
+using Jamkkaebi.Editor.TextTables;
+using Jamkkaebi.Editor.TextTables.Collection;
 using Jamkkaebi.Scripts.Gameplay.Collection;
 using Jamkkaebi.Scripts.UI.Collection;
 using Jamkkaebi.Scripts.UI.Shell;
@@ -29,7 +32,7 @@ public static class CollectionSetup
         if (!Application.isBatchMode)
             throw new InvalidOperationException("도감 씬 이관은 저장된 씬을 대상으로 batch mode에서 실행하세요.");
         if (AssetDatabase.LoadAssetAtPath<Jamkkaebi.Scripts.Gameplay.Collection.CollectionCatalog>(CatalogPath) == null)
-            AssetDatabase.CreateAsset(CollectionCatalogData.CreateCatalog(), CatalogPath);
+            SyncCatalogAsset(CatalogPath);
         AssetDatabase.SaveAssets();
         var scene = EditorSceneManager.OpenScene(ScenePath);
         var root = UnityEngine.Object.FindFirstObjectByType<MirrorSceneRoot>();
@@ -72,61 +75,92 @@ public static class CollectionSetup
     }
 
     /// <summary>
-    /// Play가 종료된 상태에서 확정 도감 정의를 저장 자산에 반영하고 기존 자산 GUID와 그림 참조를 유지합니다.
+    /// Play가 종료된 상태에서 도감 구조(CollectionCatalogData)와 텍스트 CSV(Configuration/Text)를 저장 자산에 반영하고
+    /// 기존 자산 GUID와 그림 참조를 유지합니다. 결과(바뀐 행 수, 경고, 오류)를 로그로 남기고, 에디터에서는 대화 상자로도 보여 줍니다.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Play 중이거나 Play 진입이 예약되어 있으면 발생합니다.</exception>
+    /// <exception cref="InvalidOperationException">Play 중이거나 Play 진입이 예약되어 있거나 CSV 검증에 실패하면 발생합니다.</exception>
+    [MenuItem("Jamkkaebi/Collection/Import Text CSV")]
     [MenuItem("Prototype/Collection/Sync Catalog From Confirmed Data")]
     public static void SyncCatalog()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
-            throw new InvalidOperationException("Play를 종료한 뒤 확정 도감 데이터를 갱신하세요.");
-        SyncCatalogAsset(CatalogPath);
+            throw new InvalidOperationException("Play를 종료한 뒤 도감 데이터를 갱신하세요.");
+        string summary;
+        try
+        {
+            summary = SyncCatalogAsset(CatalogPath);
+        }
+        catch (InvalidOperationException exception)
+        {
+            if (!Application.isBatchMode)
+                EditorUtility.DisplayDialog("도감 텍스트 임포트 실패", exception.Message, "확인");
+            throw;
+        }
+        if (!Application.isBatchMode)
+            EditorUtility.DisplayDialog("도감 텍스트 임포트", summary, "확인");
     }
 
     /// <summary>
-    /// 지정 경로의 카탈로그를 생성하거나 갱신하고, 같은 시대·유물 ID의 모든 그림 참조를 보존한 뒤 저장합니다.
+    /// 지정 경로의 카탈로그를 생성하거나 갱신합니다. 구조와 이름은 CollectionCatalogData, 설명류 텍스트는 CSV를 쓰며
+    /// 같은 시대·유물 ID의 모든 그림 참조를 보존한 뒤 저장합니다. CSV에 오류가 있으면 자산을 바꾸지 않습니다.
     /// </summary>
     /// <param name="catalogPath">생성하거나 갱신할 프로젝트 상대 카탈로그 자산 경로입니다.</param>
-    private static void SyncCatalogAsset(string catalogPath)
+    /// <returns>바뀐 행 수와 경고 수를 담은 결과 요약입니다.</returns>
+    /// <exception cref="InvalidOperationException">CSV 파일이 없거나 검증 오류가 있으면 발생합니다. 메시지에 모든 오류를 넣습니다.</exception>
+    private static string SyncCatalogAsset(string catalogPath)
     {
         CollectionCatalog current = AssetDatabase.LoadAssetAtPath<CollectionCatalog>(catalogPath);
         CollectionCatalog confirmed = CollectionCatalogData.CreateCatalog();
         try
         {
+            TextTableReport report = new TextTableReport();
+            CollectionTextImportResult result = CollectionTextImport.Build(confirmed, current,
+                ReadCsv(CollectionTextImport.ErasCsvPath), ReadCsv(CollectionTextImport.RelicsCsvPath), report);
+            foreach (string warning in report.Warnings)
+                Debug.LogWarning("도감 텍스트 임포트 경고: " + warning);
+            if (result == null)
+            {
+                foreach (string error in report.Errors)
+                    Debug.LogError("도감 텍스트 임포트 오류: " + error);
+                throw new InvalidOperationException(
+                    $"도감 CSV에 오류가 {report.Errors.Count}개 있어 카탈로그를 바꾸지 않았습니다.\n" + report.Format());
+            }
+
             if (!current)
             {
+                confirmed.Configure(result.Eras, result.Relics);
                 AssetDatabase.CreateAsset(confirmed, catalogPath);
                 confirmed = null;
             }
             else
             {
-                CollectionEraDefinition[] eras = confirmed.Eras.Select(era =>
-                {
-                    CollectionEraDefinition previous = current.FindEra(era.Id);
-                    return new CollectionEraDefinition(era.Id, era.Name, era.Period, era.Description,
-                        era.BuildingName, era.Accent, previous?.OverviewIllustration,
-                        previous?.ContextIllustration, previous?.BuildingIllustration,
-                        previous?.LockedBuildingIllustration, previous?.BackgroundIllustration);
-                }).ToArray();
-                CollectionRelicDefinition[] relics = confirmed.Relics.Select(relic =>
-                {
-                    CollectionRelicDefinition previous = current.FindRelic(relic.Id);
-                    return new CollectionRelicDefinition(relic.Id, relic.EraId, relic.Name, relic.SpiritName,
-                        relic.Description, relic.ConservationNote, relic.Accent,
-                        previous?.Illustration, previous?.SpiritIllustration, previous?.Thumbnail,
-                        previous?.LockedIllustration, previous?.BackgroundIllustration);
-                }).ToArray();
-                Undo.RecordObject(current, "확정 도감 데이터 반영");
-                current.Configure(eras, relics);
+                Undo.RecordObject(current, "도감 텍스트 CSV 반영");
+                current.Configure(result.Eras, result.Relics);
                 EditorUtility.SetDirty(current);
             }
             AssetDatabase.SaveAssets();
-            Debug.Log("COLLECTION_CONFIRMED_CATALOG_SYNCED");
+
+            string summary = $"시대 {result.Eras.Count}행 중 {result.ChangedEraCount}행, " +
+                $"유물 {result.Relics.Count}행 중 {result.ChangedRelicCount}행이 바뀌었습니다. 경고 {report.Warnings.Count}개.";
+            if (report.Warnings.Count > 0)
+                summary += "\n" + report.Format();
+            Debug.Log("COLLECTION_CONFIRMED_CATALOG_SYNCED " + summary);
+            return summary;
         }
         finally
         {
             if (confirmed) UnityEngine.Object.DestroyImmediate(confirmed);
         }
+    }
+
+    /// <summary>프로젝트 상대 경로의 CSV를 UTF-8로 읽습니다.</summary>
+    /// <exception cref="InvalidOperationException">파일이 없는 경우입니다.</exception>
+    private static string ReadCsv(string assetPath)
+    {
+        string fullPath = Path.GetFullPath(assetPath);
+        if (!File.Exists(fullPath))
+            throw new InvalidOperationException($"도감 텍스트 CSV가 없습니다: {assetPath}");
+        return File.ReadAllText(fullPath, Encoding.UTF8);
     }
 
     /// <summary>

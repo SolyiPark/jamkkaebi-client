@@ -4,13 +4,14 @@ using UnityEngine;
 namespace Jamkkaebi.Scripts.UI.Collection
 {
     /// <summary>
-    /// 2026-11-19 서버 시드 기준.
-    /// 설명과 복원 기록은 아직 확정되지 않은 화면용 콘텐츠입니다.
+    /// 도감의 구조(시대·유물 ID, 소속, 순서, 강조색)와 서버 시드(2026-11-19) 기준 이름을 만듭니다.
+    /// 시대 기간 문구·시대 설명·유물 설명·복원 기록은 비워 두며, 에디터의 도감 텍스트 임포트가
+    /// Configuration/Text의 CSV에서 채워 CollectionCatalog.asset에 저장합니다. 이 클래스에 화면 문구를 넣지 않습니다.
     /// 임시: 화면의 "도깨비" 표기와 도깨비 이름은 확정 전 임시 내용이며 코드 식별자(SpiritName 등)는 바꾸지 않았습니다.
     /// </summary>
     public static class CollectionCatalogData
     {
-        /// <summary>확정 시트의 시대·유물 순서와 미정 콘텐츠 표시로 새 메모리 카탈로그를 만듭니다.</summary>
+        /// <summary>서버 시드의 시대·유물 순서와 이름으로, 텍스트가 빈 새 메모리 카탈로그를 만듭니다.</summary>
         /// <returns>저장되지 않은 카탈로그이며 호출 측이 자산으로 저장하거나 사용 후 파괴합니다.</returns>
         public static CollectionCatalog CreateCatalog()
         {
@@ -22,12 +23,9 @@ namespace Jamkkaebi.Scripts.UI.Collection
             catalog.Configure(
                 new[]
                 {
-                    new CollectionEraDefinition("samguk", "삼국", "고구려 · 백제 · 신라",
-                        "유물 3종을 모아 삼국의 전시실을 채워 보세요.", "석굴암", samguk),
-                    new CollectionEraDefinition("goryeo", "고려", "고려",
-                        "유물 3종을 모아 고려의 전시실을 완성해 보세요.", "경천사지 십층석탑", goryeo),
-                    new CollectionEraDefinition("joseon", "조선", "조선",
-                        "유물 3종을 모아 조선의 전시실을 채워 보세요.", "경복궁", joseon)
+                    Era("samguk", "삼국", "석굴암", samguk),
+                    Era("goryeo", "고려", "경천사지 십층석탑", goryeo),
+                    Era("joseon", "조선", "경복궁", joseon)
                 },
                 new[]
                 {
@@ -44,13 +42,16 @@ namespace Jamkkaebi.Scripts.UI.Collection
             return catalog;
         }
 
-        /// <summary>서버 기준 유물·도깨비 이름에 임시 설명·복원 기록을 붙여 정의를 만듭니다.</summary>
+        /// <summary>서버 기준 시대·건물 이름으로 기간 문구와 설명이 빈 시대 정의를 만듭니다.</summary>
+        private static CollectionEraDefinition Era(string id, string name, string buildingName, Color accent)
+        {
+            return new CollectionEraDefinition(id, name, string.Empty, string.Empty, buildingName, accent);
+        }
+
+        /// <summary>서버 기준 유물·도깨비 이름으로 설명과 복원 기록이 빈 유물 정의를 만듭니다.</summary>
         private static CollectionRelicDefinition Relic(string id, string eraId, string name, string spiritName, Color accent)
         {
-            return new CollectionRelicDefinition(id, eraId, name, spiritName,
-                $"[임시 설명] {name}의 모습을 살펴보세요. 유물 해설과 도깨비 이야기는 추후 추가됩니다.",
-                $"[임시 복원 기록] {name}의 복원을 마쳐 도감에 등록되었습니다. 발굴·보존 과정의 상세 이야기는 추후 추가됩니다.",
-                accent);
+            return new CollectionRelicDefinition(id, eraId, name, spiritName, string.Empty, string.Empty, accent);
         }
     }
 }
