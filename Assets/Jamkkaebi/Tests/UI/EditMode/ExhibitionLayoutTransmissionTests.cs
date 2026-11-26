@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.IO;
 using Jamkkaebi.Scripts.UI.Exhibition;
+using Jamkkaebi.Scripts.UI.Common;
 using Jamkkaebi.Scripts.UI.Friends;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -86,7 +87,7 @@ namespace Jamkkaebi.Tests.UI
             var client = new JamkkaebiApiClient((string)config["baseUrl"], (string)config["layoutAccessToken"]);
             var wrapper = new ExhibitionLayoutWrapper(client);
             var visitor = new JamkkaebiApiClient((string)config["baseUrl"], (string)config["layoutVisitorAccessToken"]);
-            string visitPath = "/api/friends/" + JamkkaebiApiClient.CodePath((string)config["layoutCode"]) + "/exhibition";
+            string visitPath = "/api/friends/" + FriendsServerMapper.CodePath((string)config["layoutCode"]) + "/exhibition";
             ServerApiResult result = null;
             var draft = new ExhibitionLayoutDraft(new Vector2Int(7,7), new ExhibitionObjectData[] {
                 new ExhibitionNpcData("npc",2,true,new Vector2Int(1,1)),

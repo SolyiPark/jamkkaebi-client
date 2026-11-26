@@ -9,6 +9,12 @@ namespace Jamkkaebi.Scripts.UI.Friends
     /// <summary>JsonUnwrapped 요약과 중첩 player를 구분하여 서버 상태를 화면 모델로 변환합니다.</summary>
     public static class FriendsServerMapper
     {
+        /// <summary>유효한 친구 코드만 정규화하고 API 경로에 넣을 수 있도록 인코딩합니다.</summary>
+        public static string CodePath(string code)
+        {
+            if (!FriendsPreviewState.IsValidCode(code)) throw new ArgumentException("친구 코드 형식이 올바르지 않습니다.");
+            return Uri.EscapeDataString(FriendsPreviewState.NormalizeCode(code));
+        }
         /// <summary>서버 프로필과 시대별 복원 통계를 친구 화면의 프로필 데이터로 변환합니다.</summary>
         public static FriendProfile Profile(JToken player, string lastSeen = "", JToken eras = null)
         {

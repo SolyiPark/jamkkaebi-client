@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine.Networking;
 
-namespace Jamkkaebi.Scripts.UI.Friends
+namespace Jamkkaebi.Scripts.UI.Common
 {
     /// <summary>서버의 ApiResponse·Bearer 인증·회전 토큰 계약. 토큰을 자산이나 PlayerPrefs에 저장하지 않습니다.</summary>
     public sealed class JamkkaebiApiClient
@@ -37,12 +37,6 @@ namespace Jamkkaebi.Scripts.UI.Friends
         /// <summary>인증 토큰을 메모리에만 교체하며 null을 전달하면 해당 토큰을 제거합니다.</summary>
         public void SetTokens(string accessToken, string refreshToken)
         { _accessToken = accessToken; _refreshToken = refreshToken; }
-        /// <summary>유효한 친구 코드만 정규화하고 API 경로에 넣을 수 있도록 인코딩합니다.</summary>
-        public static string CodePath(string code)
-        {
-            if (!FriendsPreviewState.IsValidCode(code)) throw new ArgumentException("친구 코드 형식이 올바르지 않습니다.");
-            return Uri.EscapeDataString(FriendsPreviewState.NormalizeCode(code));
-        }
         /// <summary>인증 HTTP 요청을 보내고 만료 시 공유 갱신을 거쳐 한 번 재요청한 결과를 전달합니다.</summary>
         public IEnumerator Send(string method, string path, JObject body, Action<ServerApiResult> completed, bool authenticated = true)
         {

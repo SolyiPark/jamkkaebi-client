@@ -172,7 +172,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
         {
             if (UsesServer)
             {
-                ChangeServer(action == "cancel" ? "DELETE" : "POST", "/api/friend-requests/" + JamkkaebiApiClient.CodePath(profile.Code) + (action == "cancel" ? "" : "/" + action)); return;
+                ChangeServer(action == "cancel" ? "DELETE" : "POST", "/api/friend-requests/" + FriendsServerMapper.CodePath(profile.Code) + (action == "cancel" ? "" : "/" + action)); return;
             }
             if (action == "cancel") State.Sent.Remove(profile);
             else if (action == "reject") State.Received.Remove(profile);
@@ -196,14 +196,14 @@ namespace Jamkkaebi.Scripts.UI.Friends
         /// <summary>차단을 해제하되 이전 친구 관계를 자동으로 복원하지 않습니다.</summary>
         private void UnblockFriend(FriendProfile profile)
         {
-            if (UsesServer) { ChangeServer("DELETE", "/api/blocks/" + JamkkaebiApiClient.CodePath(profile.Code)); return; }
+            if (UsesServer) { ChangeServer("DELETE", "/api/blocks/" + FriendsServerMapper.CodePath(profile.Code)); return; }
             State.Blocked.Remove(profile); Render(); Notify("차단을 해제했어요.");
         }
         /// <summary>친구 코드를 조회하고 입력이나 화면이 바뀌지 않았을 때만 검색 결과를 표시합니다.</summary>
         private IEnumerator LookupServer(string code)
         {
             ServerApiResult result = null;
-            yield return _server.Send("GET", "/api/friends/lookup/" + JamkkaebiApiClient.CodePath(code), null, value => result = value);
+            yield return _server.Send("GET", "/api/friends/lookup/" + FriendsServerMapper.CodePath(code), null, value => result = value);
             if (Page != "Add" || FriendsPreviewState.NormalizeCode(_code) != FriendsPreviewState.NormalizeCode(code)) yield break;
             _lookup = null;
             if (result.Success)
@@ -275,7 +275,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
         private void ClaimReward(FriendProfile profile)
         {
             if (_claimingReward || VisitSession.Loading || VisitSession.Scene == null || State.VisitClaimed) return;
-            if (UsesServer) { ChangeServer("POST", "/api/friends/" + JamkkaebiApiClient.CodePath(profile.Code) + "/visit-reward", succeeded: () => { State.MarkServerVisitClaimed(); Render(); }); return; }
+            if (UsesServer) { ChangeServer("POST", "/api/friends/" + FriendsServerMapper.CodePath(profile.Code) + "/visit-reward", succeeded: () => { State.MarkServerVisitClaimed(); Render(); }); return; }
             _claimingReward = true; Render();
             _rewardRequest = StartCoroutine(LoadReward(profile));
         }
@@ -584,7 +584,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
         {
             Confirm(profile.Name + "님에게 상자를 선물할까요?\n오늘은 한 명에게 보낼 수 있어요.", () =>
             {
-                if (UsesServer) { ChangeServer("POST", "/api/friends/" + JamkkaebiApiClient.CodePath(profile.Code) + "/gift", succeeded: () => { State.MarkServerGiftSent(); Render(); }); return; }
+                if (UsesServer) { ChangeServer("POST", "/api/friends/" + FriendsServerMapper.CodePath(profile.Code) + "/gift", succeeded: () => { State.MarkServerGiftSent(); Render(); }); return; }
                 bool sent = State.SendGift(profile); Render(); Notify(sent ? "상자를 선물했어요. (미리보기)" : "오늘 선물을 보냈거나 상대의 보관함이 가득 찼어요.");
             });
         }

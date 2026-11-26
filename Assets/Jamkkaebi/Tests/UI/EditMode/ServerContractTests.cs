@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using Jamkkaebi.Scripts.UI.Common;
 using Jamkkaebi.Scripts.UI.Friends;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
