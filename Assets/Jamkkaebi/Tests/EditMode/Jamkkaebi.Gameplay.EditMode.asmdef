@@ -5,7 +5,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Jamkkaebi.Gameplay",
-        "Jamkkaebi.Npc"
+        "Jamkkaebi.Npc",
+        "Unity.ugui"
     ],
     "includePlatforms": [
         "Editor"
