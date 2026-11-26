@@ -1,0 +1,18 @@
+{
+    "name": "Jamkkaebi.Editor.TextTables",
+    "rootNamespace": "Jamkkaebi.Editor.TextTables",
+    "references": [
+        "Jamkkaebi.Gameplay"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
