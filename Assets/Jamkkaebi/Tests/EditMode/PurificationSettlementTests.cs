@@ -75,7 +75,8 @@ namespace Jamkkaebi.Tests.EditMode
             Assert.AreEqual(NextAction.Done, result.Next);
             Assert.IsNull(result.NextPlan);
             Assert.IsTrue(result.CompletedNow);
-            Assert.AreEqual(RevealLevel.Named, result.Revealed);
+            // 이름은 기억 회복에서 이미 공개됐으므로 새로 오른 공개 단계는 없다.
+            Assert.IsNull(result.Revealed);
             Assert.IsTrue(relic.IsCompleted);
             Assert.AreEqual(LastPurifiedAt, relic.LastPurifiedAt);
             Assert.AreEqual(LastPurifiedAt, relic.ClarityAnchorAt);

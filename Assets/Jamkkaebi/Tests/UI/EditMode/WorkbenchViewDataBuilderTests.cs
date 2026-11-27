@@ -348,10 +348,12 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Settlement_CompletedNow()
         {
             SettlementData data = _builder.Settlement(2,
-                new SettlementResult(PlayResult.Success, NextAction.Done, null, true, RevealLevel.Named));
+                new SettlementResult(PlayResult.Success, NextAction.Done, null, true, null));
 
             Assert.IsTrue(data.Finished);
             CollectionAssert.Contains(data.Lines, "최초 정화를 모두 마쳤어요. 정령이 깨어났어요!");
+            // 이름은 기억 회복에서 이미 공개됐다. 완료 화면에서 정체 공개 문장을 다시 보이지 않는다.
+            Assert.IsFalse(data.Lines.Any(line => line.StartsWith("정체가 드러났어요")));
         }
 
         /// <summary>실패는 다시 도전할 페이즈를 알리는지 검사합니다.</summary>

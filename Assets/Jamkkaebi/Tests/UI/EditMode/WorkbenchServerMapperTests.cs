@@ -305,13 +305,15 @@ namespace Jamkkaebi.Tests.UI.EditMode
         {
             SettlementResult result = WorkbenchServerMapper.Settlement(Data(@"{
                 'result':'SUCCESS','perfect':false,'relic':{'relicId':3,'spiritName':'토리'},
-                'status':'COMPLETED','revealed':'NAMED','careCount':0,'clarity':'CLEAR',
+                'status':'COMPLETED','careCount':0,'clarity':'CLEAR',
                 'lastPurifiedAt':'2026-11-27T10:00:00','clarityChangesAt':'2026-12-04T10:00:00',
                 'next':{'action':'DONE'}}"), FirstSession(Phase.Guard));
 
             Assert.AreEqual(NextAction.Done, result.Next);
             Assert.IsNull(result.NextPlan);
             Assert.IsTrue(result.CompletedNow);
+            // 서버는 오염 관리 성공에 새 공개 단계를 보내지 않는다(jamkkaebi-server PR #30).
+            Assert.IsNull(result.Revealed);
         }
 
         [Test]
