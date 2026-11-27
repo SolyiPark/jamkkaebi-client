@@ -74,6 +74,8 @@
 
 Unity EditMode 테스트 90개가 통과했다. 이 중 실제 HTTP 검증은 만료 Access 재발급, 회전 Refresh 재사용 거부, 로그인 시작과 handoff 교환, 인증 오류, 친구·요청·추천·차단 조회, 요청 송신·교차 수락·수락·거절·취소, 스냅샷 역직렬화, 7×7 재현, 20×20 거부, GET의 보상·방문 무변경, 반복 보상과 선물의 0 반환, 차단·해제와 로그아웃을 검사한다. 로컬 서버를 지정하지 않는 일반 Test Runner에서는 HTTP 테스트 1개를 명시적으로 생략한다.
 
+> 2026-11-28 삭제됨: `Tools/VerifyServerContract.ps1`과 `Tools/UnityContractHarnessTest.java`는 현재 서버와 맞지 않아 지웠다. 아래 실행 방법과 결과는 기록으로만 남긴다.
+
 `Tools/VerifyServerContract.ps1`의 전체 실행이 통과했다. Windows Development Player의 자동 검사 238개, 실제 서버 목록·전시 표시·요청·취소·격자 오류·인증 실패 화면 및 GPU 종료 로그 검사를 통과했다. `ExhibitionChecks.Run`과 `ReviewRegressionChecks.Run`도 각각 통과했다. 실제 Android/iOS 기기·OAuth 제공자·배포 서버의 검증은 포함하지 않는다.
 
 이번 결과는 `Logs/ServerContract/Run-20261011-175526/`의 `EditMode.xml`, `build.log`, `spring.log`, `Player/verification.txt`, `Player/player.log`에 있다. 전시관·회귀 검사 로그는 `Logs/ServerContract/exhibition.log`, `regression.log`다. 화면 검토에는 `Player/Server_Friends.png`, `Server_Visit.png`, `Server_GridMismatch.png`, `Server_AuthFailure.png`를 사용한다. 이 로그와 빌드는 커밋 대상이 아니다.

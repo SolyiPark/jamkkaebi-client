@@ -23,6 +23,8 @@
 
 ## 최종 실제 HTTP 실행
 
+> 2026-11-28 삭제됨: `Tools/VerifyServerContract.ps1`과 `Tools/UnityContractHarnessTest.java`는 현재 서버와 맞지 않아 지웠다. 아래 실행 방법과 결과는 기록으로만 남긴다.
+
 ```powershell
 ./Tools/VerifyServerContract.ps1 `
   -ServerPath 'D:/프로젝트/c3/Capstone_working/tmp/friend-visit-server-20261105' `
