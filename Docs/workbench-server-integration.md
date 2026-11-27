@@ -59,4 +59,6 @@ Tools/serve-workbench-contract.sh ~/path/to/jamkkaebi-server
 
 - Unity 밖(mono)에서 변환 테스트 40개 통과. `ServerWorkbenchBackendTests`는 `UnityWebRequest` 모듈 때문에 Unity 밖에서 돌릴 수 없어 Test Runner 확인이 필요하다.
 - 로컬 검증 서버(c3642b6)에 같은 변환기로 직접 요청을 보내 확인: 작업대·상세 4종(진행 중·선명·흐려짐·재봉인), 상자 열기와 같은 번호 재전송(같은 유물, 한 번만 뽑음), 최초 정화 3페이즈(서버 보드로 클라이언트 판 생성 포함), 관리 플레이 실패·성공, 이름 변경·되돌리기, 없는 유물 오류. Unity 안의 HTTP 테스트·Play 확인과는 별개다.
+- Unity Test Runner(macOS 에디터, 로컬 검증 서버 c3642b6): EditMode 전체 통과. `WorkbenchServerContractTests` 3개는 실제 HTTP로 통과했고, 친구 탭 HTTP 테스트 3개는 Windows 검증 스크립트 전용이라 생략됐다. 처음 실행에서 상자 테스트 사용자 분리, 정산 뒤 재보고 거절 버그를 찾아 고쳤다.
+- 에디터 Play(같은 검증 서버): 작업대 홈 → 상자 → 정화 → 미니게임 → 보고 → 결과, 정령 이름 변경을 사용자가 확인했다. 모바일·OAuth·배포 서버는 확인하지 않았다.
 - 서버 동작 메모: 최초 정화의 마지막 페이즈(오염 관리) 성공에도 `revealed`가 `NAMED`로 다시 온다(서버 주석은 "새로 도달한 단계"). 모의 백엔드도 같게 돌려주어 결과 화면이 정체 공개 문장을 한 번 더 보인다.
