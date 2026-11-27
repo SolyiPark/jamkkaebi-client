@@ -56,8 +56,6 @@
 - `IntegratedSetup.Prepare`, `ExhibitionSetup.Prepare`, `CollectionSetup.Apply`, `FriendsSetup.Apply`는 일회성 이관입니다. 기존 씬 편집 후 일반 실행·검증 목적으로 재실행하지 않습니다.
 - 반복 갱신은 `PrototypeSetup.SyncBuildScenes`, `CollectionSetup.SyncCatalog`, `CollectionSetup.ConfigureImages`를 목적에 맞게 사용합니다. 카탈로그 동기화는 Play 종료 후 수행하고 ID별 그림·GUID를 보존합니다.
 - 규칙·화면 데이터는 관련 EditMode 테스트로, 씬·입력·UI·생명주기는 에디터 Play로 확인합니다. 단순 문서 변경에는 Unity 전체 검증을 요구하지 않습니다.
-- 서버 검증: `Tools/VerifyServerContract.ps1 -ServerPath <별도 서버 체크아웃> -EditorPath <Unity.exe> -JavaHome <Java 21 폴더>`. 로컬 Spring 서버를 띄워 EditMode HTTP 테스트를 실행합니다. 외부 체크아웃의 임시 실행기·세션 파일 생성 범위를 확인합니다.
-- HTTP UnityTest 3개는 `JAMKKAEBI_CONTRACT_CONFIG`가 없으면 생략됩니다. 일반 EditMode 통과를 실제 서버 검증으로 보고하지 않습니다.
 - 씬 참조 개별 검사는 `IntegratedSetup.ValidateScenes`, `ExhibitionChecks.Run`, `ReviewRegressionChecks.Run`입니다. 보고서뿐 아니라 종료 코드·XML·로그를 확인합니다.
 - Windows 2D Animation 13.0.6 종료 우회는 코드·version define·link.xml을 함께 유지하고 패키지 변경 시 재검토합니다.
 - 실행 환경이 없으면 미실행 검사와 조건을 명시합니다. 에디터·로컬 결과를 모바일·OAuth·배포 서버 검증으로 확대하지 않습니다.

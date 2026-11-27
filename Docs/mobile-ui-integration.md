@@ -40,7 +40,7 @@ Windows Development Player 통합 검증(`IntegratedVerification`, `Tools/Verify
 
 후속 작업에서 독립 모의 구현의 스냅샷 패키지 조회·재현·임시 이동·실패 처리를 친구 방문 화면에 이식했다. 실제 HTTP 연결은 추가하지 않았으며, 모의 계층·홈 데이터 분리와 최신 실행 결과는 `friends-snapshot-integration.md`에 기록한다.
 
-2026-10-11 서버 검증 후 `JamkkaebiApiClient`, `ServerExhibitionBackend`, `FriendsServerMapper`를 추가하고 친구 탭 조회·변경 동작에 HTTP 모드를 연결했다. 주소 미설정 시에는 모의 모드를 유지한다. Unity 공식 Newtonsoft Json 3.2.2 패키지를 사용한다. 인증·서버 응답·실제 통신 검증과 배포 전 남은 조건은 `friends-server-verification.md`, 재현은 `Tools/VerifyServerContract.ps1`을 따른다. 이전 모의 테스트 결과와 실제 HTTP 검증 결과를 구분한다.
+2026-10-11 서버 검증 후 `JamkkaebiApiClient`, `ServerExhibitionBackend`, `FriendsServerMapper`를 추가하고 친구 탭 조회·변경 동작에 HTTP 모드를 연결했다. 주소 미설정 시에는 모의 모드를 유지한다. Unity 공식 Newtonsoft Json 3.2.2 패키지를 사용한다. 인증·서버 응답·실제 통신 검증과 배포 전 남은 조건은 `friends-server-verification.md`를 따른다. 재현에 쓰던 `Tools/VerifyServerContract.ps1`은 2026-11-28 삭제됐다. 이전 모의 테스트 결과와 실제 HTTP 검증 결과를 구분한다.
 
 도감 이미지 교체는 `CollectionCatalog.asset`의 시대·유물 그림 슬롯과 `CollectionAppearance.asset`의 공통 UI 그림 슬롯을 사용한다. 이미지가 없으면 기존 색상·벡터 표현을 유지한다. 실제 그림은 원본 색상과 종횡비를 사용하고, 배경·프레임은 Sprite Border가 있으면 9-slice로 표시한다. `Sync Catalog From Confirmed Data`는 같은 시대·유물 ID의 모든 그림 참조를 보존한다. 슬롯별 적용 위치와 우선순위는 `collection-integration.md`에 기록한다.
 
