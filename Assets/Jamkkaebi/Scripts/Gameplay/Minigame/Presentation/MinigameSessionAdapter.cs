@@ -70,6 +70,8 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
 
         private MinigameBoardConfig _config;
         private bool _hasExternalSetup;
+        // 작업대가 넘긴 서버 보드. 이번 Begin 한 판에만 쓰고, 단독 실행의 다음 페이즈는 난이도 표로 돌아간다.
+        private MinigameBoardConfig? _externalBoard;
         private bool _hasReported;
 
         private MinigameSession _session;
@@ -166,6 +168,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _phase = setup.Phase.Order();
             _difficulty = setup.Difficulty;
             _sealMedium = setup.SealMedium;
+            _externalBoard = setup.Board;
 
             _hasExternalSetup = true;
 
@@ -187,6 +190,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
         {
             if (!HasNextPhase) return;
             _phase++;
+            _externalBoard = null;
             BeginSession();
         }
 
@@ -225,7 +229,7 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Presentation
             _chainVisualsEndTime = 0f;
             
             // 2. 새 세션 생성
-            MinigameBoardConfig config = _difficultyTable.GetConfig(_difficulty);
+            MinigameBoardConfig config = _externalBoard ?? _difficultyTable.GetConfig(_difficulty);
             _config = config;
             _session = new MinigameSession(config, seed);
             Debug.Log($"[Minigame] seed: {_session.Seed}");

@@ -1,6 +1,6 @@
 using System;
 using System.Collections;
-using Jamkkaebi.Scripts.UI.Friends;
+using Jamkkaebi.Scripts.UI.Common;
 using Newtonsoft.Json.Linq;
 
 namespace Jamkkaebi.Scripts.UI.Exhibition

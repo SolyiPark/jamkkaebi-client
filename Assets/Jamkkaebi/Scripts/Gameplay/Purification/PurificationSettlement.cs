@@ -64,13 +64,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Purification
         {
             bool completedNow = relic.ClearFirstPlay(now);
 
-            RevealLevel revealed = relic.RevealLevel;
-
+            // 이번 판으로 새로 오른 공개 단계만 알린다(서버 revealed와 같음). 오염 관리는 기억 회복에서
+            // 이미 이름까지 공개된 뒤라 새로 오르는 단계가 없다.
             if (completedNow)
             {
-                return new SettlementResult(PlayResult.Success, NextAction.Done, null, true, revealed);
+                return new SettlementResult(PlayResult.Success, NextAction.Done, null, true, null);
             }
-            return new SettlementResult(PlayResult.Success, NextAction.NextPhase, _planner.PlanFor(relic, now), false, revealed);
+            return new SettlementResult(PlayResult.Success, NextAction.NextPhase, _planner.PlanFor(relic, now), false,
+                relic.RevealLevel);
         }
 
         private SettlementResult SettleCare(OwnedRelic relic, PlayPlan plan, MinigameDifficulty difficulty,

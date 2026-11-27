@@ -91,6 +91,17 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(WorkbenchText.WorkbenchFull, full.Guide);
         }
 
+        /// <summary>결과를 받지 못한 상자가 있으면 작업대가 가득 차도 등록 버튼을 남겨 결과를 확인하게 하는지 검사합니다.</summary>
+        [Test]
+        public void Home_PendingBox_KeepsRegisterEvenWhenFull()
+        {
+            WorkbenchHomeData full = _builder.Home(
+                Snapshot(1, new[] { new WorkbenchSlot(1, RevealLevel.Silhouette, Phase.Unseal) }), hasPendingBox: true);
+
+            Assert.IsTrue(full.CanRegister);
+            Assert.AreEqual(WorkbenchText.PendingBox, full.Guide);
+        }
+
         /// <summary>정령 카드는 응답의 정령 이름과 카탈로그의 실제 유물 이름을, 응답 순서대로 담는지 검사합니다.</summary>
         [Test]
         public void Home_SpiritCards()
@@ -348,10 +359,12 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void Settlement_CompletedNow()
         {
             SettlementData data = _builder.Settlement(2,
-                new SettlementResult(PlayResult.Success, NextAction.Done, null, true, RevealLevel.Named));
+                new SettlementResult(PlayResult.Success, NextAction.Done, null, true, null));
 
             Assert.IsTrue(data.Finished);
             CollectionAssert.Contains(data.Lines, "최초 정화를 모두 마쳤어요. 정령이 깨어났어요!");
+            // 이름은 기억 회복에서 이미 공개됐다. 완료 화면에서 정체 공개 문장을 다시 보이지 않는다.
+            Assert.IsFalse(data.Lines.Any(line => line.StartsWith("정체가 드러났어요")));
         }
 
         /// <summary>실패는 다시 도전할 페이즈를 알리는지 검사합니다.</summary>

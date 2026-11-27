@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using Jamkkaebi.Scripts.UI.Common;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -15,7 +16,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
         /// <summary>대상 친구의 전시 스냅샷을 조회하고 성공 또는 오류 콜백으로 전달합니다.</summary>
         public IEnumerator GetExhibition(string friendCode, Action<ExhibitionSnapshot> completed, Action<string> failed)
         {
-            return _client.Send("GET", "/api/friends/" + JamkkaebiApiClient.CodePath(friendCode) + "/exhibition", null, result =>
+            return _client.Send("GET", "/api/friends/" + FriendsServerMapper.CodePath(friendCode) + "/exhibition", null, result =>
             {
                 if (!result.Success) { failed(result.Code + ": " + result.Message); return; }
                 ExhibitionSnapshot snapshot;
@@ -27,7 +28,7 @@ namespace Jamkkaebi.Scripts.UI.Friends
         /// <summary>전시 조회와 분리한 방문 보상 명령으로 수령 결과를 전달합니다.</summary>
         public IEnumerator ClaimVisitReward(string friendCode, Action<int> completed, Action<string> failed)
         {
-            return _client.Send("POST", "/api/friends/" + JamkkaebiApiClient.CodePath(friendCode) + "/visit-reward", null, result =>
+            return _client.Send("POST", "/api/friends/" + FriendsServerMapper.CodePath(friendCode) + "/visit-reward", null, result =>
             {
                 if (!result.Success) { failed(result.Code + ": " + result.Message); return; }
                 if (result.Data?["jeongseongGained"]?.Type != JTokenType.Integer || result.Data?["visitRewardClaimed"]?.Type != JTokenType.Boolean)
