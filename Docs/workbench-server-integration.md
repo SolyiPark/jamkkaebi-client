@@ -50,8 +50,8 @@ Tools/serve-workbench-contract.sh ~/path/to/jamkkaebi-server
 ```
 
 - 서버 체크아웃에 `Tools/UnityWorkbenchHarnessTest.java`를 잠시 복사해 `gradlew test`로 H2 로컬 서버를 연다(실제 시계, 최소 플레이 시간 1초). 끝내면(Ctrl+C) 복사한 파일과 세션 파일을 지운다. 로그는 `Logs/ServerContract/Workbench-*/spring.log`.
-- 사용자 둘: test(빈 작업대 + 선명한 5번 정령)는 HTTP 테스트용, play(최초 정화 중 3번 + 선명 2·흐려짐 8·재봉인 9번)는 에디터 Play용이다.
-- HTTP 테스트는 test 사용자의 상태를 바꾸므로 서버를 새로 띄운 뒤 한 번 돌린다.
+- 사용자 셋: box(유물 없음)·spirit(선명한 5번 정령)은 HTTP 테스트용, play(최초 정화 중 3번 + 선명 2·흐려짐 8·재봉인 9번)는 에디터 Play용이다.
+- HTTP 테스트는 box·spirit 사용자의 상태를 바꾸므로 서버를 새로 띄운 뒤 한 번 돌린다.
 - Unity 에디터가 열려 있어도 된다. 서버가 뜬 뒤 Test Runner에서 `WorkbenchServerContractTests`를 돌리거나 `UIPrototype` 씬을 Play한다.
 - Windows용 `Tools/VerifyServerContract.ps1`(친구 탭)의 하네스는 지금 서버에 없는 `AwakeningStage`·`clearFirstPhase`를 써서 현재 서버에서는 컴파일되지 않는다. 이번 작업에서 고치지 않았다.
 

@@ -27,7 +27,8 @@ import java.util.LinkedHashMap;
  * Unity 클라이언트의 Tools/serve-workbench-contract.sh가 잠시 복사해 실행하고 끝나면 지운다.
  *
  * <p>로컬 H2에서 실제 HTTP 서버를 열고 시계는 실제 시계를 쓴다(정화 최소 플레이 시간 판정 때문).
- * 사용자 둘을 만든다. test는 Unity EditMode HTTP 테스트가 상태를 바꾸는 사용자, play는 에디터 Play 확인용이다.
+ * 사용자 셋을 만든다. box·spirit은 Unity EditMode HTTP 테스트가 상태를 바꾸는 사용자, play는 에디터 Play 확인용이다.
+ * 상자 테스트 사용자는 유물이 하나도 없어야 첫 뽑기가 항상 새 유물이다(뽑기는 무작위라 가진 유물이 나오면 중복).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "app.purification.min-play-duration=1s")
@@ -44,9 +45,10 @@ class UnityWorkbenchHarnessTest {
     void serveUnity() throws Exception {
         LocalDateTime now = LocalDateTime.now();
 
-        // EditMode HTTP 테스트용: 빈 작업대 + 선명한 정령 하나(5번)
-        User test = registration.findOrRegister(AuthProvider.GOOGLE, "unity-workbench-test", "작업대검증").user();
-        completed(test, 5, now.minusDays(1));
+        // EditMode HTTP 테스트용: 유물이 없는 상자 사용자, 선명한 정령 하나(5번)만 가진 정령 사용자
+        User box = registration.findOrRegister(AuthProvider.GOOGLE, "unity-workbench-box", "상자검증").user();
+        User spirit = registration.findOrRegister(AuthProvider.GOOGLE, "unity-workbench-spirit", "정령검증").user();
+        completed(spirit, 5, now.minusDays(1));
 
         // Play 확인용: 최초 정화 중 유물 하나(3번)와 선명·흐려짐·재봉인 정령(2·8·9번)
         User play = registration.findOrRegister(AuthProvider.GOOGLE, "unity-workbench-play", "작업대플레이").user();
@@ -63,8 +65,9 @@ class UnityWorkbenchHarnessTest {
 
         var config = new LinkedHashMap<String, Object>();
         config.put("baseUrl", "http://127.0.0.1:" + port);
-        config.put("testAccessToken", jwt.createAccessToken(test.getFriendCode()));
-        config.put("testSpiritRelicId", 5);
+        config.put("boxAccessToken", jwt.createAccessToken(box.getFriendCode()));
+        config.put("spiritAccessToken", jwt.createAccessToken(spirit.getFriendCode()));
+        config.put("spiritRelicId", 5);
         config.put("playAccessToken", playTokens.accessToken());
         config.put("playRefreshToken", playTokens.refreshToken());
         Path session = Path.of("workbench-session.json");

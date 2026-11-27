@@ -63,13 +63,14 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public IEnumerator FirstPurification_BoxStartReport_FollowsServerContract()
         {
             JObject config = LoadConfig();
-            var backend = new ServerWorkbenchBackend(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["testAccessToken"]));
+            var backend = new ServerWorkbenchBackend(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["boxAccessToken"]));
 
             var home = new Box<WorkbenchSnapshot>();
             yield return Await<WorkbenchSnapshot>(backend.GetWorkbench, home);
             WorkbenchSnapshot before = Ok(home, "작업대 조회");
+            // 유물이 없는 사용자라 첫 뽑기는 항상 새 유물이다.
             Assert.AreEqual(0, before.Slots.Count);
-            Assert.AreEqual(1, before.Spirits.Count);
+            Assert.AreEqual(0, before.Spirits.Count);
 
             // 같은 requestId로 다시 보내면 다시 뽑지 않고 같은 결과를 돌려준다.
             string requestId = Guid.NewGuid().ToString();
@@ -127,8 +128,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public IEnumerator Spirit_RenameAndCareFailure_FollowServerContract()
         {
             JObject config = LoadConfig();
-            var backend = new ServerWorkbenchBackend(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["testAccessToken"]));
-            int relicId = (int)config["testSpiritRelicId"];
+            var backend = new ServerWorkbenchBackend(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["spiritAccessToken"]));
+            int relicId = (int)config["spiritRelicId"];
 
             var detail = new Box<RelicDetail>();
             yield return Await<RelicDetail>((done, fail) => backend.GetRelicDetail(relicId, done, fail), detail);
@@ -182,8 +183,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
             yield return Await<WorkbenchSnapshot>(anonymous.GetWorkbench, home);
             Assert.IsNotNull(home.Error);
 
-            // 가지지 않은 유물은 서버 오류 메시지로 실패한다.
-            var backend = new ServerWorkbenchBackend(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["testAccessToken"]));
+            // 가지지 않은 유물(정령 사용자는 5번만 가짐)은 서버 오류 메시지로 실패한다.
+            var backend = new ServerWorkbenchBackend(new JamkkaebiApiClient((string)config["baseUrl"], (string)config["spiritAccessToken"]));
             var missing = new Box<RelicDetail>();
             yield return Await<RelicDetail>((done, fail) => backend.GetRelicDetail(9, done, fail), missing);
             Assert.IsNotNull(missing.Error);
