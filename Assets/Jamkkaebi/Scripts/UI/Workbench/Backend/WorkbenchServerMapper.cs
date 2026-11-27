@@ -156,7 +156,8 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         /// (복구 중이면) Clarity만 쓰고, 다음 판은 상세를 다시 조회해 서버 nextPlay로 정하므로 빈 값은 이렇게 채운다.
         /// <list type="bullet">
         /// <item>난이도 목록: 이번 판 난이도 하나.</item>
-        /// <item>재시도 페이즈: 이번 판 페이즈. 최초 정화면 남은 순서는 그 페이즈부터 오염 관리까지.</item>
+        /// <item>재시도 페이즈: 최초 정화면 이번 판 페이즈부터 오염 관리까지. 관리 플레이면 응답의 지금 선명도로 정한다
+        /// (플레이 도중 경계를 넘어 떨어졌으면 다음 판이 달라진다. 예: 기억 회복 중 재봉인 → 봉인 해제부터).</item>
         /// </list>
         /// </remarks>
         public static SettlementResult Settlement(JToken data, PurificationSession session)
@@ -187,10 +188,10 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                     nextPlan = Build(() => new PlayPlan(EntryRoute.Care, Remaining(next), difficulties, reached));
                     break;
                 case NextAction.Retry:
-                    IReadOnlyList<Phase> retry = session.Route == EntryRoute.First
-                        ? PhasesFrom(session.Phase)
-                        : new[] { session.Phase };
                     Clarity? clarity = session.Route == EntryRoute.Care ? Enum<Clarity>(root, "clarity") : (Clarity?)null;
+                    IReadOnlyList<Phase> retry = clarity.HasValue
+                        ? ClarityPolicy.Default.RemainingPhases(clarity.Value)
+                        : PhasesFrom(session.Phase);
                     nextPlan = Build(() => new PlayPlan(session.Route, retry, difficulties, clarity));
                     break;
                 default:

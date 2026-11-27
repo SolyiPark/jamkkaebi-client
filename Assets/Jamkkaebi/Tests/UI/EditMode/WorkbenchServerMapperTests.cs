@@ -378,6 +378,19 @@ namespace Jamkkaebi.Tests.UI.EditMode
         }
 
         [Test]
+        public void Settlement_CareFailureAfterResealDuringPlay_RetriesFromUnseal()
+        {
+            // 기억 회복(흐려짐) 도중 재봉인 경계를 넘어 실패하면 다음 판은 봉인 해제부터다.
+            SettlementResult result = WorkbenchServerMapper.Settlement(Data(@"{
+                'result':'FAILURE','perfect':false,'relic':{'relicId':2},'status':'COMPLETED','careCount':0,
+                'clarity':'RESEALED','next':{'action':'RETRY'}}"), CareSession(Phase.Recall, MinigameDifficulty.Normal));
+
+            Assert.AreEqual(Phase.Unseal, result.NextPlan.Phase);
+            CollectionAssert.AreEqual(new[] { Phase.Unseal, Phase.Recall }, result.NextPlan.RemainingPhases);
+            Assert.AreEqual(Clarity.Resealed, result.NextPlan.Clarity);
+        }
+
+        [Test]
         public void Settlement_SuccessWithRetry_ThrowsFormatException()
         {
             Assert.Throws<FormatException>(() => WorkbenchServerMapper.Settlement(Data(@"{
