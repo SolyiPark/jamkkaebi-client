@@ -34,6 +34,8 @@ EditMode 회귀 테스트와 실제 Player에서 7×7 친구 → 20×20 친구 �
 
 ## 검증 방식과 결과
 
+> 2026-11-28 삭제됨: `Tools/VerifyServerContract.ps1`과 `Tools/UnityContractHarnessTest.java`는 현재 서버와 맞지 않아 지웠다. 아래 실행 방법과 결과는 기록으로만 남긴다.
+
 `Tools/VerifyServerContract.ps1`을 Unity 6000.3.23f1·Java 21로 실행했다. 최종 결과는 `Logs/ServerContract/Run-20261011-184221/`에 있다.
 
 - EditMode **103개 통과**, 실패·생략 0개. 실제 HTTP 검증 3개를 포함한다.

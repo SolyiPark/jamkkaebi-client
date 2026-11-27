@@ -344,6 +344,8 @@ Unity 없이는 프리팹 생성과 화면 확인이 불가능하다. 1·2단계
 
 ## 10. 검증
 
+> 2026-11-28 삭제됨: `Tools/VerifyServerContract.ps1`과 `Tools/UnityContractHarnessTest.java`는 현재 서버와 맞지 않아 지웠다. 아래 실행 방법과 결과는 기록으로만 남긴다.
+
 | 시점 | 방법 | 확인 내용 |
 | --- | --- | --- |
 | 매 단계 | Unity Test Runner EditMode | 모델·카탈로그 규칙 |

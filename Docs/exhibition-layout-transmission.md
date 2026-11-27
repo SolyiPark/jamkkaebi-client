@@ -67,6 +67,8 @@ yield return wrapper.Save(draft, result => HandleSaveResult(result));
 
 ## 이번 검증
 
+> 2026-11-28 삭제됨: `Tools/VerifyServerContract.ps1`과 `Tools/UnityContractHarnessTest.java`는 현재 서버와 맞지 않아 지웠다. 아래 실행 방법과 결과는 기록으로만 남긴다.
+
 Unity 6000.3.23f1에서 `Tools/VerifyServerContract.ps1`을 실행했다. 최종 실행 폴더는 `Logs/ServerContract/Run-20261011-182041/`이다.
 
 - EditMode 101개 통과, 실패·생략 0개. 신규 송신 계약 검사는 11개이며 실제 Spring HTTP 테스트도 실행했다.
