@@ -95,7 +95,18 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             // 구독한 뒤에 연다. 여는 도중 일어난 알림도 놓치지 않는다.
             _adapter.PlayFinished += OnPlayFinished;
             _hud.ExitRequested += OnExitRequested;
-            if (!_adapter.Begin(setup))
+            bool begun;
+            try
+            {
+                begun = _adapter.Begin(setup);
+            }
+            catch (Exception exception)
+            {
+                // 보드 생성 실패 같은 예외도 셸을 가리고 탭을 잠근 채로 남기지 않는다.
+                Debug.LogException(exception);
+                begun = false;
+            }
+            if (!begun)
             {
                 // 판이 열리지 않으면 포기·나가기도 올 수 없다. 기다리지 않고 셸을 되돌린다.
                 yield return Close();

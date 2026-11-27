@@ -281,6 +281,14 @@ namespace Jamkkaebi.Tests.UI.EditMode
                 WorkbenchServerMapper.Session(Data(StartJson.Replace("'tapBudget':19", "'tapBudget':0")), 3));
         }
 
+        [Test]
+        public void Session_BoardThatCannotBeGenerated_ThrowsFormatException()
+        {
+            // 범위 검사는 통과하지만 1×1 칸에 형상 12칸을 놓을 수 없다.
+            Assert.Throws<FormatException>(() => WorkbenchServerMapper.Session(Data(StartJson
+                .Replace("'width':7", "'width':1").Replace("'height':8", "'height':1")), 3));
+        }
+
         // ---------- 정산 ----------
 
         [Test]

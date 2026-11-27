@@ -131,6 +131,14 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             try { config = parameters.ToConfig(); }
             catch (InvalidOperationException error) { throw new FormatException(error.Message, error); }
 
+            // 범위 검사를 통과해도 칸이 모자라는 등 판을 만들 수 없는 조합이 있다. 미니게임을 열어 셸을 가린 뒤에
+            // 생성이 실패하면 되돌릴 길이 없으므로, 같은 설정·같은 시드로 지금 만들어 보고 안 되면 시작 실패로 돌린다.
+            try { MinigameGridGenerator.Generate(config, parameters.Seed); }
+            catch (Exception error) when (error is InvalidOperationException || error is ArgumentException)
+            {
+                throw new FormatException("서버 보드 값으로 판을 만들 수 없습니다. " + error.Message, error);
+            }
+
             SealMedium medium;
             try { medium = SealMediumParser.Parse(String(root, "sealMedium")); }
             catch (ArgumentException error) { throw new FormatException(error.Message, error); }
