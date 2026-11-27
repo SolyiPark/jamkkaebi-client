@@ -170,6 +170,24 @@ namespace Jamkkaebi.Tests.UI.EditMode
         }
 
         [Test]
+        public void Report_AfterSuccess_CanBeResentBySameToken()
+        {
+            Respond(StartJson);
+            var (session, _, _) = Run<PurificationSession>((done, fail) => _backend.StartPurification(3, null, done, fail));
+            Respond(NextPhaseJson);
+            Run<SettlementResult>((done, fail) => _backend.ReportPurification(session.SessionToken, Success, done, fail));
+
+            // 정산 응답을 화면이 버린 경우: 같은 토큰으로 다시 보내면 서버가 같은 정산을 돌려준다.
+            Respond(NextPhaseJson);
+            var (settlement, error, _) = Run<SettlementResult>((done, fail) =>
+                _backend.ReportPurification(session.SessionToken, Success, done, fail));
+
+            Assert.IsNull(error);
+            Assert.AreEqual(NextAction.NextPhase, settlement.Next);
+            Assert.AreEqual(3, _sent.Count);
+        }
+
+        [Test]
         public void Report_UnknownToken_FailsWithoutRequest()
         {
             var (_, error, calls) = Run<SettlementResult>((done, fail) =>

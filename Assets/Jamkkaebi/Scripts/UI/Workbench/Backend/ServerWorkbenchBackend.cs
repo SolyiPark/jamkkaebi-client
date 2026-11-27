@@ -102,14 +102,12 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                 yield break;
             }
 
+            // 정산한 뒤에도 판을 지우지 않는다. 응답을 화면이 버렸을 때(탭 숨김 등) 같은 토큰·같은 결과로 다시 보고하면
+            // 서버가 처음 정산을 그대로 돌려준다. 판은 다음 정화 시작 때만 바뀐다.
             yield return Call("POST", "/api/purifications/" + Uri.EscapeDataString(sessionToken) + "/result",
                 WorkbenchServerMapper.ReportBody(report),
                 data => WorkbenchServerMapper.Settlement(data, session),
-                settlement =>
-                {
-                    if (_current == session) _current = null;
-                    completed(settlement);
-                }, failed);
+                completed, failed);
         }
 
         private static string RelicPath(int relicId)
