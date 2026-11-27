@@ -34,6 +34,9 @@ namespace Jamkkaebi.Tests.EditMode
 
         [TestCase("width", 0)]
         [TestCase("height", 0)]
+        [TestCase("width", PurificationBoardParameters.MaxSide + 1)]
+        [TestCase("height", PurificationBoardParameters.MaxSide + 1)]
+        [TestCase("width", int.MaxValue)]
         [TestCase("threatCount", -1)]
         [TestCase("reinforcedOnShape", -1)]
         [TestCase("reinforcedOnField", -1)]
@@ -70,6 +73,16 @@ namespace Jamkkaebi.Tests.EditMode
 
             // Act & Assert
             Assert.Throws<InvalidOperationException>(() => board.ToConfig());
+        }
+
+        [Test]
+        public void ToConfig_MaxSide_IsAccepted()
+        {
+            // 경계값: 한 변이 최대 칸 수와 같으면 받는다
+            PurificationBoardParameters board = CreateBoard(width: PurificationBoardParameters.MaxSide,
+                height: PurificationBoardParameters.MaxSide);
+
+            Assert.DoesNotThrow(() => board.ToConfig());
         }
 
         [Test]

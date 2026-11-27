@@ -10,6 +10,12 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
     /// </remarks>
     public readonly struct PurificationBoardParameters
     {
+        /// <summary>
+        /// 클라이언트가 받는 보드 한 변의 최대 칸 수. 서버 기본값은 가장 큰 어려움이 8×9다.
+        /// 칸마다 오브젝트를 만들므로 지나치게 큰 응답은 판을 만들기 전에 거부한다(총 칸 수도 이 값의 제곱 이하).
+        /// </summary>
+        public const int MaxSide = 16;
+
         public long Seed { get; }
         public int Width { get; }
         public int Height { get; }
@@ -50,12 +56,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
         /// 형상 수·칸 합의 조합과 칸 수 초과는 그리드 생성기가 검증한다.
         /// </remarks>
         /// <returns>세션 생성에 쓸 보드 설정.</returns>
-        /// <exception cref="InvalidOperationException">그리드 크기나 탭 예산이 1 미만이거나, 타일 수·정찰 횟수가 음수일 때.
+        /// <exception cref="InvalidOperationException">그리드 크기나 탭 예산이 1 미만이거나, 그리드 한 변이 <see cref="MaxSide"/>를 넘거나, 타일 수·정찰 횟수가 음수일 때.
         /// 매개변수가 없는 메서드라 잘못된 인자(<see cref="ArgumentException"/>)가 아니라 인스턴스 상태가 잘못된 경우로 본다.</exception>
         public MinigameBoardConfig ToConfig()
         {
             RequireAtLeast(Width, 1, nameof(Width));
             RequireAtLeast(Height, 1, nameof(Height));
+            RequireAtMost(Width, MaxSide, nameof(Width));
+            RequireAtMost(Height, MaxSide, nameof(Height));
             RequireAtLeast(ThreatCount, 0, nameof(ThreatCount));
             RequireAtLeast(ReinforcedOnShape, 0, nameof(ReinforcedOnShape));
             RequireAtLeast(ReinforcedOnField, 0, nameof(ReinforcedOnField));
@@ -77,6 +85,14 @@ namespace Jamkkaebi.Scripts.Gameplay.Minigame.Core
                 destructiveToolLimit: TapBudget,
                 scoutToolLimit: ScoutLimit,
                 allowedThreatHits: MinigameRules.AllowedThreatHits);
+        }
+
+        private static void RequireAtMost(int value, int maximum, string name)
+        {
+            if (value > maximum)
+            {
+                throw new InvalidOperationException($"서버 보드 값 {name}은 {maximum} 이하여야 합니다. (입력값: {value})");
+            }
         }
 
         private static void RequireAtLeast(int value, int minimum, string name)
