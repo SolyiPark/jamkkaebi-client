@@ -159,7 +159,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
                     // 정산 응답을 잃고 홈으로 나왔으면 완료 등록이 빠져 있다. 정령 목록으로 도감을 맞춘다(화면이 바뀌어도 맞춘다).
                     _recorder?.SyncCompleted(snapshot.Spirits.Select(spirit => spirit.RelicId));
                     if (sequence != _viewSequence) return;
-                    _home.Render(_builder.Home(snapshot));
+                    _home.Render(_builder.Home(snapshot, _boxRequestId != null));
                     ShowPendingStatus();
                 },
                 error =>

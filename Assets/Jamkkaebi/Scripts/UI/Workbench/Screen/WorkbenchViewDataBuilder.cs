@@ -27,7 +27,9 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             _restore = restore ?? throw new ArgumentNullException(nameof(restore));
         }
 
-        public WorkbenchHomeData Home(WorkbenchSnapshot snapshot)
+        /// <param name="hasPendingBox">결과를 받지 못한 상자 열기 요청이 있는지. 있으면 작업대가 가득 차도 등록 버튼을 남겨
+        /// 같은 요청 번호로 결과를 확인하게 한다(서버는 같은 번호면 가득 참 검사 전에 처음 결과를 돌려준다).</param>
+        public WorkbenchHomeData Home(WorkbenchSnapshot snapshot, bool hasPendingBox = false)
         {
             if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
 
@@ -41,11 +43,12 @@ namespace Jamkkaebi.Scripts.UI.Workbench
             List<SpiritCardData> spirits = snapshot.Spirits.Select(spirit =>
                 new SpiritCardData(spirit.RelicId, spirit.SpiritName, RealNameOf(spirit.RelicId), spirit.Clarity)).ToList();
 
-            string guide = snapshot.IsFull ? WorkbenchText.WorkbenchFull
+            string guide = hasPendingBox ? WorkbenchText.PendingBox
+                : snapshot.IsFull ? WorkbenchText.WorkbenchFull
                 : slots.Count > 0 ? WorkbenchText.ChooseRelic
                 : WorkbenchText.RegisterNewRelic;
 
-            return new WorkbenchHomeData(slots.AsReadOnly(), spirits.AsReadOnly(), !snapshot.IsFull, guide,
+            return new WorkbenchHomeData(slots.AsReadOnly(), spirits.AsReadOnly(), !snapshot.IsFull || hasPendingBox, guide,
                 snapshot.LockedCount);
         }
 

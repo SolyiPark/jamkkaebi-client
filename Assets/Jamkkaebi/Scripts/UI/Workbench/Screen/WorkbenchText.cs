@@ -11,6 +11,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
         public const string ChooseRelic = "복원을 진행할 유물을 선택하세요.";
         public const string RegisterNewRelic = "신규 미확인 유물을 등록하세요.";
         public const string WorkbenchFull = "작업대가 가득 찼어요. 진행 중인 유물을 먼저 정화하세요.";
+        public const string PendingBox = "결과를 받지 못한 상자가 있어요. 등록 버튼을 눌러 결과를 확인하세요.";
         public const string RegisterButton = "신규 미확인\n유물 등록";
         public const string CompleteAllToDisplay = "모든 단계를 완료하면 전시관에 배치할 수 있습니다.";
         public const string PurifyButton = "유물 정화하기";

@@ -91,6 +91,17 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.AreEqual(WorkbenchText.WorkbenchFull, full.Guide);
         }
 
+        /// <summary>결과를 받지 못한 상자가 있으면 작업대가 가득 차도 등록 버튼을 남겨 결과를 확인하게 하는지 검사합니다.</summary>
+        [Test]
+        public void Home_PendingBox_KeepsRegisterEvenWhenFull()
+        {
+            WorkbenchHomeData full = _builder.Home(
+                Snapshot(1, new[] { new WorkbenchSlot(1, RevealLevel.Silhouette, Phase.Unseal) }), hasPendingBox: true);
+
+            Assert.IsTrue(full.CanRegister);
+            Assert.AreEqual(WorkbenchText.PendingBox, full.Guide);
+        }
+
         /// <summary>정령 카드는 응답의 정령 이름과 카탈로그의 실제 유물 이름을, 응답 순서대로 담는지 검사합니다.</summary>
         [Test]
         public void Home_SpiritCards()
