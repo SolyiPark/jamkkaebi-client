@@ -200,6 +200,13 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(inventory.Items, Has.Count.EqualTo(2));
             Assert.That(inventory.Find("SPIRIT:2").DisplayName, Is.EqualTo("하나"));
             Assert.That(inventory.Find("SPIRIT:9"), Is.Null);
+            // 자기 목록이나 그것을 걸러 낸 지연 열거를 넘겨도 내용을 잃지 않는다.
+            inventory.Set(inventory.Items);
+            Assert.That(inventory.Items, Has.Count.EqualTo(2));
+            inventory.Set(System.Linq.Enumerable.Where(inventory.Items, item => item.IsSpirit));
+            Assert.That(inventory.Items, Has.Count.EqualTo(1));
+            Assert.That(inventory.Find("SPIRIT:2"), Is.Not.Null);
+            changes = 1;
             inventory.Set(Array.Empty<ExhibitionPlaceable>());
             Assert.That(inventory.Items, Is.Empty);
             // 셸 없이 열었으면 조회하지 않고 상태도 바꾸지 않는다.

@@ -35,10 +35,13 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public void Set(IEnumerable<ExhibitionPlaceable> items)
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
+            // 먼저 새 목록을 다 만든 뒤 바꾼다. items가 Items나 그것을 걸러 낸 지연 열거라면 먼저 비우는 순간 내용이 사라진다.
             var keys = new HashSet<string>();
-            _items.Clear();
+            var next = new List<ExhibitionPlaceable>();
             foreach (var item in items)
-                if (item != null && keys.Add(item.Key)) _items.Add(item);
+                if (item != null && keys.Add(item.Key)) next.Add(item);
+            _items.Clear();
+            _items.AddRange(next);
             Changed?.Invoke();
         }
 
