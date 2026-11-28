@@ -22,6 +22,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public void Configure(ExhibitionHousing housing) => _housing = housing;
         public void OnPointerDown(PointerEventData data)
         {
+            // 앞선 누름이 끝났다는 신호를 받지 못한 채 새 누름이 오면, 끌던 도깨비를 되돌리고 새로 시작한다.
+            if (_dragging) CancelHold();
             _cancelClick = false;
             _pointer = data; _press = data.position; _pressedAt = Time.unscaledTime; _chosen = false;
             _itemId = _housing.ItemAtTexturePoint(data.position);

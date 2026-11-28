@@ -75,6 +75,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         {
             if (_layout == null || !_layout.TryMoveWalker(_walker.Id, cell)) return false;
             _from = _to = cell; _progress = 0;
+            // 놓자마자 걸어 나가지 않게 한 박자 쉰다.
+            _idle = Mathf.Max(.1f, _idleSeconds);
             transform.position = _surface.CellWorldPosition(cell);
             SetWalking(false);
             return true;
