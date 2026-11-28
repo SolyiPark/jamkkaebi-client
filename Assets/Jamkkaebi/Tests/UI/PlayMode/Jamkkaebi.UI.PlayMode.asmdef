@@ -1,0 +1,9 @@
+{
+  "name": "Jamkkaebi.UI.PlayMode",
+  "references": ["Jamkkaebi.UI", "Unity.ugui", "Unity.Newtonsoft.Json", "UnityEngine.TestRunner", "UnityEditor.TestRunner"],
+  "includePlatforms": [],
+  "overrideReferences": true,
+  "precompiledReferences": ["nunit.framework.dll", "Newtonsoft.Json.dll"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}

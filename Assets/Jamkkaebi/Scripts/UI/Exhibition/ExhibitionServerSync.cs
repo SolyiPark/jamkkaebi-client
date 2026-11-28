@@ -43,14 +43,16 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public string LastError { get; private set; }
 
         /// <param name="reachable">인터넷 연결 확인. 생략하면 기기의 네트워크 상태를 본다.</param>
+        /// <param name="intervalSeconds">판단 간격. 게임에서는 기본값(3분)을 쓰고, 테스트만 줄인다.</param>
         /// <exception cref="ArgumentNullException">housing이나 client가 null인 경우.</exception>
-        public void Configure(ExhibitionHousing housing, JamkkaebiApiClient client, Func<bool> reachable = null)
+        public void Configure(ExhibitionHousing housing, JamkkaebiApiClient client, Func<bool> reachable = null,
+            float intervalSeconds = ExhibitionSyncSchedule.DefaultIntervalSeconds)
         {
             _housing = housing ? housing : throw new ArgumentNullException(nameof(housing));
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _reachable = reachable ?? (() => Application.internetReachability != NetworkReachability.NotReachable);
             _wrapper = new ExhibitionLayoutWrapper(_client);
-            _schedule = new ExhibitionSyncSchedule(Time.unscaledTime);
+            _schedule = new ExhibitionSyncSchedule(Time.unscaledTime, intervalSeconds);
         }
 
         /// <summary>놓인 도깨비의 정령과 기준 자리를 정령 순으로 적은 요약. 배치가 같으면 같은 글이 나온다.</summary>
