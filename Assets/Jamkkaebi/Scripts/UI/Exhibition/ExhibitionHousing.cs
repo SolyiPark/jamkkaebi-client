@@ -31,6 +31,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private HousingItemDefinition _pendingItem;
         private ExhibitionPlaceable _pendingPlaceable;
         private int _selectedId;
+        private int _draggedId;
         private bool _placing;
         private readonly Dictionary<SpriteRenderer, float> _editingAlphas = new Dictionary<SpriteRenderer, float>();
         public ExhibitionSurface Surface => _surface;
@@ -50,6 +51,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public bool IsPlacing => _placing;
         public bool IsEditingCell => _placing || _selectedId != 0;
+        /// <summary>도깨비를 끌고 있는지.</summary>
+        public bool IsDraggingSpirit => _draggedId != 0;
         public bool IsPicking => Picker && Picker.IsVisible;
         public bool CanEdit => !_policy || _policy.AllowLayoutEditing;
         public ExhibitionBehaviorPolicy BehaviorPolicy => _policy;
@@ -234,9 +237,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (!CanEdit) return;
             if (_selectionController) _selectionController.Clear();
             if (action == HousingAction.Place) { RequestPlacement(); return; }
-            // 다른 대상을 편집하던 중이면 먼저 끝낸다. 옮길 자리를 고르느라 세워 둔 도깨비가 멈춘 채 남지 않게 한다.
+            // 다른 대상을 편집하던 중이면 먼저 끝낸다.
             if (_selectedId != 0 && _selectedId != id) ResetSelection();
-            if (_wanderers.TryGetValue(id, out var wanderer)) { ExecuteSpiritAction(id, wanderer, action); return; }
+            if (_wanderers.ContainsKey(id)) { ExecuteSpiritAction(id, action); return; }
             if (!_objects.ContainsKey(id)) return;
             _selectedId = id; _placing = false;
             switch (action)
@@ -257,22 +260,66 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             }
         }
 
-        private void ExecuteSpiritAction(int id, DokkaebiWanderer wanderer, HousingAction action)
+        private void ExecuteSpiritAction(int id, HousingAction action)
         {
-            switch (action)
+            // 도깨비의 이동은 끌기다(BeginSpiritDrag). 누름 없이 부르는 이 경로로는 옮기지 않는다.
+            if (action != HousingAction.Recall) return;
+            _selectedId = id;
+            RemoveSelected();
+        }
+
+        /// <summary>
+        /// 도깨비를 집어 든다. 끄는 동안 배회를 멈추고 손가락을 따라 그린다. 자리와 예약은 놓을 때까지 그대로다.
+        /// </summary>
+        /// <param name="id">도깨비의 배치 인스턴스 ID.</param>
+        /// <returns>편집할 수 없거나 도깨비가 아니면 false.</returns>
+        public bool BeginSpiritDrag(int id, Vector2 texturePoint)
+        {
+            if (!CanEdit || !_wanderers.TryGetValue(id, out var wanderer) || !wanderer) return false;
+            CancelSpiritDrag();
+            if (_selectionController) _selectionController.Clear();
+            ClosePicker();
+            ResetSelection();
+            HideHoldMenu();
+            _draggedId = id;
+            wanderer.SetPaused(true);
+            DragSpiritTo(texturePoint);
+            return true;
+        }
+
+        /// <summary>끌고 있는 도깨비를 RT 좌표가 가리키는 상판 위치에 그린다.</summary>
+        public void DragSpiritTo(Vector2 texturePoint)
+        {
+            if (!_wanderers.TryGetValue(_draggedId, out var wanderer) || !wanderer) return;
+            var ray = SceneCamera.ScreenPointToRay(texturePoint);
+            var plane = new Plane(_surface.transform.forward, _surface.transform.position);
+            if (plane.Raycast(ray, out float distance)) wanderer.SetDragPosition(ray.GetPoint(distance));
+        }
+
+        /// <summary>
+        /// 끌던 도깨비를 놓는다. 손을 뗀 곳이 세울 수 있는 칸이면 그 칸이 새 기준 자리가 되고,
+        /// 상판 밖이거나 막힌 칸이면 원래 걷던 자리로 돌아간다.
+        /// </summary>
+        /// <returns>자리를 옮겼으면 true.</returns>
+        public bool EndSpiritDrag(Vector2 texturePoint)
+        {
+            if (!_wanderers.TryGetValue(_draggedId, out var wanderer) || !wanderer) { _draggedId = 0; return false; }
+            _draggedId = 0;
+            bool moved = CanEdit && _surface.TryGetCell(SceneCamera, texturePoint, out var cell) && wanderer.TryMoveAnchor(cell);
+            if (!moved) wanderer.RestorePathPosition();
+            wanderer.SetPaused(false);
+            return moved;
+        }
+
+        /// <summary>끌기를 놓지 않고 끝낸다. 도깨비는 원래 걷던 자리로 돌아간다.</summary>
+        public void CancelSpiritDrag()
+        {
+            if (_wanderers.TryGetValue(_draggedId, out var wanderer) && wanderer)
             {
-                case HousingAction.Move:
-                    ResetSelection();
-                    _selectedId = id;
-                    // 옮길 자리를 고르는 동안 제자리에 세워 둔다.
-                    wanderer.SetPaused(true);
-                    RefreshSelection("손을 떼고 옮길 빈칸을 터치하세요.");
-                    break;
-                case HousingAction.Recall:
-                    _selectedId = id;
-                    RemoveSelected();
-                    break;
+                wanderer.RestorePathPosition();
+                wanderer.SetPaused(false);
             }
+            _draggedId = 0;
         }
 
         public void RequestPlacement()
@@ -368,12 +415,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 else RefreshSelection("다른 빈칸을 선택하세요.");
                 return;
             }
-            if (_wanderers.TryGetValue(_selectedId, out var wanderer))
-            {
-                if (wanderer.TryMoveAnchor(cell)) ResetSelection();
-                else RefreshSelection("이곳에는 옮길 수 없습니다.");
-                return;
-            }
             var item = Layout.At(cell);
             if (item != null)
             {
@@ -396,6 +437,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (_selectionController) _selectionController.Clear();
             if (_wanderers.TryGetValue(_selectedId, out var wanderer))
             {
+                if (_draggedId == _selectedId) _draggedId = 0;
                 int relicId = wanderer.RelicId;
                 Layout.RemoveWalker(_selectedId);
                 _wanderers.Remove(_selectedId);
@@ -415,8 +457,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         public void ResetSelection()
         {
-            // 옮길 자리를 고르느라 세워 둔 도깨비를 다시 걷게 한다.
-            if (_wanderers.TryGetValue(_selectedId, out var wanderer) && wanderer) wanderer.SetPaused(false);
             _selectedId = 0; _placing = false;
             _pendingItem = null; _pendingPlaceable = null;
             RefreshSelection("전시물을 꾹 눌러 편집하세요.");
@@ -485,7 +525,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         private void LateUpdate()
         {
-            if (!CanEdit && (IsEditingCell || IsPicking)) { ResetSelection(); HideHoldMenu(); ClosePicker(); }
+            if (!CanEdit && (IsEditingCell || IsPicking || IsDraggingSpirit))
+            { CancelSpiritDrag(); ResetSelection(); HideHoldMenu(); ClosePicker(); }
             // The platform's intro animates its opacity separately from its transform.
             if (_content) _content.gameObject.SetActive(GetComponent<ExhibitionIntro>().IsComplete);
         }
@@ -493,6 +534,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private void OnDisable()
         {
             if (_selectionController) _selectionController.Clear();
+            CancelSpiritDrag();
             ClosePicker();
             if (Menu) ResetSelection();
             HideHoldMenu();

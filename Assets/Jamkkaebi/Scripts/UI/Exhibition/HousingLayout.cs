@@ -25,8 +25,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public bool IsWalkable(Vector2Int cell) => _grid.Contains(cell) && At(cell) == null;
 
         /// <summary>
-        /// 고정 배치물을 둘 수 있는지 검사한다. 다른 배치물, 걷는 객체가 지금 쓰는 칸, 걷는 객체의 기준 자리와 겹치면 안 된다.
-        /// 기준 자리를 막는 이유는 서버가 기준 자리와 고정 배치물의 겹침을 거부하기 때문이다.
+        /// 고정 배치물을 둘 수 있는지 검사한다. 다른 배치물이나 걷는 객체가 지금 쓰는 칸(서 있는 칸과 걸어 들어가는 칸)과 겹치면 안 된다.
+        /// 걷는 객체의 기준 자리는 서 있는 칸이므로 함께 막힌다.
         /// </summary>
         public bool CanPlace(Vector2Int cell, Vector2Int size, int ignoredId = 0)
         {
@@ -36,8 +36,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 {
                     var target = cell + new Vector2Int(x, y);
                     var occupant = At(target);
-                    if (ReservedByWalker(target) || AnchoredByWalker(target) ||
-                        (occupant != null && occupant.Id != ignoredId)) return false;
+                    if (ReservedByWalker(target) || (occupant != null && occupant.Id != ignoredId)) return false;
                 }
             return true;
         }
@@ -72,28 +71,27 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         }
 
         /// <summary>
-        /// 걷는 객체의 기준 자리로 쓸 수 있는 칸인지 검사한다. 배치물이 없고, 다른 걷는 객체의 기준 자리가 아니며,
-        /// 다른 걷는 객체가 지금 쓰는 칸이 아니어야 한다.
+        /// 걷는 객체를 세울 수 있는 칸인지 검사한다. 배치물이 없고 다른 걷는 객체가 지금 쓰는 칸이 아니어야 한다.
         /// </summary>
         /// <param name="ignoredWalkerId">자기 자리를 옮길 때 자신을 빼고 검사한다.</param>
-        public bool CanAddWalker(Vector2Int anchor, int ignoredWalkerId = 0) =>
-            IsWalkable(anchor) && !ReservedByWalker(anchor, ignoredWalkerId) && !AnchoredByWalker(anchor, ignoredWalkerId);
+        public bool CanAddWalker(Vector2Int cell, int ignoredWalkerId = 0) =>
+            IsWalkable(cell) && !ReservedByWalker(cell, ignoredWalkerId);
 
-        /// <summary>걷는 객체를 기준 자리에 세우고 그 칸을 예약한다.</summary>
-        public bool TryAddWalker(Vector2Int anchor, out HousingWalker walker)
+        /// <summary>걷는 객체를 칸에 세우고 그 칸을 예약한다. 그 칸이 첫 기준 자리다.</summary>
+        public bool TryAddWalker(Vector2Int cell, out HousingWalker walker)
         {
             walker = null;
-            if (!CanAddWalker(anchor)) return false;
-            walker = new HousingWalker(_nextId++, anchor);
+            if (!CanAddWalker(cell)) return false;
+            walker = new HousingWalker(_nextId++, cell);
             _walkers.Add(walker.Id, walker);
             return true;
         }
 
-        /// <summary>기준 자리를 옮긴다. 걷던 길 예약은 버리고 새 자리에 선 것으로 본다. 실패하면 아무것도 바꾸지 않는다.</summary>
-        public bool TryMoveWalker(int id, Vector2Int anchor)
+        /// <summary>걷는 객체를 다른 칸으로 옮겨 세운다. 걷던 길 예약은 버린다. 실패하면 아무것도 바꾸지 않는다.</summary>
+        public bool TryMoveWalker(int id, Vector2Int cell)
         {
-            if (!_walkers.TryGetValue(id, out var walker) || !CanAddWalker(anchor, id)) return false;
-            walker.Anchor = walker.From = walker.To = anchor;
+            if (!_walkers.TryGetValue(id, out var walker) || !CanAddWalker(cell, id)) return false;
+            walker.From = walker.To = cell;
             return true;
         }
 
@@ -102,7 +100,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         /// <summary>
         /// 한 칸 걷는 길을 예약한다. 두 칸 모두 배치물이 없고 다른 걷는 객체가 쓰지 않아야 한다.
-        /// 실패하면 기존 예약을 그대로 둔다.
+        /// 도착(from과 to가 같음)을 예약하면 그 칸이 새 기준 자리가 된다. 실패하면 기존 예약을 그대로 둔다.
         /// </summary>
         public bool TryReserveTraversal(int walkerId, Vector2Int from, Vector2Int to)
         {
@@ -118,13 +116,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         {
             foreach (var walker in _walkers.Values)
                 if (walker.Id != ignoredWalkerId && walker.Reserves(cell)) return true;
-            return false;
-        }
-
-        private bool AnchoredByWalker(Vector2Int cell, int ignoredWalkerId = 0)
-        {
-            foreach (var walker in _walkers.Values)
-                if (walker.Id != ignoredWalkerId && walker.Anchor == cell) return true;
             return false;
         }
     }

@@ -39,7 +39,8 @@ namespace Jamkkaebi.Tests.UI.EditMode
         {
             var surface = Spawn<ExhibitionSurface>("Surface " + relicId);
             typeof(ExhibitionSurface).GetField("_grid", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(surface, _grid);
-            var wanderer = surface.gameObject.AddComponent<DokkaebiWanderer>();
+            // 도깨비를 옮겨도 상판이 따라 움직이지 않게 다른 오브젝트에 둔다.
+            var wanderer = Spawn<DokkaebiWanderer>("Wanderer " + relicId);
             configured = wanderer.Configure(_layout, surface, cell, null, relicId);
             return wanderer;
         }
@@ -86,15 +87,47 @@ namespace Jamkkaebi.Tests.UI.EditMode
         }
 
         [Test]
-        public void AnchorBlocksFixedPlacementEvenWhileWalkerIsAway()
+        public void AnchorFollowsTheWalkerToTheCellItArrivesAt()
         {
             _layout.TryAddWalker(new Vector2Int(3, 3), out var walker);
             _layout.TryReserveTraversal(walker.Id, new Vector2Int(3, 3), new Vector2Int(3, 4));
-            _layout.TryReserveTraversal(walker.Id, new Vector2Int(3, 4), new Vector2Int(3, 4));
+            // 걷는 동안에는 떠나온 칸이 기준 자리이고 두 칸 모두 막힌다.
             Assert.That(walker.Anchor, Is.EqualTo(new Vector2Int(3, 3)));
             Assert.That(_layout.CanPlace(new Vector2Int(3, 3), Vector2Int.one), Is.False);
             Assert.That(_layout.CanPlace(new Vector2Int(3, 4), Vector2Int.one), Is.False);
-            Assert.That(_layout.CanPlace(new Vector2Int(2, 3), Vector2Int.one), Is.True);
+
+            _layout.TryReserveTraversal(walker.Id, new Vector2Int(3, 4), new Vector2Int(3, 4));
+            // 도착하면 그 칸이 기준 자리가 되고 떠나온 칸은 풀린다.
+            Assert.That(walker.Anchor, Is.EqualTo(new Vector2Int(3, 4)));
+            Assert.That(_layout.CanPlace(new Vector2Int(3, 3), Vector2Int.one), Is.True);
+            Assert.That(_layout.CanPlace(new Vector2Int(3, 4), Vector2Int.one), Is.False);
+        }
+
+        [Test]
+        public void WandererPlacementCellFollowsItsWalkAndDragCanBeUndone()
+        {
+            var wanderer = SpawnWanderer(new Vector2Int(3, 3), 2, out _);
+            Step(wanderer);
+            Vector2Int target = wanderer.TargetCell;
+            Assert.That(wanderer.PlacementCell, Is.EqualTo(new Vector2Int(3, 3)), "도착 전에는 떠나온 칸");
+
+            // 끌려갔다가 취소되면 걷던 길 위의 자리로 돌아오고 칸은 그대로다.
+            Vector3 onPath = wanderer.transform.position;
+            wanderer.SetPaused(true);
+            wanderer.SetDragPosition(new Vector3(9, 9, 0));
+            wanderer.RestorePathPosition();
+            wanderer.SetPaused(false);
+            Assert.That(wanderer.transform.position, Is.EqualTo(onPath));
+            Assert.That(wanderer.TargetCell, Is.EqualTo(target));
+
+            // 편집 모드는 시간이 흐르지 않아 걸음을 끝난 상태로 만든 뒤 한 번 더 돌린다.
+            typeof(DokkaebiWanderer).GetField("_progress", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(wanderer, 1f);
+            Step(wanderer);
+            Assert.That(wanderer.CurrentCell, Is.EqualTo(target));
+            Assert.That(wanderer.PlacementCell, Is.EqualTo(target), "도착한 칸이 기준 자리");
+            Assert.That(wanderer.CompletedSteps, Is.EqualTo(1));
+            Assert.That(_layout.CanPlace(new Vector2Int(3, 3), Vector2Int.one), Is.True);
+            Assert.That(_layout.CanPlace(target, Vector2Int.one), Is.False);
         }
 
         [Test]
