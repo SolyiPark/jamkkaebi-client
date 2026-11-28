@@ -23,7 +23,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         private RectTransform _canvas;
         private Font _font;
-        private int _layer;
         private RectTransform _panel;
         private readonly List<HousingPlacementOption> _options = new List<HousingPlacementOption>();
         private string _message;
@@ -40,9 +39,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         /// <summary>취소를 눌렀을 때.</summary>
         public event Action Cancelled;
 
-        /// <param name="layer">콘텐츠 씬의 카메라 격리 레이어. 다시 그릴 때마다 입힌다.</param>
-        public void Configure(RectTransform canvas, Font font, int layer)
-        { _canvas = canvas; _font = font; _layer = layer; }
+        public void Configure(RectTransform canvas, Font font)
+        { _canvas = canvas; _font = font; }
 
         /// <summary>목록을 띄운다. 이미 떠 있으면 내용을 바꾼다.</summary>
         /// <param name="message">선택지 위에 보일 안내. 불러오는 중·실패·없음 같은 상태를 알린다. 없으면 null.</param>
@@ -109,7 +107,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             }
 
             _panel.SetAsLastSibling();
-            MirrorSceneRoot.SetLayer(_panel, _layer);
+            // 캔버스의 지금 레이어를 따른다. 셸이 탭 레이어를 이 컴포넌트 설정보다 늦게 정할 수 있어 값을 미리 기억해 두지 않는다.
+            MirrorSceneRoot.SetLayer(_panel, _canvas.gameObject.layer);
         }
 
         private void AddButton(string label, Vector2 min, Vector2 max, Color color, Action clicked)

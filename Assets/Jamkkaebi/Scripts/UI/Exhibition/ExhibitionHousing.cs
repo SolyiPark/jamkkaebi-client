@@ -234,6 +234,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (!CanEdit) return;
             if (_selectionController) _selectionController.Clear();
             if (action == HousingAction.Place) { RequestPlacement(); return; }
+            // 다른 대상을 편집하던 중이면 먼저 끝낸다. 옮길 자리를 고르느라 세워 둔 도깨비가 멈춘 채 남지 않게 한다.
+            if (_selectedId != 0 && _selectedId != id) ResetSelection();
             if (_wanderers.TryGetValue(id, out var wanderer)) { ExecuteSpiritAction(id, wanderer, action); return; }
             if (!_objects.ContainsKey(id)) return;
             _selectedId = id; _placing = false;
@@ -472,7 +474,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             Menu.Configure((RectTransform)canvas.transform, SceneCamera, _font);
             HideHoldMenu();
             Picker = gameObject.AddComponent<HousingPlacementPicker>();
-            Picker.Configure((RectTransform)canvas.transform, _font, _root.RenderLayer);
+            Picker.Configure((RectTransform)canvas.transform, _font);
             Picker.Chosen += OnPickerChosen;
             Picker.Cancelled += ClosePicker;
             MirrorSceneRoot.SetLayer(canvas.transform, _root.RenderLayer);

@@ -213,7 +213,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         {
             var canvas = Spawn<Canvas>("Canvas");
             var picker = canvas.gameObject.AddComponent<HousingPlacementPicker>();
-            picker.Configure((RectTransform)canvas.transform, null, 0);
+            picker.Configure((RectTransform)canvas.transform, null);
             Assert.That(picker.IsVisible, Is.False);
 
             var options = new List<HousingPlacementOption>();
