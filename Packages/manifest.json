@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.jamkkaebi.npc": "https://github.com/SolyiPark/jamkkaebi-server.git?path=/tools/unity-npc-generator#npc-v0.1.0",
+    "com.jamkkaebi.npc": "https://github.com/SolyiPark/jamkkaebi-server.git?path=/tools/unity-npc-generator#npc-v0.1.1",
     "com.unity.2d.animation": "13.0.6",
     "com.unity.2d.aseprite": "3.0.2",
     "com.unity.2d.psdimporter": "12.0.2",
