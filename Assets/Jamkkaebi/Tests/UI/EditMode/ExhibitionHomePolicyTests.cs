@@ -24,7 +24,12 @@ namespace Jamkkaebi.Tests.UI
                     "Assets/Jamkkaebi/Configuration/VisitExhibitionBehavior.asset");
                 data.ApplyModifiedPropertiesWithoutUndo();
                 bool requested = false; housing.PlacementRequested += () => requested = true;
-                Assert.IsFalse(housing.CanEdit); Assert.IsFalse(housing.BeginPlacement(housing.DefaultItem));
+                // 정의가 올바른데도 거부되는지 본다. 거부 사유가 정의가 아니라 읽기 전용 정책이어야 한다.
+                var definition = ScriptableObject.CreateInstance<HousingItemDefinition>();
+                JsonUtility.FromJsonOverwrite("{\"_itemId\":\"stand\"}", definition);
+                Assert.IsTrue(definition.IsValid);
+                Assert.IsFalse(housing.CanEdit); Assert.IsFalse(housing.BeginPlacement(definition));
+                Object.DestroyImmediate(definition);
                 housing.RequestPlacement(); housing.ExecuteAction(1, HousingAction.Move);
                 housing.ExecuteAction(1, HousingAction.Rotate); housing.ExecuteAction(1, HousingAction.Recall);
                 housing.SelectCell(new Vector2Int(3, 3)); housing.RemoveSelected();

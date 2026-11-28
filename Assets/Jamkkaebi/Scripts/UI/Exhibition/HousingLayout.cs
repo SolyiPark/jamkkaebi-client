@@ -10,6 +10,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private readonly ExhibitionGrid _grid;
         private readonly List<HousingPlacement> _placements = new List<HousingPlacement>();
         private readonly Dictionary<int, HousingWalker> _walkers = new Dictionary<int, HousingWalker>();
+        private readonly HashSet<Vector2Int> _blocked = new HashSet<Vector2Int>();
         private int _nextId = 1;
         public ReadOnlyCollection<HousingPlacement> Placements { get; }
 
@@ -22,7 +23,23 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public HousingPlacement At(Vector2Int cell) => _placements.Find(item => item.Contains(cell));
         public HousingPlacement GetPlacement(int id) => _placements.Find(item => item.Id == id);
         public HousingWalker GetWalker(int id) => _walkers.TryGetValue(id, out var walker) ? walker : null;
-        public bool IsWalkable(Vector2Int cell) => _grid.Contains(cell) && At(cell) == null;
+        public bool IsWalkable(Vector2Int cell) => _grid.Contains(cell) && At(cell) == null && !_blocked.Contains(cell);
+
+        /// <summary>
+        /// 아무것도 놓거나 지나갈 수 없는 칸을 통째로 바꾼다. 홈이 그리지 않지만 서버에 놓여 있는 객체(건물)의 자리를 비워 두는 데 쓴다.
+        /// 이미 그 칸에 있는 배치물이나 걷는 객체는 건드리지 않는다.
+        /// </summary>
+        /// <exception cref="System.ArgumentNullException">cells가 null인 경우.</exception>
+        public void SetBlockedCells(IEnumerable<Vector2Int> cells)
+        {
+            if (cells == null) throw new System.ArgumentNullException(nameof(cells));
+            var next = new List<Vector2Int>(cells);
+            _blocked.Clear();
+            foreach (var cell in next) _blocked.Add(cell);
+        }
+
+        /// <summary>막아 둔 칸인지.</summary>
+        public bool IsBlocked(Vector2Int cell) => _blocked.Contains(cell);
 
         /// <summary>
         /// 고정 배치물을 둘 수 있는지 검사한다. 다른 배치물이나 걷는 객체가 지금 쓰는 칸(서 있는 칸과 걸어 들어가는 칸)과 겹치면 안 된다.
@@ -36,7 +53,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 {
                     var target = cell + new Vector2Int(x, y);
                     var occupant = At(target);
-                    if (ReservedByWalker(target) || (occupant != null && occupant.Id != ignoredId)) return false;
+                    if (_blocked.Contains(target) || ReservedByWalker(target) || (occupant != null && occupant.Id != ignoredId)) return false;
                 }
             return true;
         }

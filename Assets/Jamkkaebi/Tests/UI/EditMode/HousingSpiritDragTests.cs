@@ -48,7 +48,6 @@ namespace Jamkkaebi.Tests.UI.EditMode
             _housing = _root.AddComponent<ExhibitionHousing>();
             SetField(_housing, "_surface", _surface);
             SetField(_housing, "_content", content.transform);
-            SetField(_housing, "_spawnInitialItem", false);
             // 편집 모드에서는 Unity가 Start를 부르지 않는다.
             typeof(ExhibitionHousing).GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_housing, null);
 

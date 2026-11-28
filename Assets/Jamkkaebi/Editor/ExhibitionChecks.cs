@@ -34,9 +34,8 @@ public static class ExhibitionChecks
         var housing = UnityEngine.Object.FindFirstObjectByType<ExhibitionHousing>();
         Check(housing && housing.Surface == surface, "home housing references platform surface");
         var housingData = new SerializedObject(housing);
-        foreach (string field in new[] { "_content", "_font", "_material", "_defaultItem" })
+        foreach (string field in new[] { "_content", "_font", "_material" })
             Check(housingData.FindProperty(field).objectReferenceValue, "housing reference " + field);
-        Check(housing.DefaultItem.IsValid, "default housing item definition is valid");
         IntegratedSetup.ValidateScenes();
         Debug.Log("EXHIBITION_CHECKS_PASSED");
     }
