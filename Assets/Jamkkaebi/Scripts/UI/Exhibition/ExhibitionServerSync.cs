@@ -36,6 +36,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         /// <summary>서버 배치를 불러와 홈에 반영했는지.</summary>
         public bool Loaded => _schedule != null && _schedule.Loaded;
 
+        /// <summary>서버와 마지막으로 맞춘 배치의 요약. 맞춘 적이 없으면 null.</summary>
+        public string SyncedSignature => _schedule?.SyncedSignature;
+
         /// <summary>마지막 불러오기·보내기가 실패했으면 그 사유. 성공했으면 null.</summary>
         public string LastError { get; private set; }
 
@@ -94,7 +97,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             }
         }
 
-        private IEnumerator Load()
+        /// <summary>서버 배치를 불러와 홈에 세운다. Update가 차례에 맞춰 돌린다(테스트는 직접 돌린다).</summary>
+        internal IEnumerator Load()
         {
             _busy = true;
             int generation = _generation;
@@ -111,15 +115,22 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             _schedule.MarkLoaded(SignatureOf(snapshot.SpiritCells));
         }
 
-        private IEnumerator Send()
+        /// <summary>지금 배치를 서버에 저장한다. Update가 차례에 맞춰 돌린다(테스트는 직접 돌린다).</summary>
+        internal IEnumerator Send()
         {
             _busy = true;
             int generation = _generation;
-            string signature = SignatureOf(_housing.Wanderers);
-            // 서버가 아는 정령 가운데 놓여 있지 않은 것은 회수한 것으로 보낸다.
-            var draft = ExhibitionLayoutCapture.Capture(_housing, NoBuildingBindings, _ownedRelicIds);
+            string signature = null;
             ServerApiResult result = null;
-            yield return _wrapper.Save(draft, value => result = value);
+            yield return _wrapper.Save(exhibition =>
+            {
+                // 저장용 조회가 알려 준 최신 건물 자리를 먼저 홈에 반영한다. 다른 기기에서 건물이 옮겨져 도깨비와 겹치게 됐으면
+                // 도깨비를 빈칸으로 옮긴 뒤의 배치를 보내야 한다. 옛 건물 자리로 묶으면 거부되고, 배치가 그대로면 매 차례 되풀이된다.
+                Remember(ExhibitionServerSnapshot.Parse(exhibition, _housing.Surface.Grid.Size));
+                signature = SignatureOf(_housing.Wanderers);
+                // 서버가 아는 정령 가운데 놓여 있지 않은 것은 회수한 것으로 보낸다.
+                return ExhibitionLayoutCapture.Capture(_housing, NoBuildingBindings, _ownedRelicIds);
+            }, value => result = value);
             if (generation != _generation) yield break;
             _busy = false;
             if (result == null || !result.Success) { Fail("전시관 배치를 저장하지 못했습니다.", result); yield break; }
@@ -127,7 +138,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             LastError = null;
             // 저장 응답은 저장 뒤의 전시관이다. 읽히면 서버가 실제로 가진 자리를 기준으로 삼고, 읽지 못하면 보낸 배치를 기준으로 둔다.
             // 보유 목록과 건물 자리도 새로 읽는다. 걷고 있는 도깨비의 자리는 건드리지 않는다.
-            if (TryParse(result, out var snapshot))
+            if (TryParse(result, out var snapshot, report: false))
             {
                 _schedule.MarkSent(SignatureOf(snapshot.SpiritCells));
                 Remember(snapshot);
@@ -135,7 +146,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             else _schedule.MarkSent(signature);
         }
 
-        private bool TryParse(ServerApiResult result, out ExhibitionServerSnapshot snapshot)
+        /// <param name="report">false면 읽지 못해도 실패로 기록하지 않는다. 저장은 이미 성공했고 응답만 못 읽은 경우에 쓴다.</param>
+        private bool TryParse(ServerApiResult result, out ExhibitionServerSnapshot snapshot, bool report = true)
         {
             snapshot = null;
             try
@@ -145,6 +157,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             }
             catch (Exception error) when (error is FormatException || error is InvalidOperationException)
             {
+                if (!report) return false;
                 LastError = error.Message;
                 Debug.LogWarning($"전시관 응답을 읽지 못했습니다. {error.Message}", this);
                 return false;

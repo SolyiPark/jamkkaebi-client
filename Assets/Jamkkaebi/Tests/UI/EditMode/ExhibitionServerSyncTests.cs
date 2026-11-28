@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Jamkkaebi.Scripts.UI.Common;
 using Jamkkaebi.Scripts.UI.Exhibition;
 using Jamkkaebi.Scripts.UI.Shell;
 using Newtonsoft.Json.Linq;
@@ -195,6 +197,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
         {
             if (_root) UnityEngine.Object.DestroyImmediate(_root);
             if (_grid) UnityEngine.Object.DestroyImmediate(_grid);
+            _sent.Clear(); _responses.Clear();
         }
 
         private static ExhibitionPlaceable Spirit(int relicId) =>
@@ -366,6 +369,168 @@ namespace Jamkkaebi.Tests.UI.EditMode
             // 불러온 그대로를 다시 묶으면 서버 배치와 같다.
             var draft = ExhibitionLayoutCapture.Capture(_housing, new Dictionary<string, int>(), new[] { 2, 8, 9 });
             Assert.That(((JArray)ExhibitionLayoutPackage.Build(draft, Response())["items"]), Has.Count.EqualTo(3));
+        }
+
+        // ---------- 전송 경계를 바꿔 끼워 돌리는 불러오기·보내기 (실제 HTTP가 아니다) ----------
+
+        private readonly List<(string method, string path, JObject body)> _sent = new List<(string, string, JObject)>();
+        private readonly Queue<ServerApiResult> _responses = new Queue<ServerApiResult>();
+
+        private IEnumerator Transport(string method, string path, JObject body, bool authenticated, Action<ServerApiResult> completed)
+        {
+            _sent.Add((method, path, body));
+            completed(_responses.Dequeue());
+            yield break;
+        }
+
+        private static ServerApiResult Ok(JToken data) => new ServerApiResult(true, "OK", "성공", data, 200);
+        private static ServerApiResult Error() => new ServerApiResult(false, "E500", "서버 오류", status: 500);
+
+        private static void Drain(IEnumerator routine)
+        {
+            while (routine.MoveNext())
+                if (routine.Current is IEnumerator inner) Drain(inner);
+        }
+
+        private ExhibitionServerSync BuildSync()
+        {
+            BuildHousing();
+            _sent.Clear(); _responses.Clear();
+            var sync = _root.AddComponent<ExhibitionServerSync>();
+            sync.Configure(_housing, new JamkkaebiApiClient("http://127.0.0.1:1", "access", Transport), () => true);
+            return sync;
+        }
+
+        private ExhibitionServerSync BuildLoadedSync()
+        {
+            var sync = BuildSync();
+            _responses.Enqueue(Ok(Response()));
+            Drain(sync.Load());
+            Assert.That(sync.Loaded, Is.True);
+            return sync;
+        }
+
+        private static List<string> Items(JObject body)
+        {
+            var items = new List<string>();
+            foreach (var item in (JArray)body["items"]) items.Add($"{item["type"]}:{item["id"]}@{item["x"]},{item["y"]}");
+            return items;
+        }
+
+        [Test]
+        public void LoadPlacesSavedSpiritsAndBlocksBuildingCells()
+        {
+            var sync = BuildSync();
+            _responses.Enqueue(Ok(Response()));
+
+            Drain(sync.Load());
+
+            Assert.That(_sent, Has.Count.EqualTo(1));
+            Assert.That(_sent[0].method, Is.EqualTo("GET"));
+            Assert.That(_sent[0].path, Is.EqualTo("/api/exhibition"));
+            Assert.That(sync.Loaded, Is.True);
+            Assert.That(sync.LastError, Is.Null);
+            Assert.That(_housing.FindWanderer(2).PlacementCell, Is.EqualTo(new Vector2Int(1, 1)));
+            Assert.That(_housing.FindWanderer(8).PlacementCell, Is.EqualTo(new Vector2Int(4, 4)));
+            Assert.That(_housing.FindWanderer(9), Is.Null);
+            Assert.That(_housing.Layout.IsBlocked(new Vector2Int(6, 1)), Is.True);
+            Assert.That(sync.SyncedSignature, Is.EqualTo("2@1,1;8@4,4;"));
+        }
+
+        [Test]
+        public void FailedOrMismatchedLoadLeavesTheHomeUnloadedSoNothingIsSent()
+        {
+            var sync = BuildSync();
+            _responses.Enqueue(Error());
+            Drain(sync.Load());
+            Assert.That(sync.Loaded, Is.False);
+            Assert.That(sync.LastError, Is.Not.Null);
+            Assert.That(_housing.Wanderers, Is.Empty, "실패해도 모의 배치를 만들지 않는다");
+
+            var otherGrid = Response(); otherGrid["grid"]["width"] = 20; otherGrid["grid"]["height"] = 20;
+            _responses.Enqueue(Ok(otherGrid));
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
+            Drain(sync.Load());
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
+            Assert.That(sync.Loaded, Is.False, "격자가 다르면 불러오지 않는다");
+            Assert.That(_housing.Wanderers, Is.Empty);
+            Assert.That(_sent.FindAll(request => request.method == "PUT"), Is.Empty);
+        }
+
+        [Test]
+        public void SendReadsTheServerFirstThenPutsTheCurrentLayoutOnce()
+        {
+            var sync = BuildLoadedSync();
+            _housing.FindWanderer(2).TryMoveAnchor(new Vector2Int(0, 3));
+            var after = Response(); after["spirits"][0]["position"] = new JObject { ["x"] = 0, ["y"] = 3 };
+            _responses.Enqueue(Ok(Response()));
+            _responses.Enqueue(Ok(after));
+
+            Drain(sync.Send());
+
+            Assert.That(_sent, Has.Count.EqualTo(3), "불러오기 1번, 저장용 조회 1번, 저장 1번");
+            Assert.That(_sent[1].method, Is.EqualTo("GET"));
+            Assert.That(_sent[2].method, Is.EqualTo("PUT"));
+            Assert.That(_sent[2].path, Is.EqualTo("/api/exhibition/layout"));
+            Assert.That(Items(_sent[2].body), Is.EquivalentTo(new[] { "SPIRIT:2@0,3", "SPIRIT:8@4,4", "BUILDING:1@5,0" }));
+            Assert.That(sync.LastError, Is.Null);
+            Assert.That(sync.SyncedSignature, Is.EqualTo("2@0,3;8@4,4;"), "서버가 돌려준 자리가 새 기준이다");
+        }
+
+        [Test]
+        public void SendMovesSpiritsOffABuildingMovedElsewhereBeforeCapturing()
+        {
+            var sync = BuildLoadedSync();
+            // 다른 기기에서 건물을 2번 도깨비가 서 있는 쪽(0,0~1,1)으로 옮겼다.
+            var moved = Response(); moved["buildings"][0]["position"] = new JObject { ["x"] = 0, ["y"] = 0 };
+            _responses.Enqueue(Ok(moved));
+            _responses.Enqueue(Ok(null));
+
+            Drain(sync.Send());
+
+            Assert.That(_sent, Has.Count.EqualTo(3), "거부되지 않고 저장까지 간다");
+            Assert.That(_sent[2].method, Is.EqualTo("PUT"));
+            var cell = _housing.FindWanderer(2).PlacementCell;
+            Assert.That(cell.x > 1 || cell.y > 1, Is.True, "도깨비가 새 건물 자리 밖으로 옮겨졌다: " + cell);
+            Assert.That(Items(_sent[2].body), Does.Contain($"SPIRIT:2@{cell.x},{cell.y}"), "옮긴 뒤의 자리를 보낸다");
+            Assert.That(Items(_sent[2].body), Does.Contain("BUILDING:1@0,0"));
+            Assert.That(_housing.Layout.IsBlocked(new Vector2Int(1, 1)), Is.True, "건물의 새 자리를 막는다");
+            Assert.That(_housing.Layout.IsBlocked(new Vector2Int(5, 0)), Is.False, "옛 자리는 푼다");
+            Assert.That(sync.LastError, Is.Null, "저장은 성공했다. 응답을 못 읽은 것은 실패가 아니다");
+            Assert.That(sync.SyncedSignature, Is.EqualTo(ExhibitionServerSync.SignatureOf(_housing.Wanderers)));
+        }
+
+        [Test]
+        public void FailedSaveIsNotRetriedAndKeepsTheOldBaseline()
+        {
+            var sync = BuildLoadedSync();
+            _housing.FindWanderer(2).TryMoveAnchor(new Vector2Int(0, 3));
+            _responses.Enqueue(Ok(Response()));
+            _responses.Enqueue(Error());
+
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
+            Drain(sync.Send());
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
+
+            Assert.That(_sent, Has.Count.EqualTo(3), "실패해도 그 자리에서 다시 보내지 않는다");
+            Assert.That(sync.LastError, Is.Not.Null);
+            Assert.That(sync.SyncedSignature, Is.EqualTo("2@1,1;8@4,4;"), "맞춘 것으로 치지 않아 다음 차례에 다시 판단한다");
+        }
+
+        [Test]
+        public void SaveIsAbandonedBeforeThePutWhenTheServerGridNoLongerMatches()
+        {
+            var sync = BuildLoadedSync();
+            var otherGrid = Response(); otherGrid["grid"]["width"] = 20; otherGrid["grid"]["height"] = 20;
+            _responses.Enqueue(Ok(otherGrid));
+
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = true;
+            Drain(sync.Send());
+            UnityEngine.TestTools.LogAssert.ignoreFailingMessages = false;
+
+            Assert.That(_sent, Has.Count.EqualTo(2), "조회까지만 하고 저장은 보내지 않는다");
+            Assert.That(sync.LastError, Is.Not.Null);
+            Assert.That(_housing.FindWanderer(2).PlacementCell, Is.EqualTo(new Vector2Int(1, 1)), "홈은 그대로다");
         }
     }
 }
