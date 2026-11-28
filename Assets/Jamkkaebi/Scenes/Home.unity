@@ -952,6 +952,7 @@ MonoBehaviour:
   _defaultItem: {fileID: 11400000, guid: 7fdda69b935e48688438d17d3e053bc6, type: 2}
   _initialCell: {x: 2, y: 2}
   _spawnInitialItem: 1
+  _visualCatalog: {fileID: 11400000, guid: c8a058334fa0aac4faf6e01520c82dc3, type: 2}
 --- !u!4 &1191466251
 Transform:
   m_ObjectHideFlags: 0
