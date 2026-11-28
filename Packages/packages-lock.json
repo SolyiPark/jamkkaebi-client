@@ -1,14 +1,14 @@
 {
   "dependencies": {
     "com.jamkkaebi.npc": {
-      "version": "https://github.com/SolyiPark/jamkkaebi-server.git?path=/tools/unity-npc-generator#npc-v0.1.0",
+      "version": "https://github.com/SolyiPark/jamkkaebi-server.git?path=/tools/unity-npc-generator#npc-v0.1.1",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.unity.modules.imgui": "1.0.0",
         "com.unity.modules.jsonserialize": "1.0.0"
       },
-      "hash": "bf768ec4250c4713c095649e754ae51a9ab5a2f9"
+      "hash": "a588d79ad7c01fd0179e64913670c19c7124c65c"
     },
     "com.unity.2d.animation": {
       "version": "13.0.6",
