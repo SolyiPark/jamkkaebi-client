@@ -73,7 +73,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         /// <summary>인접한 빈 셀을 예약해 걷기 애니메이션을 진행하며 저장 기준점은 변경하지 않습니다.</summary>
         private void Update()
         {
-            if (_layout == null || Paused || (_policy && !_policy.EnableAmbientMovement)) return;
+            if (_layout == null) return;
+            // 멈췄거나 화면 정책이 배회를 끄면 걷던 자리에 서고 걷기 동작도 멈춘다.
+            if (Paused || (_policy && !_policy.EnableAmbientMovement)) { SetWalking(false); return; }
             if (_from == _to)
             {
                 _idle -= Time.deltaTime;

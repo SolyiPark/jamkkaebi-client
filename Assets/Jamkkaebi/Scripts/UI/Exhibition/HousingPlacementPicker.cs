@@ -26,6 +26,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private RectTransform _panel;
         private readonly List<HousingPlacementOption> _options = new List<HousingPlacementOption>();
         private string _message;
+        private Text _messageLabel;
         private int _page;
 
         public bool IsVisible => _panel && _panel.gameObject.activeSelf;
@@ -48,8 +49,17 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public void Show(IEnumerable<HousingPlacementOption> options, string message = null)
         {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            _options.Clear(); _options.AddRange(options);
+            var next = new List<HousingPlacementOption>(options);
+            // 선택지가 그대로면 버튼을 다시 만들지 않는다. 누르고 있는 버튼이 사라지면 그 누름이 끊겨 선택이 무시된다.
+            // 보유 목록을 다시 읽을 때(불러오는 중 → 완료)는 대개 안내만 바뀐다.
+            bool unchanged = IsVisible && SameOptions(next);
+            _options.Clear(); _options.AddRange(next);
             _message = message;
+            if (unchanged)
+            {
+                if (_messageLabel) _messageLabel.text = _message ?? "";
+                return;
+            }
             _page = Mathf.Clamp(_page, 0, LastPage);
             Rebuild();
         }
@@ -58,6 +68,14 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         {
             _page = 0; VisibleOptionCount = 0;
             if (_panel) _panel.gameObject.SetActive(false);
+        }
+
+        private bool SameOptions(List<HousingPlacementOption> next)
+        {
+            if (next.Count != _options.Count) return false;
+            for (int i = 0; i < next.Count; i++)
+                if (next[i].Key != _options[i].Key || next[i].Label != _options[i].Label) return false;
+            return true;
         }
 
         private int LastPage => Mathf.Max(0, (_options.Count - 1) / PageSize);
@@ -80,8 +98,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
             UIFactory.Label("Title", _panel, _font, "무엇을 놓을까요?", 26, Color.white,
                 new Vector2(0, .86f), Vector2.one);
-            if (!string.IsNullOrEmpty(_message))
-                UIFactory.Label("Message", _panel, _font, _message, 20, new Color(.85f, .85f, .8f),
+            // 안내가 없어도 만들어 둔다. 버튼을 다시 만들지 않고 글만 바꾸기 위해서다.
+            _messageLabel = UIFactory.Label("Message", _panel, _font, _message ?? "", 20, new Color(.85f, .85f, .8f),
                     new Vector2(.05f, .74f), new Vector2(.95f, .86f));
 
             VisibleOptionCount = 0;

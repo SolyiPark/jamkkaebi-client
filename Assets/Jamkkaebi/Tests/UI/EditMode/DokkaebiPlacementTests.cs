@@ -242,6 +242,43 @@ namespace Jamkkaebi.Tests.UI.EditMode
         }
 
         [Test]
+        public void PickerKeepsButtonsWhenOnlyTheMessageChanges()
+        {
+            var canvas = Spawn<Canvas>("Canvas");
+            var picker = canvas.gameObject.AddComponent<HousingPlacementPicker>();
+            picker.Configure((RectTransform)canvas.transform, null);
+            var options = new List<HousingPlacementOption>
+                { new HousingPlacementOption("SPIRIT:2", "하나"), new HousingPlacementOption("SPIRIT:8", "둘") };
+            picker.Show(options, "도깨비 목록을 불러오는 중입니다.");
+            Button pressed = Find(canvas, "하나");
+
+            // 보유 목록을 다시 읽어 같은 선택지가 오면 누르고 있던 버튼이 그대로 남는다.
+            picker.Show(new List<HousingPlacementOption>
+                { new HousingPlacementOption("SPIRIT:2", "하나"), new HousingPlacementOption("SPIRIT:8", "둘") }, null);
+            Assert.That(pressed != null, Is.True, "버튼이 다시 만들어지면 안 된다");
+            Assert.That(Find(canvas, "하나"), Is.SameAs(pressed));
+            Text message = null;
+            foreach (var text in canvas.GetComponentsInChildren<Text>()) if (text.name == "Message") message = text;
+            Assert.That(message.text, Is.Empty);
+
+            string chosen = null; picker.Chosen += key => chosen = key;
+            pressed.onClick.Invoke();
+            Assert.That(chosen, Is.EqualTo("SPIRIT:2"));
+
+            // 선택지가 달라지면 다시 그린다.
+            picker.Show(options.GetRange(1, 1), null);
+            Assert.That(pressed == null, Is.True);
+            Assert.That(picker.VisibleOptionCount, Is.EqualTo(1));
+        }
+
+        private static Button Find(Canvas canvas, string label)
+        {
+            foreach (var button in canvas.GetComponentsInChildren<Button>(false))
+                if (button.name == label) return button;
+            return null;
+        }
+
+        [Test]
         public void HoldMenuHidesRotateForWalkers()
         {
             var canvas = Spawn<Canvas>("Canvas");
