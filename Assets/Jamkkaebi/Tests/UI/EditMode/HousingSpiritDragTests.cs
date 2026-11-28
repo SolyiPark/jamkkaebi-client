@@ -171,6 +171,136 @@ namespace Jamkkaebi.Tests.UI.EditMode
             Assert.That(_spirit.Paused, Is.False);
         }
 
+        // ---------- 입력 순서를 그대로 밟는 흐름 ----------
+
+        private HousingSurfaceInput Input => _root.GetComponent<HousingSurfaceInput>();
+
+        /// <summary>칸에 서 있는 대상의 몸통을 누르는 좌표. 발끝(칸 중심)은 적중 영역의 경계라 조금 위를 누른다.</summary>
+        private Vector2 BodyOf(Vector2Int cell) =>
+            _camera.WorldToScreenPoint(_surface.CellWorldPosition(cell) + Vector3.up * .2f);
+
+        private static PointerEventData At(Vector2 point) => new PointerEventData(null) { position = point };
+
+        /// <summary>누른 뒤 길게 누르기 시간이 지난 것으로 만들어 메뉴를 띄운다.</summary>
+        private void PressAndHold(Vector2 point)
+        {
+            Input.OnPointerDown(At(point));
+            // 편집 모드는 시간이 흐르지 않아 누른 시각을 과거로 돌린 뒤 한 프레임을 돌린다.
+            SetField(Input, "_pressedAt", -10f);
+            typeof(HousingSurfaceInput).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(Input, null);
+        }
+
+        /// <summary>떠 있는 메뉴에서 그 동작 버튼이 있는 쪽으로 미는 좌표.</summary>
+        private Vector2 Toward(HousingAction action) => _camera.WorldToScreenPoint(_housing.Menu.ActionWorldPosition(action));
+
+        [Test]
+        public void HoldThenMoveDirectionDragsTheSpiritInTheSamePressAndDropsOnRelease()
+        {
+            PressAndHold(BodyOf(Start));
+            Assert.That(Input.OwnsGesture, Is.True, "길게 누르면 하우징이 제스처를 갖는다");
+            Assert.That(_housing.Menu.IsVisible, Is.True);
+            Assert.That(_housing.Menu.VisibleActionCount, Is.EqualTo(2), "도깨비 메뉴는 이동·회수뿐이다");
+            Assert.That(_housing.IsDraggingSpirit, Is.False, "방향을 고르기 전에는 끌지 않는다");
+
+            Input.OnDrag(At(Toward(HousingAction.Move)));
+            Assert.That(_housing.IsDraggingSpirit, Is.True, "이동 방향으로 밀면 같은 누름으로 끌기가 시작된다");
+            Assert.That(_spirit.Paused, Is.True);
+            Assert.That(_housing.Menu.IsVisible, Is.False, "끄는 동안 메뉴는 닫힌다");
+            Assert.That(_housing.IsEditingCell, Is.False, "도깨비는 빈칸 터치 이동 모드로 들어가지 않는다");
+
+            Input.OnDrag(At(PointOf(Empty)));
+            AssertNear(_spirit.transform.position, _surface.CellWorldPosition(Empty));
+            Assert.That(_spirit.PlacementCell, Is.EqualTo(Start));
+
+            Input.OnPointerUp(At(PointOf(Empty)));
+            Assert.That(_housing.IsDraggingSpirit, Is.False);
+            Assert.That(_spirit.PlacementCell, Is.EqualTo(Empty));
+            Assert.That(_spirit.Paused, Is.False);
+            Assert.That(Input.OwnsGesture, Is.False);
+            Assert.That(_housing.Layout.CanPlace(Start, Vector2Int.one), Is.True);
+
+            // 손을 뗀 뒤의 움직임은 다음 누름 전까지 아무것도 끌지 않는다.
+            Input.OnDrag(At(PointOf(Start)));
+            Assert.That(_spirit.PlacementCell, Is.EqualTo(Empty));
+        }
+
+        [Test]
+        public void DragStartedFromTheMenuIsUndoneWhenInputIsCancelled()
+        {
+            Vector3 origin = _spirit.transform.position;
+            PressAndHold(BodyOf(Start));
+            Input.OnDrag(At(Toward(HousingAction.Move)));
+            Input.OnDrag(At(PointOf(Empty)));
+            Assert.That(_housing.IsDraggingSpirit, Is.True);
+
+            var mirror = new GameObject("Mirror");
+            try
+            {
+                var bridge = mirror.AddComponent<MirrorInput>();
+                var forwarded = At(PointOf(Empty));
+                SetField(bridge, "forwarded", forwarded);
+                SetField(bridge, "pressed", _root);
+                bridge.Cancel();
+                Input.OnPointerUp(forwarded);
+            }
+            finally { Object.DestroyImmediate(mirror); }
+
+            Assert.That(_housing.IsDraggingSpirit, Is.False);
+            Assert.That(_spirit.PlacementCell, Is.EqualTo(Start));
+            AssertNear(_spirit.transform.position, origin);
+            Assert.That(_spirit.Paused, Is.False, "되돌린 뒤 다시 걷는다");
+            Assert.That(Input.OwnsGesture, Is.False);
+            Assert.That(_housing.Menu.IsVisible, Is.False);
+        }
+
+        [Test]
+        public void MoveDirectionNeverRecallsTheSpirit()
+        {
+            // 이동 방향으로 민 누름이 회수로 처리되지 않는다.
+            PressAndHold(BodyOf(Start));
+            Input.OnDrag(At(Toward(HousingAction.Move)));
+            Input.OnPointerUp(At(PointOf(Start)));
+            Assert.That(_housing.FindWanderer(2), Is.Not.Null);
+            Assert.That(_housing.Wanderers, Has.Count.EqualTo(2));
+        }
+
+        [Test]
+        public void ExhibitKeepsTapToMoveAfterChoosingMove()
+        {
+            var exhibitCell = new Vector2Int(5, 1); var target = new Vector2Int(0, 6);
+            var definition = ScriptableObject.CreateInstance<HousingItemDefinition>();
+            try
+            {
+                JsonUtility.FromJsonOverwrite("{\"_itemId\":\"stand\",\"_displayName\":\"전시대\"}", definition);
+                Assert.That(_housing.BeginPlacement(definition), Is.True);
+                _housing.SelectCell(exhibitCell);
+                var exhibit = _housing.Layout.At(exhibitCell);
+                Assert.That(exhibit, Is.Not.Null);
+
+                PressAndHold(BodyOf(exhibitCell));
+                Assert.That(_housing.Menu.VisibleActionCount, Is.EqualTo(3), "전시물 메뉴는 이동·회수·회전이다");
+                Input.OnDrag(At(Toward(HousingAction.Move)));
+                Assert.That(_housing.IsDraggingSpirit, Is.False, "전시물은 끌지 않는다");
+                Assert.That(_housing.IsEditingCell, Is.True, "전시물은 빈칸 터치를 기다린다");
+
+                // 누른 채 움직여도 전시물은 따라오지 않고 자리도 그대로다.
+                Input.OnDrag(At(PointOf(target)));
+                Assert.That(exhibit.Cell, Is.EqualTo(exhibitCell));
+                Input.OnPointerUp(At(PointOf(target)));
+                Assert.That(exhibit.Cell, Is.EqualTo(exhibitCell), "손을 떼는 것만으로는 옮겨지지 않는다");
+                Assert.That(_housing.IsEditingCell, Is.True);
+
+                // 빈칸을 터치하면 옮겨진다.
+                Input.OnPointerDown(At(PointOf(target)));
+                Input.OnPointerUp(At(PointOf(target)));
+                Input.OnPointerClick(At(PointOf(target)));
+                Assert.That(exhibit.Cell, Is.EqualTo(target));
+                Assert.That(_housing.IsEditingCell, Is.False);
+                Assert.That(_spirit.PlacementCell, Is.EqualTo(Start), "도깨비는 영향을 받지 않는다");
+            }
+            finally { Object.DestroyImmediate(definition); }
+        }
+
         [Test]
         public void NewPressWithoutReleaseReturnsTheDraggedSpirit()
         {
