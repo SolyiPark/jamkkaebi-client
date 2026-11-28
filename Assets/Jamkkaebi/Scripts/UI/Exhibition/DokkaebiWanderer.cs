@@ -29,14 +29,15 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public int RelicId { get; private set; }
 
         public Vector2Int CurrentCell => _from;
-        public Vector2Int PlacementCell { get; private set; }
+        /// <summary>저장 기준 자리. 마지막으로 도착한 칸이며 걸어 다니면 따라 바뀝니다.</summary>
+        public Vector2Int PlacementCell => _from;
         public Vector2Int TargetCell => _to;
         public int CompletedSteps { get; private set; }
 
         /// <summary>멈춰 있는지. 멈추면 걷던 자리에 그대로 서고 예약한 칸은 유지한다.</summary>
         public bool Paused { get; private set; }
 
-        /// <summary>이동에 사용할 하우징·표면과 저장 기준점을 지정하고 시작 셀을 예약합니다.</summary>
+        /// <summary>이동에 사용할 하우징·표면을 지정하고 시작 셀을 예약합니다. 시작 셀이 첫 기준 자리입니다.</summary>
         /// <returns>기준 자리를 쓸 수 없으면(배치물·다른 도깨비와 겹침) false이며 아무것도 등록하지 않습니다.</returns>
         public bool Configure(HousingLayout layout, ExhibitionSurface surface, Vector2Int cell,
             ExhibitionBehaviorPolicy policy = null, int relicId = 0)
@@ -45,7 +46,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (!layout.TryAddWalker(cell, out var walker)) return false;
             _policy = policy;
             _layout = layout; _walker = walker; _surface = surface; _from = _to = cell;
-            PlacementCell = cell; RelicId = relicId;
+            RelicId = relicId;
             _animators = GetComponentsInChildren<Animator>(true);
             transform.position = _surface.CellWorldPosition(cell);
             return true;
@@ -58,19 +59,30 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (paused) SetWalking(false);
         }
 
-        /// <summary>저장 기준 자리를 옮기고 그 칸에 세웁니다. 걷던 길 예약은 버립니다.</summary>
+        /// <summary>끌려가는 동안 손가락 위치에 그립니다. 논리 칸과 예약은 놓을 때까지 바꾸지 않습니다.</summary>
+        public void SetDragPosition(Vector3 worldPosition) => transform.position = worldPosition;
+
+        /// <summary>끌기를 취소했을 때 걷던 길 위의 원래 위치로 되돌립니다.</summary>
+        public void RestorePathPosition()
+        {
+            if (_surface == null) return;
+            transform.position = Vector3.Lerp(_surface.CellWorldPosition(_from), _surface.CellWorldPosition(_to), _progress);
+        }
+
+        /// <summary>다른 칸으로 옮겨 세웁니다. 그 칸이 새 기준 자리가 되고 걷던 길 예약은 버립니다.</summary>
         /// <returns>옮길 수 없는 칸이면 false이며 자리와 예약을 바꾸지 않습니다.</returns>
         public bool TryMoveAnchor(Vector2Int cell)
         {
             if (_layout == null || !_layout.TryMoveWalker(_walker.Id, cell)) return false;
             _from = _to = cell; _progress = 0;
-            PlacementCell = cell;
+            // 놓자마자 걸어 나가지 않게 한 박자 쉰다.
+            _idle = Mathf.Max(.1f, _idleSeconds);
             transform.position = _surface.CellWorldPosition(cell);
             SetWalking(false);
             return true;
         }
 
-        /// <summary>인접한 빈 셀을 예약해 걷기 애니메이션을 진행하며 저장 기준점은 변경하지 않습니다.</summary>
+        /// <summary>인접한 빈 셀을 예약해 걷기 애니메이션을 진행합니다. 다음 칸에 도착하면 그 칸이 기준 자리가 됩니다.</summary>
         private void Update()
         {
             if (_layout == null) return;

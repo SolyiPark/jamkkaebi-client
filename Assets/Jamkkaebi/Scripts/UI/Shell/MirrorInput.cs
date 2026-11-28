@@ -170,6 +170,9 @@ namespace Jamkkaebi.Scripts.UI.Shell
             if (forwarded != null)
             {
                 forwarded.eligibleForClick = false;
+                // 누름 종료만으로는 손을 뗀 것과 구분되지 않으므로, 취소임을 먼저 알린다.
+                if (pressed)
+                    foreach (var handler in pressed.GetComponents<IMirrorCancelHandler>()) handler.OnMirrorCancel();
                 if (pressed) ExecuteEvents.Execute(pressed, forwarded, ExecuteEvents.pointerUpHandler);
                 if (dragging && dragged) ExecuteEvents.Execute(dragged, forwarded, ExecuteEvents.endDragHandler);
             }

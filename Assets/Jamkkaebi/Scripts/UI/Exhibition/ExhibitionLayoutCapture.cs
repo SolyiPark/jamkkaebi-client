@@ -14,7 +14,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         /// </param>
         /// <returns>
         /// A draft containing placed buildings, unplaced bindings, and every managed or placed dokkaebi;
-        /// missing building bindings use ID zero for later rejection. 도깨비 자리는 걷는 칸이 아니라 기준 자리다.
+        /// missing building bindings use ID zero for later rejection. 도깨비 자리는 기준 자리(마지막으로 도착한 칸)이며 칸 사이를 걷는 중의 위치가 아니다.
         /// </returns>
         /// <exception cref="InvalidOperationException">The housing or its layout is unavailable.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="buildingIds"/> 또는 <paramref name="managedRelicIds"/>가 null인 경우.</exception>
