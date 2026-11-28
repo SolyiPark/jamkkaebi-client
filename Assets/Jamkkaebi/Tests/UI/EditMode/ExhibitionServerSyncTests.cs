@@ -257,6 +257,77 @@ namespace Jamkkaebi.Tests.UI.EditMode
         }
 
         [Test]
+        public void SavedLayoutIsRestoredEvenWhileEditingIsLocked()
+        {
+            BuildHousing();
+            var policy = ScriptableObject.CreateInstance<ExhibitionBehaviorPolicy>();
+            try
+            {
+                JsonUtility.FromJsonOverwrite("{\"_allowLayoutEditing\":false}", policy);
+                SetField(_housing, "_policy", policy);
+                Assert.That(_housing.CanEdit, Is.False);
+
+                Assert.That(_housing.TryAddSpirit(Spirit(2), new Vector2Int(1, 1)), Is.False, "플레이어의 놓기는 잠긴다");
+                Assert.That(_housing.TryAddSpiritNear(Spirit(2), new Vector2Int(1, 1)), Is.True,
+                    "복원이 막히면 그 도깨비가 다음 송신에서 회수로 나간다");
+                Assert.That(_housing.FindWanderer(2).PlacementCell, Is.EqualTo(new Vector2Int(1, 1)));
+            }
+            finally { UnityEngine.Object.DestroyImmediate(policy); }
+        }
+
+        [Test]
+        public void SyncedBaselineIsTheServerCellsSoAdjustedPlacementsAreSentNext()
+        {
+            BuildHousing();
+            var snapshot = ExhibitionServerSnapshot.Parse(Response(), Grid);
+            // 조회가 끝나기 전에 2번의 서버 자리에 다른 도깨비를 놓아, 2번이 옆 칸으로 보정되게 한다.
+            _housing.TryAddSpirit(Spirit(9), new Vector2Int(1, 1));
+            foreach (var spirit in snapshot.Spirits)
+                if (snapshot.SpiritCells.TryGetValue(spirit.ServerId, out var cell)) _housing.TryAddSpiritNear(spirit, cell);
+
+            string server = ExhibitionServerSync.SignatureOf(snapshot.SpiritCells);
+            string local = ExhibitionServerSync.SignatureOf(_housing.Wanderers);
+            Assert.That(server, Is.EqualTo("2@1,1;8@4,4;"), "서버 좌표의 요약은 홈 배치 요약과 같은 형식이다");
+            Assert.That(local, Is.Not.EqualTo(server), "보정된 홈 배치는 서버와 다르다");
+
+            var schedule = new ExhibitionSyncSchedule(0, 180);
+            schedule.Tick(0, true, local);
+            schedule.MarkLoaded(server);
+            Assert.That(schedule.Tick(180, true, local), Is.EqualTo(Step.Send),
+                "도깨비가 더 움직이지 않아도 보정으로 생긴 차이를 보낸다");
+
+            // 보정 없이 서버 그대로 세웠다면 보낼 것이 없다.
+            var same = new ExhibitionSyncSchedule(0, 180);
+            same.Tick(0, true, server);
+            same.MarkLoaded(server);
+            Assert.That(same.Tick(180, true, server), Is.EqualTo(Step.Skip));
+            Assert.That(ExhibitionServerSync.SignatureOf(new Dictionary<int, Vector2Int>()), Is.Empty);
+        }
+
+        [Test]
+        public void SpiritOnANewlyBlockedCellIsMovedOutAndCanWalkAgain()
+        {
+            BuildHousing();
+            // 조회가 끝나기 전에 놓은 도깨비. 5,0은 서버 건물 자리다.
+            _housing.TryAddSpirit(Spirit(9), new Vector2Int(5, 0));
+            _housing.TryAddSpirit(Spirit(2), new Vector2Int(3, 3));
+            var stuck = _housing.FindWanderer(9);
+            _housing.Layout.SetBlockedCells(ExhibitionServerSnapshot.Parse(Response(), Grid).BuildingCells);
+            Assert.That(_housing.Layout.TryReserveTraversal(stuck.WalkerId, new Vector2Int(5, 0), new Vector2Int(4, 0)), Is.False,
+                "막힌 칸에서는 걸어 나갈 수 없다");
+
+            Assert.That(_housing.MoveSpiritsOffBlockedCells(), Is.EqualTo(1));
+
+            Assert.That(stuck.PlacementCell, Is.EqualTo(new Vector2Int(4, 0)), "가장 가까운 빈칸으로 옮긴다");
+            Assert.That(stuck.CurrentCell, Is.EqualTo(stuck.TargetCell));
+            Assert.That(_housing.Layout.IsBlocked(stuck.PlacementCell), Is.False);
+            Assert.That(_housing.Layout.TryReserveTraversal(stuck.WalkerId, new Vector2Int(4, 0), new Vector2Int(3, 0)), Is.True,
+                "옮긴 뒤에는 다시 걸을 수 있다");
+            Assert.That(_housing.FindWanderer(2).PlacementCell, Is.EqualTo(new Vector2Int(3, 3)), "막히지 않은 도깨비는 그대로다");
+            Assert.That(_housing.MoveSpiritsOffBlockedCells(), Is.Zero);
+        }
+
+        [Test]
         public void SentPackageCarriesPlacedSpiritsDropsRecalledOnesAndKeepsServerBuildings()
         {
             BuildHousing();

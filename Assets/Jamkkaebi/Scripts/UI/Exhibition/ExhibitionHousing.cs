@@ -167,7 +167,13 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         {
             if (spirit == null) throw new ArgumentNullException(nameof(spirit));
             if (!spirit.IsSpirit) throw new ArgumentException("도깨비만 놓을 수 있습니다: " + spirit.Key, nameof(spirit));
-            if (!CanEdit || IsSpiritPlaced(spirit.ServerId) || !Layout.CanAddWalker(cell)) return false;
+            return CanEdit && AddSpirit(spirit, cell);
+        }
+
+        /// <summary>편집 가능 여부를 보지 않고 도깨비를 세운다. 플레이어의 편집이 아니라 저장된 배치를 되살릴 때도 쓴다.</summary>
+        private bool AddSpirit(ExhibitionPlaceable spirit, Vector2Int cell)
+        {
+            if (IsSpiritPlaced(spirit.ServerId) || !Layout.CanAddWalker(cell)) return false;
 
             var obj = ContentObject("Dokkaebi " + spirit.ServerId);
             var visual = new GameObject("Visual");
@@ -200,22 +206,52 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         /// <summary>
         /// 도깨비를 그 칸에 놓되, 쓸 수 없는 칸이면 세울 수 있는 가장 가까운 칸에 놓는다. 서버에 저장된 자리를 되살릴 때 쓴다.
         /// </summary>
+        /// <remarks>
+        /// 편집이 잠겨 있어도 세운다. 잠긴 동안 복원이 막히면 그 도깨비가 홈에 없는 것으로 남아 다음 송신에서 회수로 나가기 때문이다.
+        /// </remarks>
         /// <returns>이미 놓였거나 세울 칸이 하나도 없으면 false.</returns>
+        /// <exception cref="ArgumentNullException">spirit이 null인 경우.</exception>
+        /// <exception cref="ArgumentException">spirit이 도깨비가 아닌 경우.</exception>
         public bool TryAddSpiritNear(ExhibitionPlaceable spirit, Vector2Int cell)
         {
-            if (TryAddSpirit(spirit, cell)) return true;
-            if (spirit == null || IsSpiritPlaced(spirit.ServerId)) return false;
+            if (spirit == null) throw new ArgumentNullException(nameof(spirit));
+            if (!spirit.IsSpirit) throw new ArgumentException("도깨비만 놓을 수 있습니다: " + spirit.Key, nameof(spirit));
+            if (AddSpirit(spirit, cell)) return true;
+            if (IsSpiritPlaced(spirit.ServerId)) return false;
+            return TryFindNearestFreeCell(cell, 0, out var best) && AddSpirit(spirit, best);
+        }
+
+        /// <summary>
+        /// 막힌 칸(서버 건물 자리)에 서 있거나 그리로 걸어 들어가는 도깨비를 가장 가까운 빈칸으로 옮겨 세운다.
+        /// 막힌 칸에서는 걷는 길을 예약할 수 없어 그대로 두면 그 자리에 갇힌다. 편집 가능 여부와 무관하게 옮긴다.
+        /// </summary>
+        /// <returns>옮긴 도깨비 수. 옮길 빈칸이 없는 도깨비는 그대로 둔다.</returns>
+        public int MoveSpiritsOffBlockedCells()
+        {
+            int moved = 0;
+            foreach (var wanderer in _wanderers.Values)
+            {
+                if (!wanderer || (!Layout.IsBlocked(wanderer.CurrentCell) && !Layout.IsBlocked(wanderer.TargetCell))) continue;
+                if (TryFindNearestFreeCell(wanderer.CurrentCell, wanderer.WalkerId, out var cell) && wanderer.TryMoveAnchor(cell)) moved++;
+            }
+            return moved;
+        }
+
+        /// <summary>걷는 객체를 세울 수 있는 칸 가운데 기준 칸에서 가장 가까운 것을 찾는다.</summary>
+        /// <param name="ignoredWalkerId">자기 자리를 옮길 때 자신이 쓰는 칸을 빈칸으로 친다.</param>
+        private bool TryFindNearestFreeCell(Vector2Int origin, int ignoredWalkerId, out Vector2Int best)
+        {
             var size = _surface.Grid.Size;
-            bool found = false; int bestDistance = int.MaxValue; var best = cell;
+            bool found = false; int bestDistance = int.MaxValue; best = origin;
             for (int x = 0; x < size.x; x++)
                 for (int y = 0; y < size.y; y++)
                 {
                     var candidate = new Vector2Int(x, y);
-                    int distance = Mathf.Abs(x - cell.x) + Mathf.Abs(y - cell.y);
-                    if (distance >= bestDistance || !Layout.CanAddWalker(candidate)) continue;
+                    int distance = Mathf.Abs(x - origin.x) + Mathf.Abs(y - origin.y);
+                    if (distance >= bestDistance || !Layout.CanAddWalker(candidate, ignoredWalkerId)) continue;
                     found = true; bestDistance = distance; best = candidate;
                 }
-            return found && TryAddSpirit(spirit, best);
+            return found;
         }
 
         private void UpdateFacing(HousingPlacement placement)

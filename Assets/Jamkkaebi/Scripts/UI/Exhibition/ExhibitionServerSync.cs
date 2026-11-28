@@ -57,6 +57,25 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             var rows = new List<(int relicId, Vector2Int cell)>();
             foreach (var wanderer in wanderers)
                 if (wanderer) rows.Add((wanderer.RelicId, wanderer.PlacementCell));
+            return Signature(rows);
+        }
+
+        /// <summary>
+        /// 서버가 알려 준 도깨비 자리(relicId → 칸)의 요약. 홈의 배치 요약과 같은 형식이라 그대로 비교한다.
+        /// 서버와 맞춘 기준은 홈에 세운 결과가 아니라 이 값으로 잡는다. 자리를 보정했거나 세우지 못한 도깨비가 있으면
+        /// 홈과 서버가 다르고, 그 차이를 다음 차례에 보내야 하기 때문이다.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">cells가 null인 경우.</exception>
+        public static string SignatureOf(IReadOnlyDictionary<int, Vector2Int> cells)
+        {
+            if (cells == null) throw new ArgumentNullException(nameof(cells));
+            var rows = new List<(int relicId, Vector2Int cell)>();
+            foreach (var pair in cells) rows.Add((pair.Key, pair.Value));
+            return Signature(rows);
+        }
+
+        private static string Signature(List<(int relicId, Vector2Int cell)> rows)
+        {
             rows.Sort((a, b) => a.relicId.CompareTo(b.relicId));
             var text = new StringBuilder();
             foreach (var row in rows) text.Append(row.relicId).Append('@').Append(row.cell.x).Append(',').Append(row.cell.y).Append(';');
@@ -88,7 +107,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
             Apply(snapshot);
             LastError = null;
-            _schedule.MarkLoaded(SignatureOf(_housing.Wanderers));
+            // 기준은 서버의 좌표다. 홈에 세우며 보정한 자리는 서버와 다르므로 다음 차례에 보내진다.
+            _schedule.MarkLoaded(SignatureOf(snapshot.SpiritCells));
         }
 
         private IEnumerator Send()
@@ -105,9 +125,14 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (result == null || !result.Success) { Fail("전시관 배치를 저장하지 못했습니다.", result); yield break; }
 
             LastError = null;
-            _schedule.MarkSent(signature);
-            // 저장 응답은 저장 뒤의 전시관이다. 보유 목록과 건물 자리만 새로 읽고, 걷고 있는 도깨비의 자리는 건드리지 않는다.
-            if (TryParse(result, out var snapshot)) Remember(snapshot);
+            // 저장 응답은 저장 뒤의 전시관이다. 읽히면 서버가 실제로 가진 자리를 기준으로 삼고, 읽지 못하면 보낸 배치를 기준으로 둔다.
+            // 보유 목록과 건물 자리도 새로 읽는다. 걷고 있는 도깨비의 자리는 건드리지 않는다.
+            if (TryParse(result, out var snapshot))
+            {
+                _schedule.MarkSent(SignatureOf(snapshot.SpiritCells));
+                Remember(snapshot);
+            }
+            else _schedule.MarkSent(signature);
         }
 
         private bool TryParse(ServerApiResult result, out ExhibitionServerSnapshot snapshot)
@@ -131,6 +156,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             _ownedRelicIds.Clear();
             foreach (var spirit in snapshot.Spirits) _ownedRelicIds.Add(spirit.ServerId);
             _housing.Layout.SetBlockedCells(snapshot.BuildingCells);
+            // 조회가 끝나기 전에 놓은 도깨비가 건물 자리에 서 있으면 그 칸에서 걸어 나오지 못한다. 빈칸으로 옮긴다.
+            _housing.MoveSpiritsOffBlockedCells();
         }
 
         private void Apply(ExhibitionServerSnapshot snapshot)
@@ -153,7 +180,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         private void OnDisable()
         {
-            // 비활성화되면 코루틴이 멈춘다. 끝나지 못한 요청의 늦은 응답을 버리고, 멈춘 저장이 남긴 진행 중 표시도 새로 만든다.
+            // 오브젝트가 꺼지면 코루틴이 멈추지만 이 컴포넌트만 끄면 계속 돈다. 조회를 기다리던 저장이 꺼진 뒤에
+            // 서버 저장까지 나가지 않도록 직접 멈춘다. 늦은 응답은 세대 검사로 버리고, 멈춘 저장이 남긴 진행 중 표시도 새로 만든다.
+            StopAllCoroutines();
             _generation++;
             _busy = false;
             if (_client != null) _wrapper = new ExhibitionLayoutWrapper(_client);
