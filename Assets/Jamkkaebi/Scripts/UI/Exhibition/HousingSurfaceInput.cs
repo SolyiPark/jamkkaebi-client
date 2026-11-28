@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     public sealed class HousingSurfaceInput : MonoBehaviour, IPointerClickHandler, IPointerDownHandler,
-        IPointerUpHandler, IDragHandler, IMirrorGestureOwner
+        IPointerUpHandler, IDragHandler, IMirrorGestureOwner, IMirrorCancelHandler
     {
         [SerializeField] private float _holdSeconds = .45f;
         private ExhibitionHousing _housing;
@@ -56,6 +56,12 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (action == HousingAction.Move && _housing.BeginSpiritDrag(_itemId, data.position)) { _dragging = true; return; }
             _housing.ExecuteAction(_itemId, action);
         }
+
+        /// <summary>
+        /// 손을 떼지 않았는데 입력이 끊겼을 때(포커스 상실, 탭 전환 등) 누름 종료보다 먼저 불린다.
+        /// 끌던 도깨비를 마지막 손가락 위치에 놓지 않고 원래 자리로 되돌린다.
+        /// </summary>
+        public void OnMirrorCancel() => CancelHold();
 
         public void OnPointerUp(PointerEventData data)
         {
