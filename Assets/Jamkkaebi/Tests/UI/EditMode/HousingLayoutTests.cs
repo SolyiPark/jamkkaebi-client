@@ -73,12 +73,13 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void WalkerReservationsBlockPlacementAndMoveWithoutLosingOldReservation()
         {
             _layout.TryPlace("test-item", new Vector2Int(2, 2), Vector2Int.one, out var item);
-            Assert.That(_layout.TryReserveTraversal(Vector2Int.zero, Vector2Int.right), Is.True);
+            Assert.That(_layout.TryAddWalker(Vector2Int.zero, out var walker), Is.True);
+            Assert.That(_layout.TryReserveTraversal(walker.Id, Vector2Int.zero, Vector2Int.right), Is.True);
             Assert.That(_layout.CanPlace(Vector2Int.zero, Vector2Int.one), Is.False);
             Assert.That(_layout.TryMove(item.Id, Vector2Int.right), Is.False);
-            Assert.That(_layout.TryReserveTraversal(Vector2Int.right, item.Cell), Is.False);
+            Assert.That(_layout.TryReserveTraversal(walker.Id, Vector2Int.right, item.Cell), Is.False);
             Assert.That(_layout.CanPlace(Vector2Int.zero, Vector2Int.one), Is.False);
-            _layout.ClearTraversal();
+            _layout.RemoveWalker(walker.Id);
             Assert.That(_layout.CanPlace(Vector2Int.zero, Vector2Int.one), Is.True);
         }
 
@@ -105,7 +106,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
             _layout.TryPlace("test-item", new Vector2Int(5, 6), new Vector2Int(2, 1), out var edge);
             Assert.That(_layout.TryRotate(edge.Id), Is.False);
             _layout.TryPlace("test-item", new Vector2Int(2, 2), new Vector2Int(2, 1), out var item);
-            _layout.TryReserveTraversal(new Vector2Int(2, 3), new Vector2Int(2, 3));
+            _layout.TryAddWalker(new Vector2Int(2, 3), out _);
             Assert.That(_layout.TryRotate(item.Id), Is.False);
             Assert.That(item.QuarterTurns, Is.Zero);
             Assert.That(item.Cell, Is.EqualTo(new Vector2Int(2, 2)));
@@ -115,10 +116,11 @@ namespace Jamkkaebi.Tests.UI.EditMode
         public void WalkerCannotCrossDiagonalOccupiedOrOutsideCells()
         {
             _layout.TryPlace("test-item", Vector2Int.up, Vector2Int.one, out _);
-            Assert.That(_layout.TryReserveTraversal(Vector2Int.zero, Vector2Int.one), Is.False);
-            Assert.That(_layout.TryReserveTraversal(Vector2Int.zero, Vector2Int.up), Is.False);
-            Assert.That(_layout.TryReserveTraversal(Vector2Int.zero, Vector2Int.left), Is.False);
-            Assert.That(_layout.TryReserveTraversal(Vector2Int.zero, Vector2Int.zero), Is.True);
+            _layout.TryAddWalker(Vector2Int.zero, out var walker);
+            Assert.That(_layout.TryReserveTraversal(walker.Id, Vector2Int.zero, Vector2Int.one), Is.False);
+            Assert.That(_layout.TryReserveTraversal(walker.Id, Vector2Int.zero, Vector2Int.up), Is.False);
+            Assert.That(_layout.TryReserveTraversal(walker.Id, Vector2Int.zero, Vector2Int.left), Is.False);
+            Assert.That(_layout.TryReserveTraversal(walker.Id, Vector2Int.zero, Vector2Int.zero), Is.True);
         }
     }
 }

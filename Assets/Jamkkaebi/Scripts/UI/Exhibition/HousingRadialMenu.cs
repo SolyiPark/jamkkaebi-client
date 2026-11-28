@@ -14,7 +14,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         private Vector2 _press;
         public bool IsVisible => _menu && _menu.gameObject.activeSelf;
         public bool IsFloorMenu { get; private set; }
-        public int VisibleActionCount => IsVisible ? (IsFloorMenu ? 2 : 3) : 0;
+        /// <summary>회전 버튼을 보이는 메뉴인지. 걷는 객체(도깨비)는 회전이 없어 이동·회수만 보인다.</summary>
+        public bool AllowsRotate { get; private set; } = true;
+        public int VisibleActionCount => IsVisible ? (IsFloorMenu || !AllowsRotate ? 2 : 3) : 0;
         private static readonly Vector2[] Offsets =
             { new Vector2(0, 105), new Vector2(-95, -55), new Vector2(95, -55),
                 new Vector2(-95, 0), new Vector2(95, 0) };
@@ -50,9 +52,11 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             return point;
         }
 
-        public void Show(Vector2 texturePoint, bool floorMenu = false)
+        /// <param name="floorMenu">빈 바닥이면 배치·취소, 아니면 이동·회수·회전.</param>
+        /// <param name="allowRotate">false면 회전 버튼을 숨긴다. 빈 바닥 메뉴에서는 쓰지 않는다.</param>
+        public void Show(Vector2 texturePoint, bool floorMenu = false, bool allowRotate = true)
         {
-            IsFloorMenu = floorMenu;
+            IsFloorMenu = floorMenu; AllowsRotate = allowRotate;
             _press = LocalPoint(texturePoint);
             var bounds = _canvas.rect;
             // Keep all three targets visible near platform edges.
@@ -60,7 +64,8 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 Mathf.Clamp(_press.y, bounds.yMin + 150, bounds.yMax - 145));
             for (int i = 0; i < _buttons.Length; i++)
             {
-                _buttons[i].gameObject.SetActive(floorMenu ? i >= 3 : i < 3);
+                _buttons[i].gameObject.SetActive(floorMenu ? i >= 3
+                    : i < 3 && (allowRotate || i != (int)HousingAction.Rotate));
                 _buttons[i].color = new Color(.25f, .35f, .26f);
             }
             _menu.SetAsLastSibling();
