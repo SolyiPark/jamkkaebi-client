@@ -36,9 +36,9 @@ NPC의 `PlacementCell`은 `Configure` 때 지정한 기준점이다. `CurrentCel
 인증된 공통 API 클라이언트와 보유 ID 바인딩을 사용하는 호출 예시이다. 숫자 1·2는 검증용 계정의 실제 보유 ID이며, 일반 사용자의 ID를 하드코딩하면 안 된다.
 
 ```csharp
-var bindings = new Dictionary<string, int> { [housing.DefaultItem.ItemId] = ownedBuildingId };
+var bindings = new Dictionary<string, int> { [buildingDefinition.ItemId] = ownedBuildingId };
 var wrapper = new ExhibitionLayoutWrapper(authenticatedApiClient);
-var draft = ExhibitionLayoutCapture.Capture(housing, bindings, ownedRelicId);
+var draft = ExhibitionLayoutCapture.Capture(housing, bindings, managedRelicIds);
 yield return wrapper.Save(draft, result => HandleSaveResult(result));
 ```
 

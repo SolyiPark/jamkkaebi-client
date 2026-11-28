@@ -9,15 +9,10 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 {
     public sealed class ExhibitionHousing : MonoBehaviour
     {
-        private const string ItemOptionPrefix = "ITEM:";
-
         [SerializeField] private ExhibitionSurface _surface;
         [SerializeField] private Transform _content;
         [SerializeField] private Font _font;
         [SerializeField] private Material _material;
-        [SerializeField] private HousingItemDefinition _defaultItem;
-        [SerializeField] private Vector2Int _initialCell = new Vector2Int(2, 2);
-        [SerializeField] private bool _spawnInitialItem = true;
         [SerializeField] private ExhibitionBehaviorPolicy _policy;
         [SerializeField] private ExhibitionSelectionController _selectionController;
         [Tooltip("relicId별 도깨비 표현. 친구 방문과 같은 자산을 쓴다. 비었거나 프리팹이 없는 정령은 더미 그림으로 그린다.")]
@@ -49,6 +44,9 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         /// <summary>놓을 대상을 고르는 목록.</summary>
         public HousingPlacementPicker Picker { get; private set; }
 
+        /// <summary>서버와 배치를 맞추는 컴포넌트. 서버 주소가 없으면(모의 모드) null.</summary>
+        public ExhibitionServerSync ServerSync { get; private set; }
+
         public bool IsPlacing => _placing;
         public bool IsEditingCell => _placing || _selectedId != 0;
         /// <summary>도깨비를 끌고 있는지.</summary>
@@ -57,7 +55,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
         public bool CanEdit => !_policy || _policy.AllowLayoutEditing;
         public ExhibitionBehaviorPolicy BehaviorPolicy => _policy;
         public ExhibitionSelectionController SelectionController => _selectionController;
-        public HousingItemDefinition DefaultItem => _defaultItem;
         // A catalog/inventory bridge chooses an item and then calls BeginPlacement(definition).
         public event Action PlacementRequested;
         public event Action<HousingPlacement> PlacementAdded;
@@ -111,10 +108,16 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             Inventory = gameObject.AddComponent<ExhibitionInventory>();
             Inventory.Changed += OnInventoryChanged;
             CreateControls();
-            if (_spawnInitialItem) TryAdd(_defaultItem, _initialCell);
             ResetSelection();
             // 도깨비는 처음부터 놓여 있지 않다. 플레이어가 목록에서 골라 놓는다.
             Inventory.Refresh();
+            // 서버 주소가 있으면 저장된 배치를 불러오고 주기적으로 보낸다. 모의 모드에서는 Play 세션 동안만 남는다.
+            var records = SharedRecords.Current;
+            if (records != null && records.Api != null)
+            {
+                ServerSync = gameObject.AddComponent<ExhibitionServerSync>();
+                ServerSync.Configure(this, records.Api);
+            }
         }
 
         private GameObject ContentObject(string name)
@@ -192,6 +195,27 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             _wanderers.Add(wanderer.WalkerId, wanderer);
             SpiritPlaced?.Invoke(wanderer);
             return true;
+        }
+
+        /// <summary>
+        /// 도깨비를 그 칸에 놓되, 쓸 수 없는 칸이면 세울 수 있는 가장 가까운 칸에 놓는다. 서버에 저장된 자리를 되살릴 때 쓴다.
+        /// </summary>
+        /// <returns>이미 놓였거나 세울 칸이 하나도 없으면 false.</returns>
+        public bool TryAddSpiritNear(ExhibitionPlaceable spirit, Vector2Int cell)
+        {
+            if (TryAddSpirit(spirit, cell)) return true;
+            if (spirit == null || IsSpiritPlaced(spirit.ServerId)) return false;
+            var size = _surface.Grid.Size;
+            bool found = false; int bestDistance = int.MaxValue; var best = cell;
+            for (int x = 0; x < size.x; x++)
+                for (int y = 0; y < size.y; y++)
+                {
+                    var candidate = new Vector2Int(x, y);
+                    int distance = Mathf.Abs(x - cell.x) + Mathf.Abs(y - cell.y);
+                    if (distance >= bestDistance || !Layout.CanAddWalker(candidate)) continue;
+                    found = true; bestDistance = distance; best = candidate;
+                }
+            return found && TryAddSpirit(spirit, best);
         }
 
         private void UpdateFacing(HousingPlacement placement)
@@ -329,7 +353,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             ResetSelection();
             if (PlacementRequested != null) PlacementRequested.Invoke();
             else if (Picker) OpenPicker();
-            else BeginPlacement(_defaultItem);
         }
 
         public bool BeginPlacement(HousingItemDefinition definition)
@@ -370,7 +393,7 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
             if (Picker) Picker.Hide();
         }
 
-        /// <summary>지금 놓을 수 있는 대상. 아직 놓지 않은 보유 도깨비와 임시 전시물이다.</summary>
+        /// <summary>지금 놓을 수 있는 대상. 아직 놓지 않은 보유 도깨비다. 건물은 클라이언트용 건물 객체를 만든 뒤 같은 목록에 더한다.</summary>
         public List<HousingPlacementOption> PlacementOptions()
         {
             var options = new List<HousingPlacementOption>();
@@ -378,8 +401,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
                 foreach (var item in Inventory.Items)
                     if (item.IsSpirit && !IsSpiritPlaced(item.ServerId))
                         options.Add(new HousingPlacementOption(item.Key, item.DisplayName));
-            if (_defaultItem && _defaultItem.IsValid)
-                options.Add(new HousingPlacementOption(ItemOptionPrefix + _defaultItem.ItemId, _defaultItem.DisplayName));
             return options;
         }
 
@@ -400,7 +421,6 @@ namespace Jamkkaebi.Scripts.UI.Exhibition
 
         private void OnPickerChosen(string key)
         {
-            if (key.StartsWith(ItemOptionPrefix, StringComparison.Ordinal)) { BeginPlacement(_defaultItem); return; }
             var placeable = Inventory ? Inventory.Find(key) : null;
             if (!BeginPlacement(placeable)) OnInventoryChanged();
         }
