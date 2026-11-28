@@ -16,7 +16,7 @@ namespace Jamkkaebi.Scripts.UI.Workbench
     /// 형식이 맞지 않으면 <see cref="FormatException"/>을 던지고, 백엔드가 실패 콜백으로 바꾼다.
     /// </summary>
     /// <remarks>
-    /// 서버 계약 기준은 jamkkaebi-server feat/clarity-step-restore(c3642b6)다.
+    /// 서버 계약 기준은 jamkkaebi-server main이다(2026-11-28 PR #33으로 선명도 한 칸 회복 모양이 머지됨).
     /// 서버 시각은 오프셋 없는 한국 시간(LocalDateTime, Asia/Seoul)이라 UTC로 바꿔 담는다(클라이언트 시계가 UTC).
     /// </remarks>
     public static class WorkbenchServerMapper

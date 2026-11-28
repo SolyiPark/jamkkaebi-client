@@ -12,7 +12,7 @@ namespace Jamkkaebi.Tests.UI.EditMode
 {
     /// <summary>
     /// 작업대 서버 응답(JSON 샘플) → 응답 그릇 변환을 검사합니다. 서버 없이 돌며 실제 서버 검증이 아닙니다.
-    /// 샘플은 jamkkaebi-server feat/clarity-step-restore(c3642b6)의 DTO 모양을 따릅니다.
+    /// 샘플은 jamkkaebi-server main(PR #33 머지 이후)의 DTO 모양을 따릅니다.
     /// </summary>
     public sealed class WorkbenchServerMapperTests
     {

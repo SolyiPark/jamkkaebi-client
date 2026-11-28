@@ -1,6 +1,6 @@
 # 작업대 서버 연결
 
-2026-11-27 기록이다. 작업대가 모의 백엔드 대신 Spring 서버와 통신하는 구조와 검증 방법을 적는다. 서버 계약 기준은 jamkkaebi-server `feat/clarity-step-restore`(c3642b6)다. 이 브랜치는 이 기록 시점에 서버 `main`에 아직 합쳐지지 않았다(`main`은 `lastClearedPhase`·`resealAt`을 쓰는 옛 복구 모양).
+2026-11-27 기록이다. 작업대가 모의 백엔드 대신 Spring 서버와 통신하는 구조와 검증 방법을 적는다. 서버 계약 기준은 jamkkaebi-server `main`이다. 처음에는 `feat/clarity-step-restore`(c3642b6) 브랜치 모양에 맞춰 만들었고, 이 브랜치는 2026-11-28 서버 PR #33으로 `main`에 머지됐다. 그 전의 서버 `main`(`lastClearedPhase`·`resealAt`을 쓰는 옛 복구 모양)과는 맞지 않는다.
 
 ## 구조
 
@@ -62,4 +62,12 @@ Tools/serve-workbench-contract.sh ~/path/to/jamkkaebi-server
 - Unity Test Runner(macOS 에디터, 로컬 검증 서버 c3642b6): EditMode 전체 통과. `WorkbenchServerContractTests` 3개는 실제 HTTP로 통과했고, 친구 탭 HTTP 테스트 3개는 Windows 검증 스크립트 전용이라 생략됐다. 처음 실행에서 상자 테스트 사용자 분리, 정산 뒤 재보고 거절 버그를 찾아 고쳤다.
 - 에디터 Play(같은 검증 서버): 작업대 홈 → 상자 → 정화 → 미니게임 → 보고 → 결과, 정령 이름 변경을 사용자가 확인했다. 모바일·OAuth·배포 서버는 확인하지 않았다.
 - 서버 동작 메모: 최초 정화의 마지막 페이즈(오염 관리) 성공에도 `revealed`가 `NAMED`로 다시 왔다(서버 주석은 "새로 도달한 단계"). 서버는 jamkkaebi-server PR #30(`fix/first-guard-revealed`, `main` 기준)으로, 모의 백엔드는 이 브랜치에서 새로 오른 단계만 알리도록 고쳤다. c3642b6 검증 서버는 아직 옛 동작이며 클라이언트는 어느 쪽이든 그대로 표시한다.
-- 2026-11-28: 서버 PR #30(`revealed` 수정)과 PR #31(최소 플레이 시간을 성공 보고에만 적용)이 서버 `main`에 머지됐다. `feat/clarity-step-restore`에는 PR #30까지 병합해 두었다. PR #31 전 서버에서는 시작 5초 안에 포기하면 보고가 거절돼 재전송 화면이 나온다. 클라이언트는 바꾸지 않았다.
+- 2026-11-28: 서버 PR #30(`revealed` 수정)과 PR #31(최소 플레이 시간을 성공 보고에만 적용)이 서버 `main`에 머지됐다. PR #31 전 서버에서는 시작 5초 안에 포기하면 보고가 거절돼 재전송 화면이 나온다. 클라이언트는 바꾸지 않았다.
+- 2026-11-28: 서버 PR #33(`feat/clarity-step-restore`)이 `main`에 머지됐다. 클라이언트 PR #44도 `main`에 머지됐다. 이제 로컬 검증 서버는 서버 `main` 체크아웃으로 띄운다. 머지한 결과로 서버 테스트 259개가 통과했다. Unity 쪽 HTTP 테스트를 머지된 서버 `main`으로 다시 돌리지는 않았다.
+- 배포 DB에는 서버의 `db/manual/2026-11-25_clarity_step_restore.sql`을 한 번 실행해야 한다(`clarity_anchor_at` 추가·이관, 옛 복구 컬럼 삭제).
+
+## 남은 일
+
+- 로그인 화면이 없어 토큰은 환경 변수와 에디터 세션 파일로만 받는다. 빌드에서는 서버 주소·토큰이 없어 모의 모드로 동작한다.
+- 배포 서버 주소(`SharedRecords._serverBaseUrl`)는 비어 있다. 모바일·OAuth·배포 서버에서는 확인하지 않았다.
+- 작업대 응답의 `buildings`, 카드의 시대·별칭 필드는 화면에 쓰지 않는다.
